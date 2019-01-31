@@ -1,12 +1,66 @@
-# controller
-ND-controller-NAME = Template NodeServer Controller
-CMD-ctl-QUERY"-NAME = Query
-CMD-ctl-DISCOVER-NAME = Re-Discover
-CMD-ctl-UPDATE_PROFILE-NAME = Update Profile
-CMD-ctl-REMOVE_NOTICES_ALL-NAME = Remove All Notices
-CMD-ctl-REMOVE_NOTICE_TEST-NAME = Remove Notice Test
-ST-ctl-ST-NAME = NodeServer Online
 
-# mynodetype
-ND-tmplnode-NAME = Template Node
-ST-tmplnode-ST-NAME = Node Status
+# controller
+ND-controller-NAME = Notification Controller
+
+CMD-ctl-REFRESH-NAME = Refresh
+CMD-ctl-DISCOVER-NAME = Discover
+CMD-ctl-INSTALL_PROFILE-NAME = Update Profile
+
+ST-ctl-ST-NAME = NodeServer Online
+ST-ctl-GV1-NAME = Debug Mode
+ST-ctl-GV2-NAME = Notification
+
+CMD-SET_DM-NAME = Debug Level
+CDM-0 = All
+CDM-10 = Debug
+CDM-20 = Info
+CDM-30 = Warning
+CDM-40 = Error
+CDM-50 = Critical
+
+CMD-SET_NOTIFICATION-NAME = Notification
+
+NID-0 = Front Door Open
+NID-1 = Front Door Closed
+NID-2 = Back Door Open
+NID-3 = Back Door Closed
+NID-4 = Garage Door Open
+NID-5 = Garage Door Closed
+
+# PushoverNode
+ND-pushover-NAME = Pushover Node
+CMD-pov-SEND-NAME = Send
+
+ST-pov-ST-NAME = Last Status
+ST-pov-GV1-NAME = User
+ST-pov-GV2-NAME = Priority
+
+CMD-SET_USER-NAME = User
+CMD-SET_PRIORITY-NAME = Priority
+
+POVU-0 = User 0
+POVU-1 = User 1
+POVU-2 = User 2
+POVU-3 = User 3
+POVU-4 = User 4
+POVU-5 = User 5
+
+POVP-0 = Priority 0
+POVP-1 = Priority 1
+POVP-2 = Priority 2
+POVP-3 = Priority 3
+POVP-4 = Priority 4
+POVP-5 = Priority 5
+
+# AssistantRelay Node
+ND-assistantrelay-NAME = Pushover Node
+CMD-asr-SEND-NAME = Send
+
+ST-asr-ST-NAME = Last Status
+ST-asr-GV1-NAME = User
+ST-asr-GV2-NAME = Priority
+
+CMD-SET_USER-NAME = User
+
+ASRU-0 = jim
+ASRU-1 = jna

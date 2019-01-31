@@ -1,6 +1,33 @@
 <editors>
+
     <!-- Boolean -->
     <editor id="bool">
         <range uom="2" subset="0,1" />
     </editor>
+
+    <!-- Log Debug Mode -->
+    <editor id="DEBUGMODE">
+      <range uom="25" subset="0,10,20,30,40,50" nls="CDM" />
+    </editor>
+
+    <!-- Notification -->
+    <editor id="NOTIFY">
+      <range uom="25" subset="0-5" nls="NID" />
+    </editor>
+
+    <!-- Pushover Priority -->
+    <editor id="POV_PRIORITY">
+      <range uom="25" subset="0-5" nls="POVP" />
+    </editor>
+
+    <!-- Pusover User -->
+    <editor id="POV_USER">
+      <range uom="25" subset="0-5" nls="PUVU" />
+    </editor>
+
+    <!-- Assistant Relay User -->
+    <editor id="ASR_USER">
+      <range uom="25" subset="0-1" nls="ASRU" />
+    </editor>
+    
 </editors>
