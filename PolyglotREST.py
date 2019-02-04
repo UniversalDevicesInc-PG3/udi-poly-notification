@@ -85,7 +85,7 @@ class requestHandler(BaseHTTPRequestHandler):
         else:
             message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
         content_len = int(self.headers.get('Content-Length'))
-        self.post_body = self.rfile.read(content_len)
+        post_body = self.rfile.read(content_len)
         # Send back our reponese
         # TODO: only send if we understand it.
         hrt = self.parent.get_handler(parsed_path.path,self.query,post_body)
@@ -168,9 +168,10 @@ class polyglotREST():
 
 class polyglotRESTServer():
 
-    def __init__(self,logger,client_id,client_secret,ghandler=None,oauth2_code=False):
+    def __init__(self,port,logger,client_id,client_secret,ghandler=None,oauth2_code=False):
         self.l_name = "polyglotRESTServer"
         self.logger = logger
+        self.port   = port
         self.client_id = client_id
         self.client_secret = client_secret
         self.ghandler=ghandler
@@ -179,7 +180,7 @@ class polyglotRESTServer():
         self.token_type   = None
 
     def start(self):
-        self.rest = polyglotREST(self,self.logger)
+        self.rest = polyglotREST(self,self.logger,self.port)
         self.st = self.rest.start()
         if self.st is False:
             self.l_error('polyglotRESTServer:start','REST server not started {}'.format(self.st))
@@ -222,7 +223,7 @@ class polyglotRESTServer():
                 code = 500
                 message = "Unknown command, no ghandler specified '{}'".format(command)
             else:
-                ret = self.ghandler(command,params,self.session.post_data)
+                ret = self.ghandler(command,params,post_data)
                 if ret:
                     code = 200
                     message = 'Command {0} success'.format(command)
@@ -394,7 +395,7 @@ if __name__ == '__main__':
     client_id     = "3b08b242-f0f8-41c0-ba29-6b0478cd0b77"
     client_secret = "0b947853-1676-4a63-a384-72769c88f3b1"
     code          = "d967868a-144e-49ed-921f-c27b65dda06a"
-    obj = polyglotRESTServer(logger,client_id,client_secret,ghandler=my_ghandler)
+    obj = polyglotRESTServer(logger,'8082',client_id,client_secret,ghandler=my_ghandler)
     try:
         obj.start()
     except KeyboardInterrupt:
