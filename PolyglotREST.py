@@ -55,6 +55,49 @@ class requestHandler(BaseHTTPRequestHandler):
         message += '\r\n'
         self.wfile.write(message.encode('utf-8'))
 
+    def do_POST(self):
+        parsed_path = parse.urlparse(self.path)
+        self.query = dict(parse_qsl(parsed_path.query))
+        if 'debug' in self.query:
+            message_parts = [
+                'CLIENT VALUES:',
+                'client_address={} ({})'.format(
+                    self.client_address,
+                    self.address_string()),
+                'command={}'.format(self.command),
+                'path={}'.format(self.path),
+                'real path={}'.format(parsed_path.path),
+                'query={}'.format(parsed_path.query),
+                'query_dict={}'.format(self.query),
+                'request_version={}'.format(self.request_version),
+                '',
+                'SERVER VALUES:',
+                'server_version={}'.format(self.server_version),
+                'sys_version={}'.format(self.sys_version),
+                'protocol_version={}'.format(self.protocol_version),
+                '',
+                'HEADERS RECEIVED:',
+            ]
+            for name, value in sorted(self.headers.items()):
+                message_parts.append(
+                    '{}={}'.format(name, value.rstrip())
+                )
+        else:
+            message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
+        # Send back our repones
+        # TODO: only send if we understand it.
+        hrt = self.parent.get_handler(parsed_path.path,self.query)
+        message_parts.append("Code: {0}".format(int(hrt['code'])))
+        message_parts.append(hrt['message'])
+        self.send_response(int(hrt['code']))
+        self.send_header('Content-Type',
+                         'text/plain; charset=utf-8')
+        self.end_headers()
+        message_parts.append('')
+        message = '\r\n'.join(message_parts)
+        message += '\r\n'
+        self.wfile.write(message.encode('utf-8'))
+
     def log_message(self, fmt, *args):
         # Stop log messages going to stdout
         self.parent.logger.info('wtHandler:log_message' + fmt % args)
