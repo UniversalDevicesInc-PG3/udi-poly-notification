@@ -136,8 +136,8 @@ class polyglotREST():
         self.thread.start()
         return True
 
-    def get_handler(self,path,query):
-        return self.parent.get_handler(path,query)
+    def get_handler(self,path,query,data=None):
+        return self.parent.get_handler(path,query,data)
 
     def get_network_ip_rhost(self,rhost):
         self.logger.info("polyglotREST:get_network_ip: {0}".format(rhost))
