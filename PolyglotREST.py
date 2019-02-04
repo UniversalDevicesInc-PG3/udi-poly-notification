@@ -85,7 +85,7 @@ class requestHandler(BaseHTTPRequestHandler):
         else:
             message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
         content_len = int(self.headers.get('Content-Length'))
-        post_body = self.rfile.read(content_len)
+        self.post_body = self.rfile.read(content_len)
         # Send back our reponese
         # TODO: only send if we understand it.
         hrt = self.parent.get_handler(parsed_path.path,self.query,post_body)
@@ -194,7 +194,7 @@ class polyglotRESTServer():
         self._slock = False
         return True
 
-    def get_handler(self,command,params):
+    def get_handler(self,command,params,post_data):
         """
         This is passed the incoming http get's to processes
         """
@@ -222,7 +222,7 @@ class polyglotRESTServer():
                 code = 500
                 message = "Unknown command, no ghandler specified '{}'".format(command)
             else:
-                ret = self.ghandler(command,params)
+                ret = self.ghandler(command,params,self.session.post_data)
                 if ret:
                     code = 200
                     message = 'Command {0} success'.format(command)
