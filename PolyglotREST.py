@@ -395,7 +395,7 @@ if __name__ == '__main__':
     client_id     = "3b08b242-f0f8-41c0-ba29-6b0478cd0b77"
     client_secret = "0b947853-1676-4a63-a384-72769c88f3b1"
     code          = "d967868a-144e-49ed-921f-c27b65dda06a"
-    obj = polyglotRESTServer(logger,'8082',client_id,client_secret,ghandler=my_ghandler)
+    obj = polyglotRESTServer('8082',logger,client_id,client_secret,ghandler=my_ghandler)
     try:
         obj.start()
     except KeyboardInterrupt:
