@@ -41,8 +41,6 @@ class requestHandler(BaseHTTPRequestHandler):
                 )
         else:
             message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
-        content_len = int(self.headers.get('Content-Length'))
-        post_body = self.rfile.read(content_len)
         # Send back our response
         # TODO: only send if we understand it.
         hrt = self.parent.get_handler(parsed_path.path,self.query)
@@ -86,9 +84,11 @@ class requestHandler(BaseHTTPRequestHandler):
                 )
         else:
             message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
-        # Send back our repones
+        content_len = int(self.headers.get('Content-Length'))
+        post_body = self.rfile.read(content_len)
+        # Send back our reponese
         # TODO: only send if we understand it.
-        hrt = self.parent.get_handler(parsed_path.path,self.query)
+        hrt = self.parent.get_handler(parsed_path.path,self.query,post_body)
         message_parts.append("Code: {0}".format(int(hrt['code'])))
         message_parts.append(hrt['message'])
         self.send_response(int(hrt['code']))
@@ -379,8 +379,8 @@ class polyglotSession():
 
 
 
-def my_ghandler(command,params):
-    print("my_ghandler: command={} params={}".format(command,params))
+def my_ghandler(command,params,data=None):
+    print("my_ghandler: command={} params={} data={}".format(command,params,data))
     return True
 
 if __name__ == '__main__':
