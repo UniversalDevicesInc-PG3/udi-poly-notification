@@ -175,6 +175,10 @@ class Pushover(polyinterface.Node):
         md = self.parent.get_current_message()
         message=md['message']
         title=md['title']
+        return self.do_send(title=title, message=message)
+
+    def do_send(self,message,title=None):
+        # These may all eventually be passed in or pulled from drivers.
         html=False
         timestamp=None
         url=None
@@ -219,9 +223,10 @@ class Pushover(polyinterface.Node):
             return False
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
 
-    def rest_handler(self,command,params,data):
-        self.l_debug('rest_handler','command={} params={}'.format(command,params))
-    
+    def rest_send(self,params,data):
+        self.l_debug('rest_handler','params={}'.format(command,params))
+        do_send(data)
+
     id = 'pushover'
     commands = {
                 #'DON': setOn, 'DOF': setOff
