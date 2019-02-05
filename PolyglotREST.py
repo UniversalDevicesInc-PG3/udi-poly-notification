@@ -111,7 +111,7 @@ class polyglotREST():
         self.parent  = parent
         self.logger  = logger
         self.ip      = None
-        self.port    = port
+        self.port    = int(port)
 
     def start(self):
         # TODO: This will fail if we don't have internet access...

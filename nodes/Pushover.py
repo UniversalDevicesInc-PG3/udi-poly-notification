@@ -219,6 +219,9 @@ class Pushover(polyinterface.Node):
             return False
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
 
+    def rest_handler(self,command,params,data):
+        self.l_debug('rest_handler','command={} params={}'.format(command,params))
+    
     id = 'pushover'
     commands = {
                 #'DON': setOn, 'DOF': setOff

@@ -9,7 +9,6 @@ from PolyglotREST import polyglotRESTServer
 
 LOGGER = polyinterface.LOGGER
 
-
 xref_messages = [
     { 'id':'fdo', 'title':None, 'message':'Front Door Open' },
     { 'id':'fdc', 'title':None, 'message':'Front Door Closed'},
@@ -34,6 +33,8 @@ class Controller(polyinterface.Controller):
         """
         LOGGER.info('Started notification NodeServer')
         self.rest = polyglotRESTServer('8099',LOGGER,ghandler=self.rest_handler)
+        # TODO: Need to monitor thread and restart if it dies
+        self.rest.start()
         self.set_debug_level(self.getDriver('GV1'))
         self.check_params()
         self.discover()
@@ -262,12 +263,17 @@ class Controller(polyinterface.Controller):
     def l_debug(self, name, string):
         LOGGER.debug("%s:%s: %s" % (self.id,name,string))
 
-    def rest_handler(command,params,data=None):
+    def rest_handler(self,command,params,data=None):
         self.l_info('rest_handler',' command={} params={} data={}'.format(command,params,data))
         if command == '/send':
             if not 'node' in params:
                 self.l_error('rest_handler', 'node not passed in for send params: {}'.format(params))
                 return False
+            node = params['node']
+            if not node in self.nodes:
+                self.l_error('rest_handler', 'unknown node "{}"'.format(node))
+                return False
+            self.nodes[node].rest_handler(command,params,data)
         return True
 
     """
