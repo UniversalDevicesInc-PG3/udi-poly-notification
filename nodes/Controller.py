@@ -35,6 +35,7 @@ class Controller(polyinterface.Controller):
         self.set_debug_level(self.getDriver('GV1'))
         self.check_params()
         self.discover()
+        self.rest = polyglotRESTServer('8099',LOGGER,ghandler=self.rest_handler)
 
     def shortPoll(self):
         pass
@@ -260,6 +261,13 @@ class Controller(polyinterface.Controller):
     def l_debug(self, name, string):
         LOGGER.debug("%s:%s: %s" % (self.id,name,string))
 
+    def rest_handler(command,params,data=None):
+        self.l_info('rest_handler',' command={} params={} data={}".format(command,params,data))
+        if command == '/send':
+            if not 'node' in params:
+                self.l_error('rest_handler', 'node not passed in for send params: {}'.format(params)')
+                return False
+        return True
 
     """
     Optional.

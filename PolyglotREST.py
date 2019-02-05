@@ -168,7 +168,7 @@ class polyglotREST():
 
 class polyglotRESTServer():
 
-    def __init__(self,port,logger,client_id,client_secret,ghandler=None,oauth2_code=False):
+    def __init__(self,port,logger,client_id=None,client_secret=None,ghandler=None,oauth2_code=False):
         self.l_name = "polyglotRESTServer"
         self.logger = logger
         self.port   = int(port)
