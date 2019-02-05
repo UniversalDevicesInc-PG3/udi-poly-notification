@@ -6,8 +6,8 @@
     "install": "install.sh",
     "description": "Notification Node Server",
     "notice": "Your disclaimer here",
-    "shortPoll": "5",
-    "longPoll": "60",
+    "shortPoll": "60",
+    "longPoll": "360",
     "credits": [
         {
             "title": "notification: The NodeServer for Sending Notifications",

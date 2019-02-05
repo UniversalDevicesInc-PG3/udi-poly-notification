@@ -32,25 +32,31 @@ ND-pushover-NAME = Pushover Node
 CMD-pov-SEND-NAME = Send
 
 ST-pov-ST-NAME = Last Status
-ST-pov-GV1-NAME = User
+ST-pov-ERR-NAME = Error
+ST-pov-GV1-NAME = Device
 ST-pov-GV2-NAME = Priority
 
-CMD-SET_USER-NAME = User
+CMD-SET_DEVICE-NAME = Device
 CMD-SET_PRIORITY-NAME = Priority
 
-POVU-0 = User 0
-POVU-1 = User 1
-POVU-2 = User 2
-POVU-3 = User 3
-POVU-4 = User 4
-POVU-5 = User 5
+POVD-0 = All
+POVD-1 = JimsPhone
+POVD-2 = AudreysPhone
+POVD-3 = Nexus7-2013
+POVD-4 = PixelC
 
-POVP-0 = Priority 0
-POVP-1 = Priority 1
-POVP-2 = Priority 2
-POVP-3 = Priority 3
-POVP-4 = Priority 4
-POVP-5 = Priority 5
+POVP-0 = Lowest
+POVP-1 = Low
+POVP-2 = Normal
+POVP-3 = High
+POVP-4 = Emergency
+
+POVE-0 = None
+POVE-1 = Illegal Value
+POVE-2 = App Auth
+POVE-3 = User Auth
+POVE-4 = Create Message
+POVE-5 = Send Message
 
 # AssistantRelay Node
 ND-assistantrelay-NAME = Pushover Node

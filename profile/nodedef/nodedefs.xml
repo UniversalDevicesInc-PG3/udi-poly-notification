@@ -37,15 +37,16 @@
         <editors />
         <sts>
             <st id="ST"  editor="bool" />
-            <st id="GV1" editor="POV_USER" />
+            <st id="ERR" editor="POV_ERR" />
+            <st id="GV1" editor="POV_DEVICE" />
             <st id="GV2" editor="POV_PRIORITY" />
         </sts>
         <cmds>
             <sends />
             <accepts>
               <!--  Log Debug Mode -->
-              <cmd id="SET_USER">
-                <p id="" editor="POV_USER" init="GV1"/>
+              <cmd id="SET_DEVICE">
+                <p id="" editor="POV_DEVICE" init="GV1"/>
               </cmd>
               <cmd id="SET_PRIORITY">
                 <p id="" editor="POV_PRIORITY" init="GV2"/>

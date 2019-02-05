@@ -8,6 +8,16 @@ import logging
 
 LOGGER = polyinterface.LOGGER
 
+
+xref_messages = [
+    { 'id':'fdo', 'title':None, 'message':'Front Door Open' },
+    { 'id':'fdc', 'title':None, 'message':'Front Door Closed'},
+    { 'id':'bdo', 'title':None, 'message':'Back Door Open'},
+    { 'id':'bdc', 'title':None, 'message':'Back Door Closed'},
+    { 'id':'gdo', 'title':None, 'message':'Garage Door Open'},
+    { 'id':'gdc', 'title':None, 'message':'Garage Door Closed'},
+]
+
 class Controller(polyinterface.Controller):
     """
     """
@@ -49,17 +59,19 @@ class Controller(polyinterface.Controller):
     def discover(self, *args, **kwargs):
         """
         """
-        customParams = self.polyConfig.get('customParams', {})
+        self.poly.installprofile()
+        #customParams = self.polyConfig.get('customParams', {})
+        #pnodes = customParams.get('pushover')
+        self.pnodes = self.get_typed_name('pushover')
+        self.messages = xref_messages
+        # name must be <= 11 characters, and dont change since it's used as the node address
+        self.pnodes = [{'name': 'homeisy', 'user_key': 'tavzn48CN3tsp8iXwPwNgDxbfw3ngh', 'app_key': 'XY2bmjgRLzy4LANZREGd23WrewFawA'}]
+        if self.pnodes is None or len(self.pnodes) == 0:
+            self.l_info('discover',"No Pushover Entries in the config: {}".format(self.pnodes))
+            return
+        for pd in self.pnodes:
+            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Pushover {}'.format(pd['name']), pd))
 
-        pnodes = customParams.get('pushover')
-        if pnodes and len(pnodes) > 0:
-            for pstring in customParams['pndoes'].split(';'):
-                self.l_info('discover','pstring={}'.format(pstring))
-                name, desc = pstring.split('=')
-                self.l_info('discover','name={} desc={}'.format(name,desc))
-                self.addNode(Pushover(self, self.address, 'pushover', 'Pushover'))
-        else:
-            self.l_info('discover',"No Pushover Entries in config")
         #self.addNode(AssistantRelay(self, self.address, 'assistantrelay', 'AssistantRelay'))
 
     def delete(self):
@@ -70,10 +82,24 @@ class Controller(polyinterface.Controller):
     def stop(self):
         LOGGER.debug('NodeServer stopped.')
 
+    def get_current_message(self):
+        i = self.getDriver('GV2')
+        if i is None:
+            i = 0
+        else:
+            i = int(i)
+        return self.messages[i]
+
     def supports_feature(self, feature):
         if hasattr(self.poly, 'supports_feature'):
             return self.poly.supports_feature(feature)
         return False
+
+    def get_typed_name(self,name):
+        typedConfig = self.polyConfig.get('typedCustomData')
+        if not typedConfig:
+            return None
+        return typedConfig.get(name)
 
     def check_params(self):
         """
@@ -81,7 +107,8 @@ class Controller(polyinterface.Controller):
         """
         # Remove all existing notices
         self.removeNoticesAll()
-        if self.supports_feature('typedParams'):
+        #if self.supports_feature('typedParams'):
+        if True:
             params = [
                         {
                             'name': 'notifications',
@@ -109,20 +136,20 @@ class Controller(polyinterface.Controller):
                             'params': [
                                 {
                                     'name': 'name',
-                                    'title': 'Account Name',
+                                    'title': 'Account Name For Reference',
                                     'isRequired': True
                                 },
                                 {
                                     'name': 'key',
-                                    'title': 'Your User Key',
+                                    'title': 'The User Key',
                                     'isRequired': True
                                 },
                                 {
-                                    'name': 'users',
-                                    'title': 'Users',
+                                    'name': 'apps',
+                                    'title': 'Application Keys',
                                     'isRequired': True,
                                     'isList': True,
-                                    'defaultValue': ['somename'],
+                                    #s'defaultValue': ['somename'],
                                 },
                             ]
                         },
@@ -156,6 +183,10 @@ class Controller(polyinterface.Controller):
                         }
                     ]
             self.poly.save_typed_params(params)
+        else:
+            txt = 'You need to run a newer version of polyglot that supports typedParams'
+            self.l_error('check_params', txt)
+            self.addNotice(txt)
 
         self.l_info('check_params', self.polyConfig['customParams'])
         #default = "None"

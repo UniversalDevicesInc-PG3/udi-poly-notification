@@ -17,17 +17,22 @@
 
     <!-- Pushover Priority -->
     <editor id="POV_PRIORITY">
-      <range uom="25" subset="0-5" nls="POVP" />
+      <range uom="25" subset="0-4" nls="POVP" />
     </editor>
 
     <!-- Pusover User -->
-    <editor id="POV_USER">
-      <range uom="25" subset="0-5" nls="PUVU" />
+    <editor id="POV_DEVICE">
+      <range uom="25" subset="0-4" nls="POVD" />
+    </editor>
+
+    <!-- Pusover User -->
+    <editor id="POV_ERR">
+      <range uom="25" subset="0-5" nls="POVE" />
     </editor>
 
     <!-- Assistant Relay User -->
     <editor id="ASR_USER">
       <range uom="25" subset="0-1" nls="ASRU" />
     </editor>
-    
+
 </editors>
