@@ -265,7 +265,7 @@ class Controller(polyinterface.Controller):
         self.l_info('rest_handler',' command={} params={} data={}".format(command,params,data))
         if command == '/send':
             if not 'node' in params:
-                self.l_error('rest_handler', 'node not passed in for send params: {}'.format(params)')
+                self.l_error('rest_handler', 'node not passed in for send params: {}'.format(params))
                 return False
         return True
 
