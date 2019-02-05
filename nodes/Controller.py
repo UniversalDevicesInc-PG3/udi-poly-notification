@@ -5,6 +5,7 @@
 import polyinterface
 from nodes import *
 import logging
+import polyglotRESTServer from PolyglotREST
 
 LOGGER = polyinterface.LOGGER
 
