@@ -222,10 +222,11 @@ class Pushover(polyinterface.Node):
             self.set_error('Send Message')
             return False
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
+        return message.is_sent
 
-    def rest_send(self,params,data):
+    def rest_send(self,title,body,params):
         self.l_debug('rest_handler','params={}'.format(params))
-        self.do_send(data)
+        return self.do_send(body,title)
 
     id = 'pushover'
     commands = {
