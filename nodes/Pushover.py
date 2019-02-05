@@ -225,7 +225,7 @@ class Pushover(polyinterface.Node):
 
     def rest_send(self,params,data):
         self.l_debug('rest_handler','params={}'.format(params))
-        do_send(data)
+        self.do_send(data)
 
     id = 'pushover'
     commands = {
