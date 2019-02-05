@@ -5,7 +5,7 @@
 import polyinterface
 from nodes import *
 import logging
-from PolyglotREST import polyglotRESTServer 
+from PolyglotREST import polyglotRESTServer
 
 LOGGER = polyinterface.LOGGER
 
@@ -33,10 +33,10 @@ class Controller(polyinterface.Controller):
         """
         """
         LOGGER.info('Started notification NodeServer')
+        self.rest = polyglotRESTServer('8099',LOGGER,ghandler=self.rest_handler)
         self.set_debug_level(self.getDriver('GV1'))
         self.check_params()
         self.discover()
-        self.rest = polyglotRESTServer('8099',LOGGER,ghandler=self.rest_handler)
 
     def shortPoll(self):
         pass
