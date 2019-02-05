@@ -273,7 +273,7 @@ class Controller(polyinterface.Controller):
             if not node in self.nodes:
                 self.l_error('rest_handler', 'unknown node "{}"'.format(node))
                 return False
-            self.nodes[node].rest_send(params,data.decode)
+            self.nodes[node].rest_send(params,data.decode())
         return True
 
     """
