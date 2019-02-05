@@ -224,7 +224,7 @@ class Pushover(polyinterface.Node):
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
 
     def rest_send(self,params,data):
-        self.l_debug('rest_handler','params={}'.format(command,params))
+        self.l_debug('rest_handler','params={}'.format(params))
         do_send(data)
 
     id = 'pushover'
