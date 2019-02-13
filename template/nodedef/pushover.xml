@@ -1,0 +1,25 @@
+<nodeDefs>
+  <!-- Pushover Node -->
+  <nodeDef id="{0}" nls="pov">
+    <editors />
+    <sts>
+      <st id="ST"  editor="bool" />
+      <st id="ERR" editor="PO_ERR" />
+      <st id="GV1" editor="PO_D_{1}" />
+      <st id="GV2" editor="PO_PRIORITY" />
+    </sts>
+    <cmds>
+      <sends />
+      <accepts>
+        <!--  Log Debug Mode -->
+        <cmd id="SET_DEVICE">
+          <p id="" editor="PO_D_{1}" init="GV1"/>
+        </cmd>
+        <cmd id="SET_PRIORITY">
+          <p id="" editor="PO_PRIORITY" init="GV2"/>
+        </cmd>
+          <cmd id="SEND" />
+      </accepts>
+    </cmds>
+  </nodeDef>
+</nodeDefs>

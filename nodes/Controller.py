@@ -5,18 +5,13 @@
 import polyinterface
 from nodes import *
 import logging
+from node_funcs import *
 from PolyglotREST import polyglotRESTServer
+from copy import deepcopy
+import re
 
 LOGGER = polyinterface.LOGGER
 
-xref_messages = [
-    { 'id':'fdo', 'title':None, 'message':'Front Door Open' },
-    { 'id':'fdc', 'title':None, 'message':'Front Door Closed'},
-    { 'id':'bdo', 'title':None, 'message':'Back Door Open'},
-    { 'id':'bdc', 'title':None, 'message':'Back Door Closed'},
-    { 'id':'gdo', 'title':None, 'message':'Garage Door Open'},
-    { 'id':'gdc', 'title':None, 'message':'Garage Door Closed'},
-]
 
 class Controller(polyinterface.Controller):
     """
@@ -27,6 +22,9 @@ class Controller(polyinterface.Controller):
         super(Controller, self).__init__(polyglot)
         self.name = 'Notification Controller'
         self.hb = 0
+        self.messages = None
+        self.pushover_nodes = []
+        #self.poly.onConfig(self.process_config)
 
     def start(self):
         """
@@ -62,20 +60,10 @@ class Controller(polyinterface.Controller):
     def discover(self, *args, **kwargs):
         """
         """
-        self.poly.installprofile()
-        #customParams = self.polyConfig.get('customParams', {})
-        #pnodes = customParams.get('pushover')
-        self.pnodes = self.get_typed_name('pushover')
-        self.messages = xref_messages
-        # name must be <= 11 characters, and dont change since it's used as the node address
-        self.pnodes = [{'name': 'homeisy', 'user_key': 'tavzn48CN3tsp8iXwPwNgDxbfw3ngh', 'app_key': 'XY2bmjgRLzy4LANZREGd23WrewFawA'}]
-        if self.pnodes is None or len(self.pnodes) == 0:
-            self.l_info('discover',"No Pushover Entries in the config: {}".format(self.pnodes))
-            return
-        for pd in self.pnodes:
-            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Pushover {}'.format(pd['name']), pd))
-
-        #self.addNode(AssistantRelay(self, self.address, 'assistantrelay', 'AssistantRelay'))
+        # TODO: This should be called by the process_config poly callback
+        # when called that way we don't see error tracebacks, so just manually
+        # call it for now.
+        self.process_config(self.polyConfig)
 
     def delete(self):
         """
@@ -104,6 +92,102 @@ class Controller(polyinterface.Controller):
             return None
         return typedConfig.get(name)
 
+    def process_config(self, config):
+        typedCustomData = config.get('typedCustomData')
+        if not typedCustomData:
+            return
+        save = False
+
+        self.messages = typedCustomData.get('messages')
+        self.l_debug('process_config','messages={}'.format(self.messages))
+        if self.messages is None:
+            self.l_debug('process_config','No messages')
+        else:
+            save = True
+
+        if self.process_pushover(typedCustomData.get('pushover')):
+            save = True
+
+        if save:
+            self.write_profile()
+            self.poly.installprofile()
+
+    def process_pushover(self,pushover):
+        self.pushover = pushover
+        self.l_info('process_pushover:','{}'.format(self.pushover))
+        # TODO: Create Pushover Nodes
+        #customParams = self.polyConfig.get('customParams', {})
+        #self.pushover_nodes = customParams.get('pushover')
+        # name must be <= 11 characters, and dont change since it's used as the node address
+        if self.pushover is None or len(self.pushover) == 0:
+            self.l_info('discover',"No Pushover Entries in the config: {}".format(self.pushover))
+            return False
+        for pd in self.pushover:
+            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Pushover {}'.format(pd['name']), pd))
+
+        return True
+
+    def write_profile(self):
+        pfx = 'write_profile'
+        self.l_info(pfx,'')
+        # Write the profile Data
+        #
+        # There is only one nls, so read the nls template and write the new one
+        #
+        en_us_txt = "profile/nls/en_us.txt"
+        make_file_dir(en_us_txt)
+        template_f = "template/en_us.txt"
+        self.l_info(pfx,"Reading {}".format(template_f))
+        nls_tmpl = open(template_f, "r")
+        self.l_info(pfx,"Writing {}".format(en_us_txt))
+        nls      = open(en_us_txt,  "w")
+        for line in nls_tmpl:
+            nls.write(line)
+        nls_tmpl.close()
+        # Get all the indexes and write the nls.
+        nls.write("\n")
+        ids = list()
+        for message in self.messages:
+            try:
+                id = int(message['id'])
+            except:
+                self.l_error(pfx,"message id={} is not an int".format(message['id']))
+                continue
+            ids.append(id)
+            nls.write("MID-{}: {}\n".format(message['id'],message['title']))
+
+        # The subset string for message id's
+        subset_str = get_subset_str(ids)
+        full_subset_str = ",".join(map(str,ids))
+        # Open the output editors file
+        editor_f   = "profile/editor/messages.xml"
+        make_file_dir(editor_f)
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/editor/messages.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Write the editors file with our info
+        self.l_info(pfx,"Writing {}".format(editor_f))
+        editor_h = open(editor_f, "w")
+        editor_h.write(data.format(full_subset_str,subset_str))
+        editor_h.close()
+
+        #nls.write('ND-EcobeeC_{0}-NAME = Ecobee Thermostat {0} (C)\n'.format(id))
+        #nls.write('ND-EcobeeC_{0}-ICON = Thermostat\n'.format(id))
+        #nls.write('ND-EcobeeF_{0}-NAME = Ecobee Thermostat {0} (F)\n'.format(id))
+        #nls.write('ND-EcobeeF_{0}-ICON = Thermostat\n'.format(id))
+
+        # Call the write profile on all the nodes.
+        for node in self.nodes:
+            self.l_info('write_profile','node={}'.format(node))
+            if self.nodes[node].name != self.name:
+                self.nodes[node].write_profile(nls)
+        nls.close()
+
+        return True
+
     def check_params(self):
         """
         This is an example if using custom Params for user and password and an example with a Dictionary
@@ -114,20 +198,25 @@ class Controller(polyinterface.Controller):
         if True:
             params = [
                         {
-                            'name': 'notifications',
-                            'title': 'Notifications',
-                            'desc': 'Your Notifications',
+                            'name': 'messages',
+                            'title': 'Messages',
+                            'desc': 'Your Custom Messages',
                             'isList': True,
                             'params': [
                                 {
-                                    'name': 'subject',
-                                    'title': 'Subject',
+                                    'name': 'id',
+                                    'title': "ID (Must be integer, should never change!)",
+                                    'isRequired': True,
+                                },
+                                {
+                                    'name': 'title',
+                                    'title': 'Title (Should be short)',
                                     'isRequired': True
                                 },
                                 {
-                                    'name': 'body',
-                                    'title': 'Body (Optional)',
-                                    'isRequired': False
+                                    'name': 'message',
+                                    'title': 'Message',
+                                    'isRequired': True
                                 },
                             ]
                         },
@@ -139,19 +228,19 @@ class Controller(polyinterface.Controller):
                             'params': [
                                 {
                                     'name': 'name',
-                                    'title': 'Account Name For Reference',
+                                    'title': 'Name for reference, used as node name. Must be 8 characters or less.',
                                     'isRequired': True
                                 },
                                 {
-                                    'name': 'key',
+                                    'name': 'user_key',
                                     'title': 'The User Key',
                                     'isRequired': True
                                 },
                                 {
-                                    'name': 'apps',
-                                    'title': 'Application Keys',
+                                    'name': 'app_key',
+                                    'title': 'Application Key',
                                     'isRequired': True,
-                                    'isList': True,
+                                    'isList': False,
                                     #s'defaultValue': ['somename'],
                                 },
                             ]

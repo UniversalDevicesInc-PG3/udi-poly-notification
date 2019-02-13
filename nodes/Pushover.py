@@ -4,6 +4,7 @@
 import polyinterface
 import logging
 from chump import Application
+from node_funcs import make_file_dir
 
 LOGGER = polyinterface.LOGGER
 
@@ -38,7 +39,9 @@ class Pushover(polyinterface.Node):
     def __init__(self, controller, primary, address, name, info):
         """
         """
-        self.info       = info
+        self.info     = info
+        self.iname    = info['name']
+        self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
         self.drivers = self._convertDrivers(driversMap)
@@ -88,6 +91,48 @@ class Pushover(polyinterface.Node):
         else:
             return super(Pushover, self).getDriver(driver)
 
+    def write_profile(self,nls):
+        pfx = 'write_profile'
+        self.l_info(pfx,'')
+        # Open the output editors file
+        output_f   = 'profile/editor/{0}.xml'.format(self.iname)
+        make_file_dir(output_f)
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/editor/pushover.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Write the editors file with our info
+        self.l_info(pfx,"Writing {}".format(output_f))
+        editor_h = open(output_f, "w")
+        #subset_str = '0-'+len(self.devices)
+        subset_str = '0-5'
+        editor_h.write(data.format(self.iname,subset_str))
+        editor_h.close()
+        #
+        # Open the output nodedefs file
+        output_f   = 'profile/nodedef/{0}.xml'.format(self.iname)
+        make_file_dir(output_f)
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/nodedef/pushover.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Write the nodedef file with our info
+        self.l_info(pfx,"Writing {}".format(output_f))
+        out_h = open(output_f, "w")
+        out_h.write(data.format(self.id,self.iname))
+        out_h.close()
+
+        nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
+        nls.write("ND-{0}-NAME = {1}\n".format(self.iname,self.name))
+        cnt=0
+        for name in xref_devices:
+            nls.write("POD_{}-{} = {}\n".format(self.iname,cnt,name))
+            cnt += 1
+
     def l_info(self, name, string):
         LOGGER.info("%s:%s:%s: %s" %  (self.id,self.name,name,string))
 
@@ -109,7 +154,10 @@ class Pushover(polyinterface.Node):
         self.setDriver('GV1', val)
 
     def get_device(self):
-        return int(self.getDriver('GV1'))
+        cval = self.getDriver('GV1')
+        if cval is None:
+            return 0
+        return int(cval)
 
     def get_device_name(self):
         dev = self.get_device()
@@ -154,6 +202,9 @@ class Pushover(polyinterface.Node):
         self.setDriver('GV2', val)
 
     def get_priority(self):
+        cval = self.getDriver('GV2')
+        if cval is None:
+            return 0
         return int(self.getDriver('GV2'))
 
     def get_pushover_priority(self):

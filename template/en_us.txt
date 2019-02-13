@@ -20,15 +20,8 @@ CDM-50 = Critical
 
 CMD-SET_NOTIFICATION-NAME = Notification
 
-NID-0 = Front Door Open
-NID-1 = Front Door Closed
-NID-2 = Back Door Open
-NID-3 = Back Door Closed
-NID-4 = Garage Door Open
-NID-5 = Garage Door Closed
-
-# PushoverNode
-ND-pushover-NAME = Pushover Node
+# Pushover Node
+ND-pushover-NAME = Pushover Default Node
 CMD-pov-SEND-NAME = Send
 
 ST-pov-ST-NAME = Last Status
@@ -59,7 +52,7 @@ POVE-4 = Create Message
 POVE-5 = Send Message
 
 # AssistantRelay Node
-ND-assistantrelay-NAME = Pushover Node
+ND-assistantrelay-NAME = Assistant Node
 CMD-asr-SEND-NAME = Send
 
 ST-asr-ST-NAME = Last Status

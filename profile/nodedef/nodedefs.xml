@@ -8,8 +8,8 @@
 			    <st id="ST" editor="bool" />
           <!-- Debug Mode -->
           <st id="GV1" editor="DEBUGMODE" />
-          <!-- The Notificaiton to send -->
-          <st id="GV2" editor="nid" />
+          <!-- The Message to send -->
+          <st id="GV2" editor="MESSAGE" />
 		    </sts>
         <cmds>
           <sends>
@@ -22,37 +22,12 @@
               <p id="" editor="DEBUGMODE" init="GV1"/>
             </cmd>
             <cmd id="SET_NOTIFICATION">
-              <p id="" editor="NOTIFY" init="GV2"/>
+              <p id="" editor="MESSAGE" init="GV2"/>
             </cmd>
             <cmd id="QUERY" />
             <cmd id="DISCOVER" />
             <cmd id="INSTALL_PROFILE" />
           </accepts>
-        </cmds>
-    </nodeDef>
-
-
-	  <!-- Pusover Node -->
-    <nodeDef id="pushover" nls="pov">
-        <editors />
-        <sts>
-            <st id="ST"  editor="bool" />
-            <st id="ERR" editor="POV_ERR" />
-            <st id="GV1" editor="POV_DEVICE" />
-            <st id="GV2" editor="POV_PRIORITY" />
-        </sts>
-        <cmds>
-            <sends />
-            <accepts>
-              <!--  Log Debug Mode -->
-              <cmd id="SET_DEVICE">
-                <p id="" editor="POV_DEVICE" init="GV1"/>
-              </cmd>
-              <cmd id="SET_PRIORITY">
-                <p id="" editor="POV_PRIORITY" init="GV2"/>
-              </cmd>
-                <cmd id="SEND" />
-            </accepts>
         </cmds>
     </nodeDef>
 

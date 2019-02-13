@@ -10,23 +10,13 @@
       <range uom="25" subset="0,10,20,30,40,50" nls="CDM" />
     </editor>
 
-    <!-- Notification -->
-    <editor id="NOTIFY">
-      <range uom="25" subset="0-5" nls="NID" />
-    </editor>
-
     <!-- Pushover Priority -->
-    <editor id="POV_PRIORITY">
+    <editor id="PO_PRIORITY">
       <range uom="25" subset="0-4" nls="POVP" />
     </editor>
 
     <!-- Pusover User -->
-    <editor id="POV_DEVICE">
-      <range uom="25" subset="0-4" nls="POVD" />
-    </editor>
-
-    <!-- Pusover User -->
-    <editor id="POV_ERR">
+    <editor id="PO_ERR">
       <range uom="25" subset="0-5" nls="POVE" />
     </editor>
 
