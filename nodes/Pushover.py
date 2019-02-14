@@ -73,13 +73,13 @@ class Pushover(polyinterface.Node):
                     self.devices.append(device)
                 self.l_info('start',"self.devices={}".format(self.devices))
                 self.set_error('None')
-                self.init_st = True
+                self._init_st = True
             else:
                 self.set_error('User Auth')
-                self.init_st = False
+                self._init_st = False
         else:
             self.set_error('App Auth')
-            self.init_st = False
+            self._init_st = False
 
     """
     This lets the controller know when we are initialized, or if we had
@@ -89,7 +89,7 @@ class Pushover(polyinterface.Node):
       True  = All Good
     """
     def init_st(self):
-        return self.init_st
+        return self._init_st
 
     def query(self):
         """
@@ -297,7 +297,7 @@ class Pushover(polyinterface.Node):
         self.l_debug('rest_handler','params={}'.format(params))
         return self.do_send(body,title)
 
-    init_st = None
+    _init_st = None
     id = 'pushover'
     commands = {
                 #'DON': setOn, 'DOF': setOff
