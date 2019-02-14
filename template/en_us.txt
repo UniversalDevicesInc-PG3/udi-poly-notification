@@ -18,7 +18,7 @@ CDM-30 = Warning
 CDM-40 = Error
 CDM-50 = Critical
 
-CMD-SET_NOTIFICATION-NAME = Notification
+CMD-SET_MESSAGE-NAME = Message
 
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node

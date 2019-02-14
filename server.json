@@ -1,19 +1,19 @@
 {
     "name": "Notification",
-    "docs": "https://github.com/Einstein42/udi-poly-notification",
+    "docs": "https://github.com/jimboca/udi-poly-notification",
     "type": "python3",
     "executable": "notification-poly.py",
     "install": "install.sh",
     "description": "Notification Node Server",
     "notice": "Your disclaimer here",
     "shortPoll": "60",
-    "longPoll": "360",
+    "longPoll": "300",
     "credits": [
         {
             "title": "notification: The NodeServer for Sending Notifications",
             "author": "Jim Searle (JimBoCA)",
             "version": "2.0.0",
-            "date": "August 25, 2018",
+            "date": "February 13, 2019",
             "source": "https://github.com/jimboca/udi-poly-notification",
             "license": "https://raw.githubusercontent.com/jimboca/udi-poly-notification/master/LICENSE"
         }

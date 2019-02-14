@@ -21,7 +21,7 @@
             <cmd id="SET_DM">
               <p id="" editor="DEBUGMODE" init="GV1"/>
             </cmd>
-            <cmd id="SET_NOTIFICATION">
+            <cmd id="SET_MESSAGE">
               <p id="" editor="MESSAGE" init="GV2"/>
             </cmd>
             <cmd id="QUERY" />

@@ -8,30 +8,14 @@ from node_funcs import make_file_dir
 
 LOGGER = polyinterface.LOGGER
 
-xref_err = {
-    'None':           0,
-    'Illegal Value':  1,
-    'App Auth':       2,
-    'User Auth':      3,
-    'Create Message': 4,
-    'Send Message':   5,
-    'Another Error':  6,
-}
+ERROR_NONE       = 0
+ERROR_UNKNOWN    = 1
+ERROR_APP_AUTH   = 2
+ERROR_USER_AUTH  = 3
+ERROR_MESSAGE_CREATE = 4
+ERROR_MESSAGE_SEND   = 5
 
-xref_devices = [
-    'All',
-    'JimsPhone',
-    'AudreysPhone',
-    'Nexus7-2013',
-    'PixelC',
-]
-
-driversMap = [
-    {'driver': 'ST',  'value': 0, 'uom': 2},
-    {'driver': 'ERR', 'value': 0, 'uom': 25},
-    {'driver': 'GV1', 'value': 0, 'uom': 25},
-    {'driver': 'GV2', 'value': 2, 'uom': 25}
-]
+REMOVED_DEVICE = "RemovedDevice"
 
 class Pushover(polyinterface.Node):
     """
@@ -39,17 +23,18 @@ class Pushover(polyinterface.Node):
     def __init__(self, controller, primary, address, name, info):
         """
         """
+        #self.l_debug('init','{} {}'.format(self.address,self.name))
         self.info     = info
         self.iname    = info['name']
         self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
-        self.drivers = self._convertDrivers(driversMap)
         super(Pushover, self).__init__(controller, primary, address, name)
 
     def start(self):
         """
         """
+        self.l_info('start','')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
@@ -59,6 +44,9 @@ class Pushover(polyinterface.Node):
         logger = logging.getLogger('chump')
         logger.setLevel(logging.DEBUG)
         logger.addHandler(LOGGER.handlers[0])
+        self.customData = self.controller.polyConfig.get('customData', {})
+        self.devices = self.customData.get('devices', {})
+        self.l_info('start',"self.devices={}".format(self.devices))
         self.l_info('start',"Authorized={}".format(self.app.is_authenticated))
         if self.app.is_authenticated:
             self.l_debug('start','Authorizing pushover user {}'.format(self.user_key))
@@ -68,18 +56,37 @@ class Pushover(polyinterface.Node):
                 # TODO: Save devices in config, and use to build Profile
                 # TODO: Remember devices or always use index
                 # This will alwasy be an array to the current device
-                self.devices = ["all"]
+                self.add_to_hash('all',self.devices)
                 for device in self.user.devices:
-                    self.devices.append(device)
+                    self.add_to_hash(device,self.devices)
+                self.controller.saveCustomData({'devices': self.devices})
                 self.l_info('start',"self.devices={}".format(self.devices))
-                self.set_error('None')
+                self.set_error(ERROR_NONE)
                 self._init_st = True
             else:
-                self.set_error('User Auth')
+                self.set_error(ERROR_USER_AUTH)
                 self._init_st = False
         else:
-            self.set_error('App Auth')
+            self.set_error(ERROR_APP_AUTH)
             self._init_st = False
+
+    def in_saved_list(self,name,list):
+        for idx in list:
+            if list[idx] == name:
+                return idx
+        return False
+
+    def add_to_hash(self,name,list):
+        # Find max in list
+        next = 0
+        add = True
+        for idx in list:
+            if list[idx] == name:
+                add = False
+            if int(idx) >= next:
+                next = int(idx)+1
+        if add:
+            list[str(next)] = name
 
     """
     This lets the controller know when we are initialized, or if we had
@@ -125,7 +132,7 @@ class Pushover(polyinterface.Node):
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
         # subset_str = '0-5'
-        subset_str = '0-'+str(len(self.devices))
+        subset_str = '0-'+str(len(self.devices)-1)
         editor_h.write(data.format(self.iname,subset_str))
         editor_h.close()
         #
@@ -146,10 +153,8 @@ class Pushover(polyinterface.Node):
 
         nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
         nls.write("ND-{0}-NAME = {1}\n".format(self.iname,self.name))
-        cnt=0
-        for name in self.devices:
-            nls.write("POD_{}-{} = {}\n".format(self.iname,cnt,name))
-            cnt += 1
+        for idx in self.devices:
+            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,self.devices[idx]))
 
     def l_info(self, name, string):
         LOGGER.info("%s:%s:%s: %s" %  (self.id,self.name,name,string))
@@ -183,7 +188,7 @@ class Pushover(polyinterface.Node):
         if dev == 0:
             # This means all to chump
             return None
-        return xref_devices[dev]
+        return self.devices[str(dev)]
 
     def set_st(self,val):
         self.l_info('set_st',val)
@@ -201,11 +206,6 @@ class Pushover(polyinterface.Node):
         if val is False:
             val = 0
         elif val is True:
-            val = 1
-        elif val in xref_err:
-            val = xref_err[val]
-        else:
-            self.l_error('set_error','Unknown error "{}"'.format(val))
             val = 1
         self.l_info('set_error','Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
@@ -279,7 +279,7 @@ class Pushover(polyinterface.Node):
                 )
         except Exception as err:
             self.l_error('cmd_send','create_message failed: {0}'.format(err))
-            self.set_error('Create Message')
+            self.set_error(ERROR_MESSAGE_CREATE)
             return False
         #
         # Send the message
@@ -288,7 +288,7 @@ class Pushover(polyinterface.Node):
             message.send()
         except Exception as err:
             self.l_error('cmd_send','send_message failed: {}'.format(err))
-            self.set_error('Send Message')
+            self.set_error(ERROR_MESSAGE_SEND)
             return False
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return message.is_sent
@@ -299,6 +299,12 @@ class Pushover(polyinterface.Node):
 
     _init_st = None
     id = 'pushover'
+    drivers = [
+        {'driver': 'ST',  'value': 0, 'uom': 2},
+        {'driver': 'ERR', 'value': 0, 'uom': 25},
+        {'driver': 'GV1', 'value': 0, 'uom': 25},
+        {'driver': 'GV2', 'value': 2, 'uom': 25}
+    ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
                 'SET_DEVICE': cmd_set_device,

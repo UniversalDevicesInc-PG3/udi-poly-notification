@@ -25,6 +25,8 @@ class Controller(polyinterface.Controller):
         self.hb = 0
         self.messages = None
         self.pushover_nodes = []
+        # We track our driver values because we need the value before it's been pushed.
+        self.driver = {}
         #self.poly.onConfig(self.process_config)
 
     def start(self):
@@ -74,13 +76,27 @@ class Controller(polyinterface.Controller):
     def stop(self):
         LOGGER.debug('NodeServer stopped.')
 
+    def setDriver(self,driver,value):
+        self.driver[driver] = value
+        super(Controller, self).setDriver(driver,value)
+
+    def getDriver(self,driver):
+        if driver in self.driver:
+            return self.driver[driver]
+        else:
+            return super(Controller, self).getDriver(driver)
+
     def get_current_message(self):
         i = self.getDriver('GV2')
+        self.l_info('get_current_message','i={}'.format(i))
         if i is None:
             i = 0
         else:
             i = int(i)
-        return self.messages[i]
+        for msg in self.messages:
+            if int(msg['id']) == i:
+                return msg
+        return { id: 0, title: 'Unknown', message: 'Undefined message {}'.format(i)}
 
     def supports_feature(self, feature):
         if hasattr(self.poly, 'supports_feature'):
@@ -315,6 +331,9 @@ class Controller(polyinterface.Controller):
         LOGGER.setLevel(level)
         #logging.getLogger('requests').setLevel(level)
 
+    def set_message(self,val):
+        self.setDriver('GV2', val)
+
     def set_debug_level(self,level):
         self.l_info('set_debug_level',level)
         if level is None:
@@ -347,6 +366,11 @@ class Controller(polyinterface.Controller):
         val = int(command.get('value'))
         self.l_info("cmd_set_debug_mode",val)
         self.set_debug_level(val)
+
+    def cmd_set_message(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_message",val)
+        self.set_message(val)
 
     def l_info(self, name, string):
         LOGGER.info("%s:%s: %s" %  (self.id,name,string))
@@ -390,6 +414,7 @@ class Controller(polyinterface.Controller):
     """
     id = 'controller'
     commands = {
+        'SET_MESSAGE': cmd_set_message,
         'SET_DM': cmd_set_debug_mode,
         #'SET_SHORTPOLL': cmd_set_short_poll,
         #'SET_LONGPOLL':  cmd_set_long_poll,
