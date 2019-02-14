@@ -182,7 +182,7 @@ class Controller(polyinterface.Controller):
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
                 node_st = node.init_st()
-                while node_st == 'None':
+                while node_st is None:
                     self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
                     time.sleep(3)
                     node_st = node.init_st()
