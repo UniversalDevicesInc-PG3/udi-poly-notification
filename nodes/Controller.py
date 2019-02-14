@@ -191,6 +191,7 @@ class Controller(polyinterface.Controller):
                     node.write_profile(nls)
                 else:
                     self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name,node_st))
+        self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
 
         return True
