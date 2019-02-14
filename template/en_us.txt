@@ -32,12 +32,6 @@ ST-pov-GV2-NAME = Priority
 CMD-SET_DEVICE-NAME = Device
 CMD-SET_PRIORITY-NAME = Priority
 
-POVD-0 = All
-POVD-1 = JimsPhone
-POVD-2 = AudreysPhone
-POVD-3 = Nexus7-2013
-POVD-4 = PixelC
-
 POVP-0 = Lowest
 POVP-1 = Low
 POVP-2 = Normal
