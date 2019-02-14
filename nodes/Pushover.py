@@ -125,7 +125,7 @@ class Pushover(polyinterface.Node):
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
         # subset_str = '0-5'
-        subset_str = '0-'+len(self.devices)
+        subset_str = '0-'+str(len(self.devices))
         editor_h.write(data.format(self.iname,subset_str))
         editor_h.close()
         #
