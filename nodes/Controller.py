@@ -9,6 +9,7 @@ from node_funcs import *
 from PolyglotREST import polyglotRESTServer
 from copy import deepcopy
 import re
+import time
 
 LOGGER = polyinterface.LOGGER
 
@@ -174,16 +175,22 @@ class Controller(polyinterface.Controller):
         editor_h.write(data.format(full_subset_str,subset_str))
         editor_h.close()
 
-        #nls.write('ND-EcobeeC_{0}-NAME = Ecobee Thermostat {0} (C)\n'.format(id))
-        #nls.write('ND-EcobeeC_{0}-ICON = Thermostat\n'.format(id))
-        #nls.write('ND-EcobeeF_{0}-NAME = Ecobee Thermostat {0} (F)\n'.format(id))
-        #nls.write('ND-EcobeeF_{0}-ICON = Thermostat\n'.format(id))
-
         # Call the write profile on all the nodes.
-        for node in self.nodes:
-            self.l_info('write_profile','node={}'.format(node))
-            if self.nodes[node].name != self.name:
-                self.nodes[node].write_profile(nls)
+        for node_name in self.nodes:
+            node = self.nodes[node_name]
+            if node.name != self.name:
+                # We have to wait until the node is done initializing since
+                # we can get here before the node is ready.
+                node_st = node.init_st()
+                while node_st == 'None':
+                    self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
+                    time.sleep(3)
+                    node_st = node.init_st()
+                if node_st:
+                    self.l_info('write_profile','node={}'.format(node_name))
+                    node.write_profile(nls)
+                else:
+                    self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name,node_st))
         nls.close()
 
         return True

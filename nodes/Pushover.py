@@ -52,7 +52,6 @@ class Pushover(polyinterface.Node):
         """
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
-        self.set_error(False)
         self.set_device(self.get_device())
         self.set_priority(self.get_priority())
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
@@ -65,13 +64,32 @@ class Pushover(polyinterface.Node):
             self.l_debug('start','Authorizing pushover user {}'.format(self.user_key))
             self.user = self.app.get_user(self.user_key)
             self.l_info('start',"user authenticated={} devices={}".format(self.user.is_authenticated, self.user.devices))
-            # TODO: Save devices in config, and use to build Profile
-            # TODO: Remember devices or always use index
-            # This will alwasy be an array to the current device
-            self.devices = ["all"]
-            for device in self.user.devices:
-                self.devices.append(device)
-            self.l_info('start',"self.devices={}".format(self.devices))
+            if self.user.is_authenticated:
+                # TODO: Save devices in config, and use to build Profile
+                # TODO: Remember devices or always use index
+                # This will alwasy be an array to the current device
+                self.devices = ["all"]
+                for device in self.user.devices:
+                    self.devices.append(device)
+                self.l_info('start',"self.devices={}".format(self.devices))
+                self.set_error('None')
+                self.init_st = True
+            else:
+                self.set_error('User Auth')
+                self.init_st = False
+        else:
+            self.set_error('App Auth')
+            self.init_st = False
+
+    """
+    This lets the controller know when we are initialized, or if we had
+    an error.  Since it can't call our write_profile until we have initilized
+      None  = Still initializing
+      False = Failed
+      True  = All Good
+    """
+    def init_st(self):
+        return self.init_st
 
     def query(self):
         """
@@ -106,8 +124,8 @@ class Pushover(polyinterface.Node):
         # Write the editors file with our info
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
-        #subset_str = '0-'+len(self.devices)
-        subset_str = '0-5'
+        # subset_str = '0-5'
+        subset_str = '0-'+len(self.devices)
         editor_h.write(data.format(self.iname,subset_str))
         editor_h.close()
         #
@@ -129,7 +147,7 @@ class Pushover(polyinterface.Node):
         nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
         nls.write("ND-{0}-NAME = {1}\n".format(self.iname,self.name))
         cnt=0
-        for name in xref_devices:
+        for name in self.devices:
             nls.write("POD_{}-{} = {}\n".format(self.iname,cnt,name))
             cnt += 1
 
@@ -176,7 +194,7 @@ class Pushover(polyinterface.Node):
         else:
             val = int(val)
         self.l_info('set_st','Set ST to {}'.format(val))
-        #self.setDriver('ERR', val)
+        self.setDriver('ST', val)
 
     def set_error(self,val):
         self.l_info('set_error',val)
@@ -279,6 +297,7 @@ class Pushover(polyinterface.Node):
         self.l_debug('rest_handler','params={}'.format(params))
         return self.do_send(body,title)
 
+    init_st = None
     id = 'pushover'
     commands = {
                 #'DON': setOn, 'DOF': setOff
