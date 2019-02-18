@@ -171,6 +171,9 @@ class Controller(polyinterface.Controller):
                 self.l_error(pfx,"message id={} is not an int".format(message['id']))
                 continue
             ids.append(id)
+            if 'message' not in message or message['message'] == '':
+                message['message'] = message['title']
+            self.l_info(pfx, 'message={}'.format(message))
             nls.write("MID-{}: {}\n".format(message['id'],message['title']))
 
         # The subset string for message id's
@@ -239,8 +242,8 @@ class Controller(polyinterface.Controller):
                                 },
                                 {
                                     'name': 'message',
-                                    'title': 'Message',
-                                    'isRequired': True
+                                    'title': 'Message (If empty, assume same as title)',
+                                    'isRequired': False
                                 },
                             ]
                         },
