@@ -40,7 +40,7 @@ class requestHandler(BaseHTTPRequestHandler):
                     '{}={}'.format(name, value.rstrip())
                 )
         else:
-            message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
+            message_parts = ["do_GET:Received: {0} {1}. ".format(parsed_path.path,self.query)]
         # Send back our response
         # TODO: only send if we understand it.
         hrt = self.parent.get_handler(parsed_path.path,self.query)
@@ -83,21 +83,33 @@ class requestHandler(BaseHTTPRequestHandler):
                     '{}={}'.format(name, value.rstrip())
                 )
         else:
-            message_parts = ["Received: {0} {1}. ".format(parsed_path.path,self.query)]
+            message_parts = ["do_POST:Received: {0} {1}. ".format(parsed_path.path,self.query)]
         content_len = int(self.headers.get('Content-Length'))
+        content_type = self.headers.get('Content-Type')
         post_body = self.rfile.read(content_len)
+        if post_body is not None:
+            post_body = post_body.decode()
+        if content_type == 'application/json':
+            try:
+                pdata = json.loads(post_body)
+            except Exception as err:
+                self.parent.logger.error('wtHandler: failed to parse body as json: {} Error={}'.format(post_body,err))
+                pdata = { 'body': post_body }
+        else:
+            pdata = { 'body': post_body }
         # Send back our reponese
         # TODO: only send if we understand it.
-        hrt = self.parent.get_handler(parsed_path.path,self.query,post_body)
+        hrt = self.parent.get_handler(parsed_path.path,self.query,pdata)
         message_parts.append("Code: {0}".format(int(hrt['code'])))
         message_parts.append(hrt['message'])
         self.send_response(int(hrt['code']))
         self.send_header('Content-Type',
                          'text/plain; charset=utf-8')
-        self.end_headers()
         message_parts.append('')
         message = '\r\n'.join(message_parts)
         message += '\r\n'
+        self.send_header("Content-Length", str(len(message)))
+        self.end_headers()
         self.wfile.write(message.encode('utf-8'))
 
     def log_message(self, fmt, *args):
@@ -125,7 +137,15 @@ class polyglotREST():
         # Get a handler and set parent to myself, so we can process the requests.
         eh = requestHandler
         eh.parent = self
-        self.server = HTTPServer(self.address, requestHandler)
+        done = False
+        # TODO: Add timeout, only check for socket in use?s
+        while not done:
+            try:
+                self.server = HTTPServer(self.address, requestHandler)
+                done = True
+            except Exception as err:
+                self.logger.error('polyglotREST:start: failed for port {}: {}, will try again in 5 seconds'.format(self.port,err))
+                time.sleep(5)
         self.url     = 'http://{0}:{1}'.format(self.server.server_address[0],self.server.server_address[1])
         self.listen_port = self.server.server_address[1]
         self.logger.info("polyglotREST: Running on: {0}".format(self.url))
@@ -165,6 +185,11 @@ class polyglotREST():
             pass
         self.logger.info("polyglotREST:get_network_ip: Failed")
         return False
+
+    def stop(self):
+        self.logger.info("polyglotREST:stop: Shutdoing down and closing")
+        self.server.shutdown()
+        self.server.server_close()
 
 class polyglotRESTServer():
 
@@ -220,16 +245,21 @@ class polyglotRESTServer():
             message = "Ignored {0}".format(command)
         else:
             if self.ghandler is None:
-                code = 500
+                code = 405
                 message = "Unknown command, no ghandler specified '{}'".format(command)
             else:
-                ret = self.ghandler(command,params,post_data)
-                if ret:
-                    code = 200
-                    message = 'Command {0} success'.format(command)
-                else:
+                try:
+                    ret = self.ghandler(command,params,post_data)
+                    if ret:
+                        code = 200
+                        message = 'Command {0} success'.format(command)
+                    else:
+                        code = 406
+                        message = 'Command {0} failed'.format(command)
+                except:
+                    message = "ghandler failed, see log"
+                    self.l_error('get_handler','failed',exc_info=True)
                     code = 500
-                    message = 'Command {0} failed'.format(command)
         if code == 200:
             self.l_debug('get_handler','code={0} message={1}'.format(code,message))
         else:

@@ -10,6 +10,8 @@ from PolyglotREST import polyglotRESTServer
 from copy import deepcopy
 import re
 import time
+import fnmatch
+import os
 
 LOGGER = polyinterface.LOGGER
 
@@ -33,7 +35,7 @@ class Controller(polyinterface.Controller):
         """
         """
         LOGGER.info('Started notification NodeServer')
-        self.rest = polyglotRESTServer('8099',LOGGER,ghandler=self.rest_handler)
+        self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
         # TODO: Need to monitor thread and restart if it dies
         self.rest.start()
         self.set_debug_level(self.getDriver('GV1'))
@@ -71,9 +73,11 @@ class Controller(polyinterface.Controller):
     def delete(self):
         """
         """
+        self.rest.stop()
         LOGGER.info('Oh God I\'m being deleted. Nooooooooooooooooooooooooooooooooooooooooo.')
 
     def stop(self):
+        self.rest.stop()
         LOGGER.debug('NodeServer stopped.')
 
     def setDriver(self,driver,value):
@@ -96,7 +100,8 @@ class Controller(polyinterface.Controller):
         for msg in self.messages:
             if int(msg['id']) == i:
                 return msg
-        return { id: 0, title: 'Unknown', message: 'Undefined message {}'.format(i)}
+        self.l_error('get_current_message','id={} not found in: {}'.format(i,self.messages))
+        return { id: 0, 'title': 'Unknown', 'message': 'Undefined message {}'.format(i)}
 
     def supports_feature(self, feature):
         if hasattr(self.poly, 'supports_feature'):
@@ -147,6 +152,17 @@ class Controller(polyinterface.Controller):
     def write_profile(self):
         pfx = 'write_profile'
         self.l_info(pfx,'')
+        #
+        # First clean out all files we created
+        #
+        for dir in ['profile/editor', 'profile/nodedef']:
+            self.l_info(pfx,dir)
+            for file in os.listdir(dir):
+                self.l_info(pfx,file)
+                if file != 'editors.xml' and file != 'nodedefs.xml':
+                    path = dir+'/'+file
+                    self.l_info(pfx,'Removing: {}'.format(path))
+                    os.remove(path)
         # Write the profile Data
         #
         # There is only one nls, so read the nls template and write the new one
@@ -172,7 +188,7 @@ class Controller(polyinterface.Controller):
                 continue
             ids.append(id)
             nls.write("MID-{}: {}\n".format(message['id'],message['title']))
-
+        #
         # The subset string for message id's
         subset_str = get_subset_str(ids)
         full_subset_str = ",".join(map(str,ids))
@@ -191,6 +207,12 @@ class Controller(polyinterface.Controller):
         editor_h.write(data.format(full_subset_str,subset_str))
         editor_h.close()
 
+        self.config_info = [
+            '<h3>Sending REST Commands</h3>',
+            '<p>Pass /send with node=the_node'
+            '<p>By default it is sent based on the current selected params of that node for device and priority.'
+            '<ul>'
+        ]
         # Call the write profile on all the nodes.
         for node_name in self.nodes:
             node = self.nodes[node_name]
@@ -198,18 +220,30 @@ class Controller(polyinterface.Controller):
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
                 node_st = node.init_st()
+                cnt = 0
                 while node_st is None:
                     self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
-                    time.sleep(3)
+                    time.sleep(10)
                     node_st = node.init_st()
+                    cnt += 1
+                    # Max is 10 minutes
+                    if cnt > 60:
+                        self.l_error('write_profile','{} time out waiting for initialize'.format(node_name))
                 if node_st:
                     self.l_info('write_profile','node={}'.format(node_name))
                     node.write_profile(nls)
+                    self.config_info.append(
+                        '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'
+                        .format(node.address,self.rest.listen_url)
+                    )
                 else:
                     self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name,node_st))
         self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
-
+        self.config_info.append('</ul>')
+        s = "\n"
+        cstr = s.join(self.config_info)
+        self.poly.add_custom_config_docs(cstr,True)
         return True
 
     def check_params(self):
@@ -384,22 +418,32 @@ class Controller(polyinterface.Controller):
     def l_debug(self, name, string):
         LOGGER.debug("%s:%s: %s" % (self.id,name,string))
 
-    def rest_handler(self,command,params,data=None):
-        self.l_info('rest_handler',' command={} params={} data={}'.format(command,params,data))
+    def rest_ghandler(self,command,params,data=None):
+        mn = 'rest_ghandler'
+        self.l_info(mn,' command={} params={} data={}'.format(command,params,data))
+        # data has body then we only have text data, so make that the message
+        if 'body' in data:
+            data = {'message': data['body']}
+        #
+        # Params override body data
+        #
+        for key, value in params.items():
+            data[key] = value
+        self.l_info(mn,' data={}'.format(data))
         if command == '/send':
-            if not 'node' in params:
-                self.l_error('rest_handler', 'node not passed in for send params: {}'.format(params))
+            if not 'node' in data:
+                self.l_error(mn, 'node not passed in for send params: {}'.format(data))
                 return False
-            node = params['node']
+            node = data['node']
             if not node in self.nodes:
-                self.l_error('rest_handler', 'unknown node "{}"'.format(node))
+                self.l_error(mn, 'unknown node "{}"'.format(node))
                 return False
             subject = None
-            if 'subject' in params:
-                subject=params['subject']
-            return self.nodes[node].rest_send(subject,data.decode(),params)
+            if 'subject' in data:
+                data['title'] = data['subject']
+            return self.nodes[node].rest_send(data)
 
-        self.l_error('rest_handler', 'Unknown command "{}"'.format(command))
+        self.l_error(mn, 'Unknown command "{}"'.format(command))
         return False
 
     """

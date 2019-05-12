@@ -1,5 +1,10 @@
 """
   Notification Pushover Node
+
+  TODO:
+    - Make sure pushover name is get_valid_node_name, and Length
+    - Clean out profile directory?
+
 """
 import polyinterface
 import logging
@@ -152,7 +157,7 @@ class Pushover(polyinterface.Node):
         out_h.close()
 
         nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
-        nls.write("ND-{0}-NAME = {1}\n".format(self.iname,self.name))
+        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
         for idx in self.devices:
             nls.write("POD_{}-{} = {}\n".format(self.iname,idx,self.devices[idx]))
 
@@ -242,12 +247,20 @@ class Pushover(polyinterface.Node):
         self.l_info("cmd_send",'')
         # Default create message params
         md = self.parent.get_current_message()
-        message=md['message']
-        title=md['title']
-        return self.do_send(title=title, message=message)
+        # md will contain title and message
+        return self.do_send(md)
 
-    def do_send(self,message,title=None):
+    def do_send(self,params):
+        self.l_info('cmd_send','params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
+        if 'message' in params:
+            message=params['message']
+        else:
+            message="NOT_SPECIFIED"
+        if 'title' in params:
+            title=params['title']
+        else:
+            title=None
         html=False
         timestamp=None
         url=None
@@ -293,9 +306,9 @@ class Pushover(polyinterface.Node):
         self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return message.is_sent
 
-    def rest_send(self,title,body,params):
+    def rest_send(self,params):
         self.l_debug('rest_handler','params={}'.format(params))
-        return self.do_send(body,title)
+        return self.do_send(params)
 
     _init_st = None
     id = 'pushover'
