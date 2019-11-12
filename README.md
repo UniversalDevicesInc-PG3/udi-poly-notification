@@ -35,7 +35,8 @@ There are 3 types of nodes
 - Service Nodes
   - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
     - Pushover Service Node
-      - These nodes will be named "Pushover" plus the "Name" you used in the Pushover keys configuration.  These are the nodes you can add to a program to configure and send the message defined in the Controller node.
+      - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
+      - These are the nodes you can add to a program to configure and send the message defined in the Controller node.
       - Status
         - Last Status
           - This will be True if the last message was sent successfully
@@ -59,12 +60,12 @@ There are 3 types of nodes
             - Emergency
   - Message Nodes
     - Message nodes defined by user on the Configuration Page
-    - They are meant to be added to a Scene and send messages when DON or DOFF is received.s
-    - They are going to be complicated, not sure how to do it properly yet...
+    - They are meant to be added to a Scene and send messages when DON or DOFF is received.
+    - They are going to be complicated, not sure how to do it properly yet, because they will need to have the ability to send messages to any or all services or devices...
 
 ## Heartbeat monitoring
 
-TODO: And program info here
+TODO: Add program info here
 
 
 ## Installation

@@ -136,7 +136,7 @@ class Controller(polyinterface.Controller):
         else:
             self.l_debug('process_config','Adding Nodes...')
         for node in nodes:
-            self.addNode(Mnode(self, self.address, 'mn_{}'.format(node['id']), 'Notif {}'.format(node['name']), node))
+            self.addNode(Message(self, self.address, 'mn_{}'.format(node['id']), 'Notif {}'.format(node['name']), node))
 
         if save:
             self.write_profile()
@@ -153,7 +153,7 @@ class Controller(polyinterface.Controller):
             self.l_info('discover',"No Pushover Entries in the config: {}".format(self.pushover))
             return False
         for pd in self.pushover:
-            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Pushover {}'.format(pd['name']), pd))
+            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), pd))
 
         return True
 
