@@ -13,13 +13,22 @@ This is discussed on the forum post [Polglot V2 Notification Nodeserver](https:/
 
 ## Configuration
 
-The [Configuration Document](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
+The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
 
 ## How it works
 
-Will add more information here when finalized
+Will add more information here when finalized someday...
 
 ## Nodes
+
+There are 3 types of nodes
+- Controller
+  - Main node for the server
+- Service Nodes
+  - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
+- Message Nodes
+  - Message nodes defined by user on the Configuration Page
+They are all documented below.
 
 ### Notification Controller
 
@@ -27,7 +36,7 @@ This is the main node which contains the Status of the nodeserver.
 
 #### Nodeserver Online
 
-If the nodeserver crashes or exits this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it dies.
+If the nodeserver crashes or exits this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it not running.
 
 #### Debug level
 
@@ -35,13 +44,13 @@ This sets the amount of info that shows up in the log file, to minimize file siz
 
 #### Message
 
-This will contain the list of Messages you add in the configuration described.  The chosen message will be sent when you call Send on a notification node.
+This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
 
 #### Heartbeat monitoring
 
 TODO: And program info here
 
-### Pushover Notification Node
+### Pushover Service Node
 
 These nodes will be named "Pushover" plus the "Name" you used in the Pushover keys configuration.  These are the nodes you can add to a program to configure and send the message defined in the Controller node.
 
