@@ -74,7 +74,7 @@ TODO: Add program info here
 
 ### ISY Network Resource
 
-This allows creating simple network resources that don't have to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
+This allows creating simple network resources that doesn't need to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
 
 - Create a Network Resource
   - http
@@ -137,7 +137,7 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
     * https://linuxconfig.org/raspbian-gnu-linux-upgrade-from-jessie-to-raspbian-stretch-9
 1. This has only been tested with ISY 5.0.16 so it is not confirmed to work with any prior version.
 
-## Issues Paige
+## Issues Page
 
 See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
