@@ -23,63 +23,49 @@ Will add more information here when finalized someday...
 
 There are 3 types of nodes
 - Controller
-  - Main node for the server
+  - This is the main node which contains the Status of the nodeserver.
+  - Status
+    - Nodeserver Online
+      - If the nodeserver crashes or exit this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it not running.
+  - Control
+      - Debug level
+        - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
+      - Message
+        -  This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
 - Service Nodes
   - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
-- Message Nodes
-  - Message nodes defined by user on the Configuration Page
-They are all documented below.
+    - Pushover Service Node
+      - These nodes will be named "Pushover" plus the "Name" you used in the Pushover keys configuration.  These are the nodes you can add to a program to configure and send the message defined in the Controller node.
+      - Status
+        - Last Status
+          - This will be True if the last message was sent successfully
+        - Error
+          - This will show the Last error when it happens.
+            - None
+            - Illegal Value
+            - App Auth
+            - User Auth
+            - Create Message
+            - Send Message
+      - Control
+        - Device
+          - This is the Pushover Device as configured on the pushover site.
+        - Priority
+          - This is the Pushover Priority
+            - Lowest
+            - Low
+            - Normal
+            - High
+            - Emergency
+  - Message Nodes
+    - Message nodes defined by user on the Configuration Page
+    - They are meant to be added to a Scene and send messages when DON or DOFF is received.s
+    - They are going to be complicated, not sure how to do it properly yet...
 
-### Notification Controller
-
-This is the main node which contains the Status of the nodeserver.
-
-#### Nodeserver Online
-
-If the nodeserver crashes or exits this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it not running.
-
-#### Debug level
-
-This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
-
-#### Message
-
-This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
-
-#### Heartbeat monitoring
+## Heartbeat monitoring
 
 TODO: And program info here
 
-### Pushover Service Node
-
-These nodes will be named "Pushover" plus the "Name" you used in the Pushover keys configuration.  These are the nodes you can add to a program to configure and send the message defined in the Controller node.
-
-#### Last Status
-
-This will be True if the last message was sent successfully
-
-#### Error
-
-This will show the Last error when it happens.
-- None
-- Illegal Value
-- App Auth
-- User Auth
-- Create Message
-- Send Message
-
-#### Device
-
-This is the Pushover Device as configured on the pushover site.
-
-#### Priority
-
-This is the Pushover Priority
-- Lowest
-- Low
-- Normal
-- High
-- Emergency
 
 ## Installation
 
