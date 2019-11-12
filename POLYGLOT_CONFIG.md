@@ -10,7 +10,7 @@
   - Add the Application Key
 - Restart the Nodeserver
 
-# Polyglot Notification Configuration
+## Common Notification Configuration
 
 ## Messages
 

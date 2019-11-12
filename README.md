@@ -9,7 +9,7 @@ MIT license.
 
 ## Support
 
-This is discussed on the forum post [Polglot V2 Notification Nodeserver](https://forum.universal-devices.com/topic/TBD/)  You can ask questions on that post, or file an issue here on github if you like https://github.com/jimboca/udi-notification-poly/issues
+This is discussed on the forum post [Polglot V2 Notification Nodeserver](https://forum.universal-devices.com/topic/TBD/)  You can ask questions on that post, or file an issue here on github if you like https://github.com/jimboca/udi-poly-notification/issues
 
 ## Configuration
 
