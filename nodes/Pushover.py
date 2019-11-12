@@ -28,12 +28,15 @@ class Pushover(polyinterface.Node):
     def __init__(self, controller, primary, address, name, info):
         """
         """
-        #self.l_debug('init','{} {}'.format(self.address,self.name))
+        # Need these for l_debug
+        self.name     = name
+        self.address  = address
         self.info     = info
         self.iname    = info['name']
         self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
+        self.l_debug('init','{} {}'.format(address,name))
         super(Pushover, self).__init__(controller, primary, address, name)
 
     def start(self):
