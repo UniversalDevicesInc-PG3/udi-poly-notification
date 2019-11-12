@@ -130,11 +130,11 @@ class Controller(polyinterface.Controller):
         if self.process_pushover(typedCustomData.get('pushover')):
             save = True
 
-        nodes = typedCustomData.get('messages')
+        nodes = typedCustomData.get('notify')
         if nodes is None:
-            self.l_debug('process_config','No Nodes')
+            self.l_debug('process_config','No Notify Nodes')
         else:
-            self.l_debug('process_config','Adding Nodes...')
+            self.l_debug('process_config','Adding Notify Nodes...')
         for node in nodes:
             self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
 
