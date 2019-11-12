@@ -130,13 +130,13 @@ class Controller(polyinterface.Controller):
         if self.process_pushover(typedCustomData.get('pushover')):
             save = True
 
-        nodes = typedCustomData.get('nodes')
+        nodes = typedCustomData.get('messages')
         if nodes is None:
             self.l_debug('process_config','No Nodes')
         else:
             self.l_debug('process_config','Adding Nodes...')
         for node in nodes:
-            self.addNode(Message(self, self.address, 'mn_{}'.format(node['id']), 'Notif {}'.format(node['name']), node))
+            self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
 
         if save:
             self.write_profile()
@@ -291,7 +291,7 @@ class Controller(polyinterface.Controller):
                         },
                         {
                             'name': 'pushover',
-                            'title': 'Pushover Keys',
+                            'title': 'Service Pushover Node Keys',
                             'desc': 'Config for https://pushover.net/',
                             'isList': True,
                             'params': [
@@ -315,9 +315,9 @@ class Controller(polyinterface.Controller):
                             ]
                         },
                         {
-                            'name': 'nodes',
-                            'title': 'Nodes',
-                            'desc': 'ISY Nodes to create',
+                            'name': 'notify',
+                            'title': 'Notify Nodes',
+                            'desc': 'Notify Nodes to create',
                             'isList': True,
                             'params': [
                                 {

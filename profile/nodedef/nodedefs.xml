@@ -32,20 +32,14 @@
     </nodeDef>
 
     <!-- Notify Node -->
-    <nodeDef id="message" nls="asr">
+    <nodeDef id="notify" nls="asr">
         <editors />
         <sts>
             <st id="ST"  editor="bool" />
-            <st id="GV1" editor="ASR_USER" />
         </sts>
         <cmds>
             <sends />
             <accepts>
-              <!--  Log Debug Mode -->
-              <cmd id="SET_USER">
-                <p id="" editor="ASR_USER" init="GV1"/>
-              </cmd>
-              <cmd id="SEND" />
             </accepts>
         </cmds>
     </nodeDef>

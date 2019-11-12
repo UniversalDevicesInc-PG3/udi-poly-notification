@@ -34,9 +34,9 @@ There are 3 types of nodes
         -  This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
 - Service Nodes
   - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
+  - These are the nodes you can add to a program to configure and send any message defined in the Controller node.
     - Pushover Service Node
       - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
-      - These are the nodes you can add to a program to configure and send the message defined in the Controller node.
       - Status
         - Last Status
           - This will be True if the last message was sent successfully
@@ -66,7 +66,6 @@ There are 3 types of nodes
 ## Heartbeat monitoring
 
 TODO: Add program info here
-
 
 ## Installation
 
