@@ -17,7 +17,10 @@ The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/m
 
 ## How it works
 
-Will add more information here when finalized someday...
+The nodeserver allows you to
+1. Create canned messages and send them to a notification service easily thru an ISY program
+2. Add a node to a scene to send messages when seen is controlled (Not working yet)
+3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program.
 
 ## Nodes
 
@@ -66,6 +69,54 @@ There are 3 types of nodes
 ## Heartbeat monitoring
 
 TODO: Add program info here
+
+## REST Interface
+
+### ISY Network Resource
+
+This allows creating simple network resources that don't have to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
+
+- Create a Network Resource
+  - http
+  - POST
+  - Host: The machine running Polyglot, check the nodeserver log to see the IP address.
+  - Port: 8199 (Currently Hardcoded)
+  - Path: /send?opt1=val1&opt2=val2...
+    - Params
+      - node=One of your Service nodes (required)
+      - subject=Your subject (optional)
+        - Use '+' for spaces, e.g. This+Is+The+Subject
+    - Example: /send?node=po_develop&subject=Test+From+Network+Resource
+      - This will send the message to the po_develop node
+  - Encode URL: not checked
+  - Timeout: 5000
+  - Mode: C Escaped
+  - Body: The message body you want to send.
+- Save it, then click on it an hit Test.
+- Create a program to send the NR
+```
+Notification NR Test
+
+If
+        Time is  7:00:00AM
+     Or Time is  6:00:00PM
+
+Then
+        Set 'Notification Controller / Service Pushover develop' Priority Normal
+        Set 'Notification Controller / Service Pushover develop' Device JimsPhone
+        Resource 'Test.1'
+ ```
+
+### Testing
+
+You can test the REST interface from a command line by running curl:
+
+curl -d '{"node":"po_develop", "message":"The Message", "subject":"The Subject"}' -H "Content-Type: application/json" -X POST http://192.168.86.77:8199/send
+curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
+
+# Customized Content
+
+I've been begging Michel and Chris to allow sending ISY "Customized Content" to a nodeserver.  This would make things much simpler.  Even better if ISY added Pushover as a service inside the Emails/Notifications page :)
 
 ## Installation
 
