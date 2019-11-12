@@ -16,8 +16,14 @@
 
 These are the messages you want to send.  Create at least one message, restart NodeServer and re-open admin console to see the messages on the controller node.
 
-- ID = This is the message ID.  It is used to build the profile, so you should never change this number if the message is referenced in a program!
+- ID = This is the message ID.
+  - It is used to build the profile, so you should never change this number if ANY message is referenced in a program.
+  - It also determines the order the messages show up in the
 - Title = The short message title, shown when selecting the message in the ISY Admin Console
 - Message = The message body, if empty then it will be the same is the Title
+
+## Help
+
+Please see [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md) for more information.
 
 <i>Note: The information below is generated on the fly and will be updated on each nodeserver restart or when discover or update profile is run from the Admin Console.  It takes a minute to update since it polls the pushover servers.</i>
