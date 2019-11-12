@@ -135,8 +135,8 @@ class Controller(polyinterface.Controller):
             self.l_debug('process_config','No Notify Nodes')
         else:
             self.l_debug('process_config','Adding Notify Nodes...')
-        for node in nodes:
-            self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
+            for node in nodes:
+                self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
 
         if save:
             self.write_profile()
