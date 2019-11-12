@@ -160,5 +160,7 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.0.3 10/11/2019
+  - Lots of code and documentation cleanup, prep for release.
 - 0.0.1 02/17/2019
-  - Initial release for review
+  - Initial release for review.
