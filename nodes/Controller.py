@@ -134,12 +134,19 @@ class Controller(polyinterface.Controller):
         if nodes is None:
             self.l_debug('process_config','No Notify Nodes')
         else:
+            save = True
             self.l_debug('process_config','Adding Notify Nodes...')
             for node in nodes:
                 self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
 
         if save:
-            self.write_profile()
+            try:
+                self.write_profile()
+            except:
+                # TODO: need exc_info!
+                # TODO: Need to set error on controller for this?
+                self.l_error('process_config:','write_profile failed: ',exc_info=True)
+                return
             self.poly.installprofile()
 
     def process_pushover(self,pushover):
@@ -164,11 +171,11 @@ class Controller(polyinterface.Controller):
         # First clean out all files we created
         #
         for dir in ['profile/editor', 'profile/nodedef']:
-            self.l_info(pfx,dir)
+            self.l_info(pfx,'Cleaning: {}'.format(dir))
             for file in os.listdir(dir):
                 self.l_info(pfx,file)
-                if file != 'editors.xml' and file != 'nodedefs.xml':
-                    path = dir+'/'+file
+                path = dir+'/'+file
+                if os.path.isfile(path) and file != 'editors.xml' and file != 'nodedefs.xml':
                     self.l_info(pfx,'Removing: {}'.format(path))
                     os.remove(path)
         # Write the profile Data
@@ -177,16 +184,18 @@ class Controller(polyinterface.Controller):
         #
         en_us_txt = "profile/nls/en_us.txt"
         make_file_dir(en_us_txt)
-        template_f = "template/en_us.txt"
+        template_f = "template/nls/en_us.txt"
         self.l_info(pfx,"Reading {}".format(template_f))
         nls_tmpl = open(template_f, "r")
         self.l_info(pfx,"Writing {}".format(en_us_txt))
         nls      = open(en_us_txt,  "w")
+        nls.write("# From: {}\n".format(template_f))
         for line in nls_tmpl:
             nls.write(line)
         nls_tmpl.close()
         # Get all the indexes and write the nls.
-        nls.write("\n")
+        nls.write("# End: {}\n".format(template_f))
+        nls.write("# Start: Custom Messages:\n")
         ids = list()
         for message in self.messages:
             try:
@@ -200,6 +209,7 @@ class Controller(polyinterface.Controller):
             self.l_info(pfx, 'message={}'.format(message))
             nls.write("MID-{}: {}\n".format(message['id'],message['title']))
         #
+        nls.write("# End: Custom Messages:\n\n")
         # The subset string for message id's
         subset_str = get_subset_str(ids)
         full_subset_str = ",".join(map(str,ids))
@@ -225,6 +235,7 @@ class Controller(polyinterface.Controller):
             '<ul>'
         ]
         # Call the write profile on all the nodes.
+        nls.write("# Start: Custom Service Nodes:\n")
         for node_name in self.nodes:
             node = self.nodes[node_name]
             if node.name != self.name:
@@ -249,6 +260,7 @@ class Controller(polyinterface.Controller):
                     )
                 else:
                     self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name,node_st))
+        nls.write("# Start: End Service Nodes:\n")
         self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
         self.config_info.append('</ul>')
@@ -438,14 +450,14 @@ class Controller(polyinterface.Controller):
     def l_info(self, name, string):
         LOGGER.info("%s:%s: %s" %  (self.id,name,string))
 
-    def l_error(self, name, string):
-        LOGGER.error("%s:%s: %s" % (self.id,name,string))
+    def l_error(self, name, string, exc_info=False):
+        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
 
     def l_warning(self, name, string):
         LOGGER.warning("%s:%s: %s" % (self.id,name,string))
 
-    def l_debug(self, name, string):
-        LOGGER.debug("%s:%s: %s" % (self.id,name,string))
+    def l_debug(self, name, string, exc_info=False):
+        LOGGER.debug("%s:%s: %s" % (self.id,name,string), exc_info=exc_info)
 
     def rest_ghandler(self,command,params,data=None):
         mn = 'rest_ghandler'

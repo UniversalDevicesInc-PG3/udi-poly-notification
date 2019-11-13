@@ -4,7 +4,8 @@
   TODO:
     - Make sure pushover name is get_valid_node_name, and Length
     - Clean out profile directory?
-
+    - Make list of sounds
+    - Allow groups of devices in configuration
 """
 import polyinterface
 import logging

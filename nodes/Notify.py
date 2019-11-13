@@ -31,6 +31,20 @@ class Notify(polyinterface.Node):
     def query(self):
         self.reportDrivers()
 
+    """
+    This lets the controller know when we are initialized, or if we had
+    an error.  Since it can't call our write_profile until we have initilized
+      None  = Still initializing
+      False = Failed
+      True  = All Good
+    """
+    def init_st(self):
+        return True; #self._init_st
+
+    # We don't need to do anything yet...
+    def write_profile(self,nls):
+        return True
+
     def setDriver(self,driver,value):
         self.driver[driver] = value
         super(Notify, self).setDriver(driver,value)
@@ -174,7 +188,10 @@ class Notify(polyinterface.Node):
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
         {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 2, 'uom': 25}
+        {'driver': 'GV2', 'value': 0, 'uom': 25}
+        {'driver': 'GV3', 'value': 0, 'uom': 25}
+        {'driver': 'GV4', 'value': 0, 'uom': 25}
+        {'driver': 'GV5', 'value': 0, 'uom': 25}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
