@@ -13,15 +13,7 @@ This is discussed on the forum post [Polglot V2 Notification Nodeserver](https:/
 
 ## Configuration
 
-### Pushover
-
-[Pushover](https://pushover.net) is a service that allows sending push messages to many platforms like Android, iOS, and desktop.  The nodeserver is an interface between the ISY and Pushover.  To begin you must have a pushover account which requires a small one time fee for each platform, you should download and run the Pushover app for your platform from the [Pushover Device Clients](https://pushover.net/clients).  This will assign you a user key which can be seen on the [Pushover dashboard](https://pushover.net/dashboard).  You can get a new API key by [registering an application](https://pushover.net/apps/clone/universal_devices), if you are already using Pushover and have API key's you can use those as well.
-
-If you have questions about why users must provide their own keys please read the [Pushover Support Explanation](https://support.pushover.app/i37-including-an-open-source-application-s-api-token-in-its-source-code).
-
-## Nodeserver
-
-The [Nodeserver Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
+The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
 
 ## How it works
 
@@ -168,6 +160,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.0.5 10/13/2019
+  - Notify nodes are tied at creation time to a Service node.  They are still non functional.
 - 0.0.4 10/12/2019
   - Start of Notify node, they are non-functional, but they exist.
 - 0.0.3 10/11/2019

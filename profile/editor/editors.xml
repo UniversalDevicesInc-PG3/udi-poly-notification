@@ -34,14 +34,5 @@
       <range uom="25" subset="0-4" nls="NFYP" />
     </editor>
 
-    <!-- Pushover Priority -->
-    <editor id="NFY_NODE">
-      <range uom="25" subset="0-2" nls="NFYN" />
-    </editor>
-
-    <!-- Pushover Priority -->
-    <editor id="NFY_DEVICE">
-      <range uom="25" subset="0-2" nls="NFYD" />
-    </editor>
 
 </editors>

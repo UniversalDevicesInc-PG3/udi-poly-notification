@@ -3,8 +3,9 @@
 ND-controller-NAME = Notification Controller
 
 CMD-ctl-REFRESH-NAME = Refresh
-CMD-ctl-DISCOVER-NAME = Discover
-CMD-ctl-INSTALL_PROFILE-NAME = Update Profile
+CMD-ctl-PROCESS_CONFIG-NAME = Process Config
+CMD-ctl-BUILD_PROFILE-NAME = Build Profile
+CMD-ctl-INSTALL_PROFILE-NAME = Install Profile
 
 ST-ctl-ST-NAME = NodeServer Online
 ST-ctl-GV1-NAME = Debug Mode

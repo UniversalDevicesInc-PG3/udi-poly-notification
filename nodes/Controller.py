@@ -40,7 +40,8 @@ class Controller(polyinterface.Controller):
         self.rest.start()
         self.set_debug_level(self.getDriver('GV1'))
         self.check_params()
-        self.discover()
+        self.process_config(self.polyConfig)
+        self.poly.installprofile()
 
     def shortPoll(self):
         pass
@@ -61,14 +62,6 @@ class Controller(polyinterface.Controller):
         #self.check_params()
         for node in self.nodes:
             self.nodes[node].reportDrivers()
-
-    def discover(self, *args, **kwargs):
-        """
-        """
-        # TODO: This should be called by the process_config poly callback
-        # when called that way we don't see error tracebacks, so just manually
-        # call it for now.
-        self.process_config(self.polyConfig)
 
     def delete(self):
         """
@@ -210,23 +203,14 @@ class Controller(polyinterface.Controller):
             nls.write("MID-{}: {}\n".format(message['id'],message['title']))
         #
         nls.write("# End: Custom Messages:\n\n")
-        # The subset string for message id's
-        subset_str = get_subset_str(ids)
-        full_subset_str = ",".join(map(str,ids))
-        # Open the output editors file
-        editor_f   = "profile/editor/messages.xml"
-        make_file_dir(editor_f)
-        # Open the template, and read into a string for formatting.
-        template_f = 'template/editor/messages.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
-        with open (template_f, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        # Write the editors file with our info
-        self.l_info(pfx,"Writing {}".format(editor_f))
-        editor_h = open(editor_f, "w")
-        editor_h.write(data.format(full_subset_str,subset_str))
-        editor_h.close()
+
+        nls.write("# Start: Pushover\n")
+        svc_cnt = 0
+        if not self.pushover is None:
+            for pd in self.pushover:
+                nls.write("NFYN-{} = {}\n".format(svc_cnt,pd['name']))
+                svc_cnt += 1
+        nls.write("# End: Pushover\n\n")
 
         self.config_info = [
             '<h3>Sending REST Commands</h3>',
@@ -236,22 +220,22 @@ class Controller(polyinterface.Controller):
         ]
         # Call the write profile on all the nodes.
         nls.write("# Start: Custom Service Nodes:\n")
+        # This is a list of all possible devices we can select, they are provided by the service nodes
+        self.devices = list()
         for node_name in self.nodes:
             node = self.nodes[node_name]
             if node.name != self.name:
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
-                node_st = node.init_st()
                 cnt = 0
-                while node_st is None:
+                while node.init_st() is None:
                     self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
                     time.sleep(10)
-                    node_st = node.init_st()
                     cnt += 1
                     # Max is 10 minutes
                     if cnt > 60:
                         self.l_error('write_profile','{} time out waiting for initialize'.format(node_name))
-                if node_st:
+                if node.init_st():
                     self.l_info('write_profile','node={}'.format(node_name))
                     node.write_profile(nls)
                     self.config_info.append(
@@ -259,7 +243,7 @@ class Controller(polyinterface.Controller):
                         .format(node.address,self.rest.listen_url)
                     )
                 else:
-                    self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name,node_st))
+                    self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name, node.init_st()))
         nls.write("# Start: End Service Nodes:\n")
         self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
@@ -267,6 +251,27 @@ class Controller(polyinterface.Controller):
         s = "\n"
         cstr = s.join(self.config_info)
         self.poly.add_custom_config_docs(cstr,True)
+        #
+        # editor/custom.xml
+        #
+        # The subset string for message id's
+        subset_str = get_subset_str(ids)
+        full_subset_str = ",".join(map(str,ids))
+        # Open the output editors fileme
+        editor_f   = "profile/editor/custom.xml"
+        make_file_dir(editor_f)
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/editor/custom.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Write the editors file with our info
+        self.l_info(pfx,"Writing {}".format(editor_f))
+        editor_h = open(editor_f, "w")
+        editor_h.write(data.format(full_subset_str,subset_str,(svc_cnt-1)))
+        editor_h.close()
+
         return True
 
     def check_params(self):
@@ -340,6 +345,11 @@ class Controller(polyinterface.Controller):
                                 {
                                     'name': 'name',
                                     'title': 'Name for node',
+                                    'isRequired': True
+                                },
+                                {
+                                    'name': 'service_node_name',
+                                    'title': 'Service Node Name',
                                     'isRequired': True
                                 },
                             ]
@@ -432,6 +442,17 @@ class Controller(polyinterface.Controller):
         else:
             self.l_error("set_debug_level","Unknown level {}".format(level))
 
+    def cmd_process_config(self,command):
+        LOGGER.info('cmd_process_config:')
+        self.process_config(self.polyConfig)
+
+    def cmd_build_profile(self,command):
+        LOGGER.info('cmd_build_profile:')
+        st = self.write_profile()
+        if st:
+            self.poly.installprofile()
+        return st
+
     def cmd_install_profile(self,command):
         LOGGER.info('cmd_install_profile:')
         st = self.poly.installprofile()
@@ -504,11 +525,12 @@ class Controller(polyinterface.Controller):
         #'SET_SHORTPOLL': cmd_set_short_poll,
         #'SET_LONGPOLL':  cmd_set_long_poll,
         'QUERY': query,
-        'DISCOVER': discover,
-        'INSTALL_PROFILE': cmd_install_profile
+        'PROCESS_CONFIG': cmd_process_config,
+        'BUILD_PROFILE': cmd_build_profile,
+        'INSTALL_PROFILE': cmd_install_profile,
     }
     drivers = [
         {'driver': 'ST',  'value': 1,  'uom': 2},  # Nodeserver status
-        {'driver': 'GV1', 'value': 10, 'uom': 25}, # Debug (Log) Mode
+        {'driver': 'GV1', 'value': 30, 'uom': 25}, # Debug (Log) Mode, default=30 Warning
         {'driver': 'GV2', 'value': 0,  'uom': 25}, # Notification
     ]

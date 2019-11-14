@@ -1,0 +1,33 @@
+<nodeDefs>
+    <!-- Notify Node -->
+    <nodeDef id="{0}" nls="nfy">
+        <editors />
+        <sts>
+            <st id="ST"  editor="bool" />
+            <st id="GV1" editor="NMESSAGE" />
+            <st id="GV2" editor="NMESSAGE" />
+            <st id="GV3" editor="NFY_NODE" />
+            <st id="GV4" editor="{1}" />
+            <st id="GV5" editor="PO_PRIORITY" />
+        </sts>
+        <cmds>
+            <sends />
+            <accepts>
+              <cmd id="SET_MESSAGE_DON">
+                <p id="" editor="NMESSAGE" init="GV1"/>
+              </cmd>
+              <cmd id="SET_MESSAGE_DOF">
+                <p id="" editor="NMESSAGE" init="GV2"/>
+              </cmd>
+              <cmd id="SET_DEVICE">
+                <p id="" editor="{1}" init="GV4"/>
+              </cmd>
+              <cmd id="SET_PRIORITY">
+                <p id="" editor="PO_PRIORITY" init="GV5"/>
+              </cmd>
+              <cmd id="DON" />
+              <cmd id="DOF" />
+            </accepts>
+        </cmds>
+    </nodeDef>
+</nodeDefs>

@@ -8,6 +8,7 @@
 """
 import polyinterface
 import logging
+from node_funcs import make_file_dir
 
 LOGGER = polyinterface.LOGGER
 
@@ -19,14 +20,20 @@ class Notify(polyinterface.Node):
         """
         """
         #self.l_debug('init','{} {}'.format(self.address,self.name))
+        self._init_st = None;
         self.info     = info
         self.iname    = info['name']
+        self.iid      = info['id']
+        self.id       = 'notify_' + self.iid
         super(Notify, self).__init__(controller, primary, address, name)
 
     def start(self):
         self.l_info('start','')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
+        #self.set_device(self.get_device())
+        self.set_priority(self.get_priority())
+        self._init_st = True
 
     def query(self):
         self.reportDrivers()
@@ -39,10 +46,28 @@ class Notify(polyinterface.Node):
       True  = All Good
     """
     def init_st(self):
-        return True; #self._init_st
+        return self._init_st;
 
-    # We don't need to do anything yet...
     def write_profile(self,nls):
+        pfx = 'write_profile'
+        self.l_info(pfx,'')
+        #
+        # Open the output nodedefs file
+        output_f   = 'profile/nodedef/{0}.xml'.format(self.iid)
+        make_file_dir(output_f)
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/nodedef/notify.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Write the nodedef file with our info
+        self.l_info(pfx,"Writing {}".format(output_f))
+        out_h = open(output_f, "w")
+        self.l_debug('write_profile','info={}'.format(self.info))
+        out_h.write(data.format(self.id,'PO_D_'+self.info['service_node_name']))
+        out_h.close()
+        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
         return True
 
     def setDriver(self,driver,value):
@@ -122,65 +147,6 @@ class Notify(polyinterface.Node):
         # md will contain title and message
         return self.do_send(md)
 
-    def do_send(self,params):
-        self.l_info('cmd_send','params={}'.format(params))
-        # These may all eventually be passed in or pulled from drivers.
-        if 'message' in params:
-            message=params['message']
-        else:
-            message="NOT_SPECIFIED"
-        if 'title' in params:
-            title=params['title']
-        else:
-            title=None
-        html=False
-        timestamp=None
-        url=None
-        url_title=None
-        device=self.get_device_name()
-        priority=self.get_Notify_priority()
-        callback=None
-        retry=30
-        expire=86400
-        sound=None
-        #
-        # Build the message
-        #
-        try:
-            self.l_info('cmd_send','create_message: message={} device={} priority={}'.format(message,device,priority))
-            message = self.user.create_message(
-                message=message,
-                device=device,
-                priority=priority,
-                title=title,
-                html=html,
-                timestamp=timestamp,
-                url=url,
-                url_title=url_title,
-                callback=callback,
-                retry=retry,
-                expire=expire,
-                sound=sound,
-                )
-        except Exception as err:
-            self.l_error('cmd_send','create_message failed: {0}'.format(err))
-            self.set_error(ERROR_MESSAGE_CREATE)
-            return False
-        #
-        # Send the message
-        #
-        try:
-            message.send()
-        except Exception as err:
-            self.l_error('cmd_send','send_message failed: {}'.format(err))
-            self.set_error(ERROR_MESSAGE_SEND)
-            return False
-        self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
-        return message.is_sent
-
-    def rest_send(self,params):
-        self.l_debug('rest_handler','params={}'.format(params))
-        return self.do_send(params)
 
     _init_st = None
     id = 'notify'
@@ -188,9 +154,9 @@ class Notify(polyinterface.Node):
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
         {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 0, 'uom': 25}
-        {'driver': 'GV3', 'value': 0, 'uom': 25}
-        {'driver': 'GV4', 'value': 0, 'uom': 25}
+        {'driver': 'GV2', 'value': 0, 'uom': 25},
+        {'driver': 'GV3', 'value': 0, 'uom': 25},
+        {'driver': 'GV4', 'value': 0, 'uom': 25},
         {'driver': 'GV5', 'value': 0, 'uom': 25}
     ]
     commands = {

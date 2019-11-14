@@ -1,0 +1,20 @@
+<editors>
+
+    <!-- Pushover Devices -->
+    <!-- Full Subset: {0} -->
+    <!-- Short Subset: {1} -->
+    <editor id="MESSAGE">
+      <range uom="25" subset="{1}" nls="MID" />
+    </editor>
+
+    <!-- Alll Service Nodes, used in Notify -->
+    <editor id="NFY_NODE">
+      <range uom="25" subset="0-2" nls="NFYN" />
+    </editor>
+
+    <!-- Pushover Devices, used in Notify nodes -->
+    <editor id="NFY_PUSHOVER_DEVICE">
+      <range uom="25" subset="0-{2}" nls="SVCPUSHOVER" />
+    </editor>
+
+</editors>

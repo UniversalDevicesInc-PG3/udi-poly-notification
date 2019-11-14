@@ -25,48 +25,15 @@
               <p id="" editor="MESSAGE" init="GV2"/>
             </cmd>
             <cmd id="QUERY" />
-            <cmd id="DISCOVER" />
+            <cmd id="PROCESS_CONFIG" />
+            <cmd id="BUILD_PROFILE" />
             <cmd id="INSTALL_PROFILE" />
           </accepts>
         </cmds>
     </nodeDef>
 
-    <!-- Notify Node -->
-    <nodeDef id="notify" nls="nfy">
-        <editors />
-        <sts>
-            <st id="ST"  editor="bool" />
-            <st id="GV1" editor="NMESSAGE" />
-            <st id="GV2" editor="NMESSAGE" />
-            <st id="GV3" editor="NFY_NODE" />
-            <st id="GV4" editor="NFY_DEVICE" />
-            <st id="GV5" editor="NFY_PRIORITY" />
-        </sts>
-        <cmds>
-            <sends />
-            <accepts>
-              <cmd id="SET_MESSAGE_DON">
-                <p id="" editor="NMESSAGE" init="GV1"/>
-              </cmd>
-              <cmd id="SET_MESSAGE_DOF">
-                <p id="" editor="NMESSAGE" init="GV2"/>
-              </cmd>
-              <cmd id="SET_NODE">
-                <p id="" editor="NFY_NODE" init="GV3"/>
-              </cmd>
-              <cmd id="SET_DEVICE">
-                <p id="" editor="NFY_DEVICE" init="GV4"/>
-              </cmd>
-              <cmd id="SET_PRIORITY">
-                <p id="" editor="NFY_PRIORITY" init="GV5"/>
-              </cmd>
-              <cmd id="DON" />
-              <cmd id="DOF" />
-            </accepts>
-        </cmds>
-    </nodeDef>
 
-	  <!-- Pusover Node -->
+	  <!-- Assistant Relay Node -->
     <nodeDef id="assistantrelay" nls="asr">
         <editors />
         <sts>
