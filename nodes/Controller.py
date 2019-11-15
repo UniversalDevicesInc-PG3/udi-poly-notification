@@ -26,7 +26,8 @@ class Controller(polyinterface.Controller):
         self.name = 'Notification Controller'
         self.hb = 0
         self.messages = None
-        self.pushover_nodes = []
+        # List of all service nodes
+        self.service_nodes = dict()
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         #self.poly.onConfig(self.process_config)
@@ -123,6 +124,8 @@ class Controller(polyinterface.Controller):
         if self.process_pushover(typedCustomData.get('pushover')):
             save = True
 
+        # TODO: Save service_nodes names in customParams?
+
         nodes = typedCustomData.get('notify')
         if nodes is None:
             self.l_debug('process_config','No Notify Nodes')
@@ -150,11 +153,13 @@ class Controller(polyinterface.Controller):
         #self.pushover_nodes = customParams.get('pushover')
         # name must be <= 11 characters, and dont change since it's used as the node address
         if self.pushover is None or len(self.pushover) == 0:
-            self.l_info('discover',"No Pushover Entries in the config: {}".format(self.pushover))
+            self.l_info('process_pushover',"No Pushover Entries in the config: {}".format(self.pushover))
             return False
         for pd in self.pushover:
-            self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), pd))
-
+            # TODO: Make sure one with this name doesn't already exist in dict
+            snode = self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), pd))
+            self.service_nodes[pd[name]] = snode
+            self.l_info('process_pushover','service_nodes={}'.format(self.service_nodes))
         return True
 
     def write_profile(self):

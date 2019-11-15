@@ -12,7 +12,6 @@ from node_funcs import make_file_dir
 
 LOGGER = polyinterface.LOGGER
 
-
 class Notify(polyinterface.Node):
     """
     """
@@ -25,12 +24,15 @@ class Notify(polyinterface.Node):
         self.iname    = info['name']
         self.iid      = info['id']
         self.id       = 'notify_' + self.iid
+        self.service_node_name = self.info['service_node_name']
         super(Notify, self).__init__(controller, primary, address, name)
 
     def start(self):
         self.l_info('start','')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
+        # Make sure we know who our service node is
+        self.controller.get_service_node(self.service_node_name)
         #self.set_device(self.get_device())
         self.set_priority(self.get_priority())
         self._init_st = True
@@ -65,7 +67,7 @@ class Notify(polyinterface.Node):
         self.l_info(pfx,"Writing {}".format(output_f))
         out_h = open(output_f, "w")
         self.l_debug('write_profile','info={}'.format(self.info))
-        out_h.write(data.format(self.id,'PO_D_'+self.info['service_node_name']))
+        out_h.write(data.format(self.id,'PO_D_'+self.service_node_name))
         out_h.close()
         nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
         return True
