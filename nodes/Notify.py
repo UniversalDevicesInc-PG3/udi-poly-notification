@@ -8,7 +8,7 @@
 """
 import polyinterface
 import logging
-from node_funcs import make_file_dir
+from node_funcs import *
 
 LOGGER = polyinterface.LOGGER
 
@@ -31,11 +31,19 @@ class Notify(polyinterface.Node):
         self.l_info('start','')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
-        # Make sure we know who our service node is
-        self.controller.get_service_node(self.service_node_name)
-        #self.set_device(self.get_device())
+        self.set_message_on(self.get_message_on())
+        self.set_message_off(self.get_message_off())
+        self.set_device(self.get_device())
         self.set_priority(self.get_priority())
-        self._init_st = True
+        # Make sure we know who our service node is
+        self.service_node = self.controller.get_service_node(self.service_node_name)
+        if self.service_node is False:
+            self.l_error('start',"No service node '{}' name exists".format(self.service_node_name))
+            self._init_st = False
+            # TODO: Set ERROR Flag
+        else:
+            self.set_node(self.service_node['index'])
+            self._init_st = True
 
     def query(self):
         self.reportDrivers()
@@ -105,6 +113,36 @@ class Notify(polyinterface.Node):
         self.l_info('set_st','Set ST to {}'.format(val))
         self.setDriver('ST', val)
 
+    def set_message_on(self,val):
+        self.l_info('set_message_on',val)
+        dv = 'GV1'
+        self.l_info('set_message_on','Set {} to {}'.format(dv,int(val)))
+        self.setDriver(dv, val)
+
+    def get_message_on(self):
+        cval = self.getDriver('GV1')
+        if cval is None:
+            return 0
+        return int(cval)
+
+    def set_message_off(self,val):
+        self.l_info('set_message_off',val)
+        dv = 'GV2'
+        self.l_info('set_message_on','Set {} to {}'.format(dv,int(val)))
+        self.setDriver(dv, val)
+
+    def get_message_off(self):
+        cval = self.getDriver('GV2')
+        if cval is None:
+            return 0
+        return int(cval)
+
+    def set_node(self,val):
+        self.l_info('set_node',val)
+        dv = 'GV3'
+        self.l_info('set_node','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
     def set_error(self,val):
         self.l_info('set_error',val)
         if val is False:
@@ -115,22 +153,45 @@ class Notify(polyinterface.Node):
         self.setDriver('ERR', val)
         self.set_st(True if val == 0 else False)
 
+    def set_device(self,val):
+        dv = 'GV4'
+        self.l_info('set_device',val)
+        if val is None:
+            val = 0
+        val = int(val)
+        self.l_info('set_device','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
+    def get_device(self):
+        cval = self.getDriver('GV4')
+        if cval is None:
+            return 0
+        return int(cval)
+
     def set_priority(self,val):
+        dv = 'GV5'
         self.l_info('set_priority',val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_priority','Set GV2 to {}'.format(val))
-        self.setDriver('GV2', val)
+        self.l_info('set_priority','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
 
     def get_priority(self):
-        cval = self.getDriver('GV2')
+        cval = self.getDriver('GV5')
         if cval is None:
             return 0
-        return int(self.getDriver('GV2'))
+        return int(cval)
 
-    def get_Notify_priority(self):
-        return self.get_priority() - 2
+    def cmd_set_message_on(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_message_on",val)
+        self.set_message_on(val)
+
+    def cmd_set_message_off(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_message_off",val)
+        self.set_message_off(val)
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
@@ -142,12 +203,26 @@ class Notify(polyinterface.Node):
         self.l_info("cmd_set_priority",val)
         self.set_priority(val)
 
-    def cmd_send(self,command):
-        self.l_info("cmd_send",'')
-        # Default create message params
-        md = self.parent.get_current_message()
+    def cmd_send_on(self,command):
+        self.l_info("cmd_send_on",''.format(command))
+        self.send_msg(self.get_message_on())
+
+    def cmd_send_off(self,command):
+        self.l_info("cmd_send_off",''.format(command))
+        self.send_msg(self.get_message_off())
+
+    def send_msg(self,mi):
+        msg = get_messages()[mi]
         # md will contain title and message
-        return self.do_send(md)
+        self.l_info("cmd_send_on","msg={}".format(msg))
+        self.service_node['node'].do_send(
+            {
+                #'title': ,
+                'message': self.iname+' '+msg,
+                'device': self.get_device(),
+                'priority': self.get_priority() - 2,
+            }
+        )
 
 
     _init_st = None
@@ -155,17 +230,18 @@ class Notify(polyinterface.Node):
     drivers = [
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
-        {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 0, 'uom': 25},
+        {'driver': 'GV1', 'value': 1, 'uom': 25},
+        {'driver': 'GV2', 'value': 2, 'uom': 25},
         {'driver': 'GV3', 'value': 0, 'uom': 25},
         {'driver': 'GV4', 'value': 0, 'uom': 25},
-        {'driver': 'GV5', 'value': 0, 'uom': 25}
+        {'driver': 'GV5', 'value': 2, 'uom': 25}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
+                'SET_MESSAGE_DON': cmd_set_message_on,
+                'SET_MESSAGE_DOF': cmd_set_message_off,
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
-                'SEND': cmd_send,
-                'DON': cmd_send,
-                'DOF': cmd_send,
+                'DON': cmd_send_on,
+                'DOF': cmd_send_on,
                 }

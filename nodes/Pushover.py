@@ -51,7 +51,8 @@ class Pushover(polyinterface.Node):
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         self.app = Application(self.app_key)
         logger = logging.getLogger('chump')
-        logger.setLevel(logging.DEBUG)
+        # TODO: Add higher debug level, to turn this debug on
+        logger.setLevel(logging.INFO)
         logger.addHandler(LOGGER.handlers[0])
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices = self.customData.get('devices', {})
@@ -191,8 +192,9 @@ class Pushover(polyinterface.Node):
             return 0
         return int(cval)
 
-    def get_device_name(self):
-        dev = self.get_device()
+    def get_device_name(self,dev=None):
+        if dev is None:
+            dev = self.get_device()
         self.l_debug('get_device_name','dev={}'.format(dev))
         if dev == 0:
             # This means all to chump
@@ -265,12 +267,20 @@ class Pushover(polyinterface.Node):
             title=params['title']
         else:
             title=None
+        if 'device' in params:
+            device = self.get_device_name(params['device'])
+        else:
+            device = self.get_device_name()
+        if 'priority' in params:
+            priority = params['priority']
+        else:
+            priority = self.get_pushover_priority()
         html=False
         timestamp=None
         url=None
         url_title=None
-        device=self.get_device_name()
-        priority=self.get_pushover_priority()
+        device=device
+        priority=priority
         callback=None
         retry=30
         expire=86400

@@ -15,7 +15,6 @@ import os
 
 LOGGER = polyinterface.LOGGER
 
-
 class Controller(polyinterface.Controller):
     """
     """
@@ -27,7 +26,7 @@ class Controller(polyinterface.Controller):
         self.hb = 0
         self.messages = None
         # List of all service nodes
-        self.service_nodes = dict()
+        self.service_nodes = list()
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         #self.poly.onConfig(self.process_config)
@@ -41,8 +40,8 @@ class Controller(polyinterface.Controller):
         self.rest.start()
         self.set_debug_level(self.getDriver('GV1'))
         self.check_params()
+        # TODO: Do we have to call this, don't want to beuild the profile on every start.
         self.process_config(self.polyConfig)
-        self.poly.installprofile()
 
     def shortPoll(self):
         pass
@@ -84,6 +83,12 @@ class Controller(polyinterface.Controller):
         else:
             return super(Controller, self).getDriver(driver)
 
+    def get_service_node(self,sname):
+        for item in self.service_nodes:
+            if item['name'] == sname:
+                return item
+        return False
+
     def get_current_message(self):
         i = self.getDriver('GV2')
         self.l_info('get_current_message','i={}'.format(i))
@@ -124,7 +129,7 @@ class Controller(polyinterface.Controller):
         if self.process_pushover(typedCustomData.get('pushover')):
             save = True
 
-        # TODO: Save service_nodes names in customParams?
+        # TODO: Save service_nodes names in customParams
 
         nodes = typedCustomData.get('notify')
         if nodes is None:
@@ -156,9 +161,9 @@ class Controller(polyinterface.Controller):
             self.l_info('process_pushover',"No Pushover Entries in the config: {}".format(self.pushover))
             return False
         for pd in self.pushover:
-            # TODO: Make sure one with this name doesn't already exist in dict
+            # TODO: See if this name already exists, when we start saving service_nodes to DB.
             snode = self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), pd))
-            self.service_nodes[pd[name]] = snode
+            self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
             self.l_info('process_pushover','service_nodes={}'.format(self.service_nodes))
         return True
 
@@ -209,13 +214,13 @@ class Controller(polyinterface.Controller):
         #
         nls.write("# End: Custom Messages:\n\n")
 
-        nls.write("# Start: Pushover\n")
+        nls.write("# Start: Service Nodes\n")
         svc_cnt = 0
-        if not self.pushover is None:
-            for pd in self.pushover:
-                nls.write("NFYN-{} = {}\n".format(svc_cnt,pd['name']))
-                svc_cnt += 1
-        nls.write("# End: Pushover\n\n")
+        nls.write("NFYN--1 = Unknown\n")
+        for pd in self.service_nodes:
+            nls.write("NFYN-{} = {}\n".format(pd['index'],pd['name']))
+            svc_cnt += 1
+        nls.write("# End: Service Nodes\n\n")
 
         self.config_info = [
             '<h3>Sending REST Commands</h3>',

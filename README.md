@@ -160,6 +160,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.0.6 10/14/2019
+  - Notify nodes are now working
 - 0.0.5 10/13/2019
   - Notify nodes are tied at creation time to a Service node.  They are still non functional.
 - 0.0.4 10/12/2019

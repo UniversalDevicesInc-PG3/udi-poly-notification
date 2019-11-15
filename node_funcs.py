@@ -4,6 +4,38 @@ import re
 import json
 
 
+def get_messages():
+    _MESSAGES = [
+        'Blank',
+        'On',
+        'Off',
+        'Light on',
+        'Light off',
+        'Open',
+        'Closed',
+        'Locked',
+        'Unlocked',
+        'Jammed',
+        'Motion detected',
+        'Water leak',
+        'Rang',
+        'At home',
+        'Away',
+        'Offline',
+        'Low battery',
+        'Armed'
+        'Disarmed',
+        'Triggered',
+        "Don't forget!",
+        'WARNING',
+        'EMERGENCY',
+        'Heat warning',
+        'Cold warning',
+        'Reset',
+    ]
+    return _MESSAGES
+
+
 # Removes invalid charaters for ISY Node description
 def get_valid_node_name(name):
     # Only allow utf-8 characters

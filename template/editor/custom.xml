@@ -14,7 +14,7 @@
 
     <!-- Pushover Devices, used in Notify nodes -->
     <editor id="NFY_PUSHOVER_DEVICE">
-      <range uom="25" subset="0-{2}" nls="SVCPUSHOVER" />
+      <range uom="25" subset="-1-{2}" nls="SVCPUSHOVER" />
     </editor>
 
 </editors>
