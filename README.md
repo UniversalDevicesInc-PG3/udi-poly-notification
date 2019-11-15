@@ -7,6 +7,19 @@ This is the Notification Poly for the [Universal Devices ISY994i](https://www.un
 (c) JimBoCA aka Jim Searle
 MIT license.
 
+## Features
+
+The node server allows you to
+1. Create canned messages and send them to a notification service easily thru an ISY program.
+  - These are good for simple messages that do not require any ISY system or variable information included
+2. Add a node to a scene to send messages when seen is controlled, or with a program turning the node on/off.
+  - Currently uses a set of hardcoded messages which can be extended as needed by the node author
+  - May allow configuration option to extend this list in the future.
+3. Send ISY Network resources to the node server REST interface where recipients are controlled by a program.
+  - This allows more control over the message data that is sent.
+
+In the future UDI has agreed to look into allowing 'Custom Content' to be parsed and passed to node serves which will be incorporated into this one as soon as possible!
+
 ## Support
 
 This is discussed on the forum post [Polglot V2 Notification Nodeserver](https://forum.universal-devices.com/topic/TBD/).  You can ask questions there.  If you have a bug or enhancement request filing an issue on the [Github Issue Page](https://github.com/jimboca/udi-poly-notification/issues) is preferred since it can easily get lost on the forum.
@@ -14,13 +27,6 @@ This is discussed on the forum post [Polglot V2 Notification Nodeserver](https:/
 ## Configuration
 
 The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
-
-## How it works
-
-The nodeserver allows you to
-1. Create canned messages and send them to a notification service easily thru an ISY program
-2. Add a node to a scene to send messages when seen is controlled (Not working yet)
-3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program.
 
 ## Nodes
 
