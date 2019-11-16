@@ -243,5 +243,5 @@ class Notify(polyinterface.Node):
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
                 'DON': cmd_send_on,
-                'DOF': cmd_send_on,
+                'DOF': cmd_send_off,
                 }
