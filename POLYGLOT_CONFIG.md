@@ -22,6 +22,10 @@ These are the messages you want to send.  Create at least one message, restart N
 - Title = The short message title, shown when selecting the message in the ISY Admin Console
 - Message = The message body, if empty then it will be the same is the Title
 
+## Restart
+
+After changing any configuration you must restart the node server.
+
 ## Help
 
 Please see [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md) for more information.
