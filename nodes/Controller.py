@@ -290,116 +290,124 @@ class Controller(polyinterface.Controller):
         """
         # Remove all existing notices
         self.removeNoticesAll()
-        #if self.supports_feature('typedParams'):
-        if True:
-            params = [
-                        {
-                            'name': 'messages',
-                            'title': 'Messages',
-                            'desc': 'Your Custom Messages',
-                            'isList': True,
-                            'params': [
-                                {
-                                    'name': 'id',
-                                    'title': "ID (Must be integer, should never change!)",
-                                    'isRequired': True,
-                                },
-                                {
-                                    'name': 'title',
-                                    'title': 'Title (Should be short)',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'message',
-                                    'title': 'Message (If empty, assume same as title)',
-                                    'isRequired': False
-                                },
-                            ]
-                        },
-                        {
-                            'name': 'pushover',
-                            'title': 'Service Pushover Node Keys',
-                            'desc': 'Config for https://pushover.net/',
-                            'isList': True,
-                            'params': [
-                                {
-                                    'name': 'name',
-                                    'title': 'Name for reference, used as node name. Must be 8 characters or less.',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'user_key',
-                                    'title': 'The User Key',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'app_key',
-                                    'title': 'Application Key',
-                                    'isRequired': True,
-                                    'isList': False,
-                                    #s'defaultValue': ['somename'],
-                                },
-                            ]
-                        },
-                        {
-                            'name': 'notify',
-                            'title': 'Notify Nodes',
-                            'desc': 'Notify Nodes to create',
-                            'isList': True,
-                            'params': [
-                                {
-                                    'name': 'id',
-                                    'title': 'ID for node, never change, 8 characters or less',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'name',
-                                    'title': 'Name for node',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'service_node_name',
-                                    'title': 'Service Node Name',
-                                    'isRequired': True
-                                },
-                            ]
-                        },
-                        {
-                            'name': 'assistant_relay',
-                            'title': 'Assistant Relay',
-                            'desc': 'Config for https://github.com/greghesp/assistant-relay',
-                            'isList': True,
-                            'params': [
-                                {
-                                    'name': 'host',
-                                    'title': 'Host',
-                                    'defaultValue': 'this_host_ip',
-                                    'isRequired': True
-                                },
-                                {
-                                    'name': 'port',
-                                    'title': 'Port',
-                                    'isRequired': True,
-                                    'isList': False,
-                                    'defaultValue': '3001',
-                                },
-                                {
-                                    'name': 'users',
-                                    'title': 'Users',
-                                    'isRequired': True,
-                                    'isList': True,
-                                    'defaultValue': ['someuser'],
-                                },
-                            ]
-                        }
-                    ]
-            self.poly.save_typed_params(params)
-        else:
-            txt = 'You need to run a newer version of polyglot that supports typedParams'
-            self.l_error('check_params', txt)
-            self.addNotice(txt)
 
-        self.l_info('check_params', self.polyConfig['customParams'])
+        # Make sure they acknowledge
+        custom_params = self.polyConfig['customParams']
+        self.l_info('check_params', custom_params)
+        ack = 'acknowledge'
+        val = None
+        if ack in custom_params:
+            val = custom_params[ack]
+        else:
+            custom_params[ack] = ""
+            self.addCustomParam(custom_params)
+        if val != 'I understand and agree':
+            self.addNotice('Before using you must follow the link to <a href="https://github.com/jimboca/udi-poly-notification/blob/master/ACKNOWLEDGE.md">acknowledge</a>')
+            return False
+
+        params = [
+            {
+                'name': 'messages',
+                'title': 'Messages',
+                'desc': 'Your Custom Messages',
+                'isList': True,
+                'params': [
+                    {
+                        'name': 'id',
+                        'title': "ID (Must be integer, should never change!)",
+                        'isRequired': True,
+                    },
+                    {
+                        'name': 'title',
+                        'title': 'Title (Should be short)',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'message',
+                        'title': 'Message (If empty, assume same as title)',
+                        'isRequired': False
+                    },
+                ]
+            },
+            {
+                'name': 'pushover',
+                'title': 'Service Pushover Node Keys',
+                'desc': 'Config for https://pushover.net/',
+                'isList': True,
+                'params': [
+                    {
+                        'name': 'name',
+                        'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'user_key',
+                        'title': 'The User Key',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'app_key',
+                        'title': 'Application Key',
+                        'isRequired': True,
+                        'isList': False,
+                        #s'defaultValue': ['somename'],
+                    },
+                ]
+            },
+            {
+                'name': 'notify',
+                'title': 'Notify Nodes',
+                'desc': 'Notify Nodes to create',
+                'isList': True,
+                'params': [
+                    {
+                        'name': 'id',
+                        'title': 'ID for node, never change, 8 characters or less',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'name',
+                        'title': 'Name for node',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'service_node_name',
+                        'title': 'Service Node Name',
+                        'isRequired': True
+                    },
+                ]
+            },
+            {
+                'name': 'assistant_relay',
+                'title': 'Assistant Relay',
+                'desc': 'Config for https://github.com/greghesp/assistant-relay',
+                'isList': True,
+                'params': [
+                    {
+                        'name': 'host',
+                        'title': 'Host',
+                        'defaultValue': 'this_host_ip',
+                        'isRequired': True
+                    },
+                    {
+                        'name': 'port',
+                        'title': 'Port',
+                        'isRequired': True,
+                        'isList': False,
+                        'defaultValue': '3001',
+                    },
+                    {
+                        'name': 'users',
+                        'title': 'Users',
+                        'isRequired': True,
+                        'isList': True,
+                        'defaultValue': ['someuser'],
+                    },
+                ]
+            }
+        ]
+        self.poly.save_typed_params(params)
+
         #default = "None"
         #if 'assistant_remote_host' in self.polyConfig['customParams']:
         #    self.ar_host = self.polyConfig['customParams']['ar_host']
