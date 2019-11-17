@@ -197,11 +197,11 @@ class Controller(polyinterface.Controller):
         nls_tmpl.close()
         # Get all the indexes and write the nls.
         nls.write("# End: {}\n\n".format(template_f))
-        cnt = 0
+        msg_cnt = 0
         nls.write("# Start: Internal Messages:\n")
         for message in get_messages():
-            nls.write("NMESSAGE-{}: {}\n".format(cnt,message))
-            cnt += 1
+            nls.write("NMESSAGE-{}: {}\n".format(msg_cnt,message))
+            msg_cnt += 1
         nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
         ids = list()
@@ -284,7 +284,7 @@ class Controller(polyinterface.Controller):
         # Write the editors file with our info
         self.l_info(pfx,"Writing {}".format(editor_f))
         editor_h = open(editor_f, "w")
-        editor_h.write(data.format(full_subset_str,subset_str,(svc_cnt-1)))
+        editor_h.write(data.format(full_subset_str,subset_str,msg_cnt,(svc_cnt-1)))
         editor_h.close()
 
         return True

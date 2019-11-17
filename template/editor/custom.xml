@@ -7,6 +7,10 @@
       <range uom="25" subset="{1}" nls="MID" />
     </editor>
 
+    <editor id="NMESSAGE">
+      <range uom="25" subset="0-{2}" nls="NMESSAGE" />
+    </editor>
+
     <!-- Alll Service Nodes, used in Notify -->
     <editor id="NFY_NODE">
       <range uom="25" subset="0-2" nls="NFYN" />
@@ -14,7 +18,7 @@
 
     <!-- Pushover Devices, used in Notify nodes -->
     <editor id="NFY_PUSHOVER_DEVICE">
-      <range uom="25" subset="-1-{2}" nls="SVCPUSHOVER" />
+      <range uom="25" subset="-1-{3}" nls="SVCPUSHOVER" />
     </editor>
 
 </editors>
