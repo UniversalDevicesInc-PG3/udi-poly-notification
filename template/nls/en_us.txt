@@ -81,39 +81,4 @@ NFYP-2 = Normal
 NFYP-3 = High
 NFYP-4 = Emergency
 
-NMESSAGE-0 = Blank
-NMESSAGE-1 = On
-NMESSAGE-2 = Off
-NMESSAGE-3 = Light on
-NMESSAGE-4 = Light off
-NMESSAGE-5 = Open
-NMESSAGE-6 = Closed
-NMESSAGE-7 = Locked
-NMESSAGE-8 = Unlocked
-NMESSAGE-9 = Lock jammed
-NMESSAGE-10 = Motion detected
-NMESSAGE-11 = Water leak
-NMESSAGE-12 = Rang
-NMESSAGE-13 = At home
-NMESSAGE-14 = Away
-NMESSAGE-15 = Offline
-NMESSAGE-16 = Low battery
-NMESSAGE-17 = Armed
-NMESSAGE-18 = Disarmed
-NMESSAGE-19 = Triggered
-NMESSAGE-20 = Don't forget!
-NMESSAGE-21 = WARNING
-NMESSAGE-22 = EMERGENCY
-NMESSAGE-23 = Heat warning
-NMESSAGE-24 = Cold warning
-NMESSAGE-25 = Reset
-
-NFYN-0 = Service Pushover develop
-NFYN-1 = Service Pushover homeisy
-NFYN-2 = Service Pushover lakeisy
-
-NFYD-0 = My Device
-NFYD-1 = Another Device
-NFYD-2 = Yet Another Device
-
 # End Notify Node

@@ -32,6 +32,10 @@ def get_messages():
         'Heat warning',
         'Cold warning',
         'Reset',
+        'Problem',
+        'Okay',
+        'Good',
+        'Bad'
     ]
     return _MESSAGES
 

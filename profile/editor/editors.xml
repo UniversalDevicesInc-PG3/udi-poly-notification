@@ -26,7 +26,7 @@
     </editor>
 
     <editor id="NMESSAGE">
-      <range uom="25" subset="0-25" nls="NMESSAGE" />
+      <range uom="25" subset="0-29" nls="NMESSAGE" />
     </editor>
 
     <!-- Pushover Priority -->

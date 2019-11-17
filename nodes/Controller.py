@@ -144,7 +144,6 @@ class Controller(polyinterface.Controller):
             try:
                 self.write_profile()
             except:
-                # TODO: need exc_info!
                 # TODO: Need to set error on controller for this?
                 self.l_error('process_config:','write_profile failed: ',exc_info=True)
                 return
@@ -197,7 +196,13 @@ class Controller(polyinterface.Controller):
             nls.write(line)
         nls_tmpl.close()
         # Get all the indexes and write the nls.
-        nls.write("# End: {}\n".format(template_f))
+        nls.write("# End: {}\n\n".format(template_f))
+        cnt = 0
+        nls.write("# Start: Internal Messages:\n")
+        for message in get_messages():
+            nls.write("NMESSAGE-{}: {}\n".format(cnt,message))
+            cnt += 1
+        nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
         ids = list()
         for message in self.messages:
