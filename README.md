@@ -9,7 +9,7 @@ MIT license.
 
 ## Support
 
-This is discussed on the forum post [Polglot V2 Notification Nodeserver](https://forum.universal-devices.com/topic/TBD/).  You can ask questions there.  If you have a bug or enhancement request filing an issue on the [Github Issue Page](https://github.com/jimboca/udi-poly-notification/issues) is preferred since it can easily get lost on the forum.
+This is discussed on the forum post [Polglot Notification Nodeserver](https://forum.universal-devices.com/forum/166-polyglot-notification-service-node-server/).  You can ask questions there.  If you have a bug or enhancement request filing an issue on the [Github Issue Page](https://github.com/jimboca/udi-poly-notification/issues) is preferred since it can easily get lost on the forum.
 
 ## Configuration
 
@@ -20,7 +20,7 @@ The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/m
 The nodeserver allows you to
 1. Create canned messages and send them to a notification service easily thru an ISY program
 2. Add a node to a scene to send messages when seen is controlled (Not working yet)
-3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program.
+3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
 ## Nodes
 
@@ -90,8 +90,8 @@ This allows creating simple network resources that doesn't need to contain all t
       - This will send the message to the po_develop node
   - Encode URL: not checked
   - Timeout: 5000
-  - Mode: C Escaped
-  - Body: The message body you want to send.
+  - Mode: Raw Text
+  - Body: The message body you want to send. It can be many lines and contain system variables! as described in [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables)
 - Save it, then click on it an hit Test.
 - Create a program to send the NR
 ```
