@@ -35,6 +35,7 @@ class Notify(polyinterface.Node):
         self.set_message_off(self.get_message_off())
         self.set_device(self.get_device())
         self.set_priority(self.get_priority())
+        self.set_format(self.get_format())
         # Make sure we know who our service node is
         self.service_node = self.controller.get_service_node(self.service_node_name)
         if self.service_node is False:
@@ -183,6 +184,21 @@ class Notify(polyinterface.Node):
             return 0
         return int(cval)
 
+    def set_format(self,val):
+        dv = 'GV6'
+        self.l_info('set_format',val)
+        if val is None:
+            val = 0
+        val = int(val)
+        self.l_info('set_format','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
+    def get_format(self):
+        cval = self.getDriver('GV6')
+        if cval is None:
+            return 0
+        return int(cval)
+
     def cmd_set_message_on(self,command):
         val = int(command.get('value'))
         self.l_info("cmd_set_message_on",val)
@@ -203,6 +219,11 @@ class Notify(polyinterface.Node):
         self.l_info("cmd_set_priority",val)
         self.set_priority(val)
 
+    def cmd_set_format(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_format",val)
+        self.set_format(val)
+
     def cmd_send_on(self,command):
         self.l_info("cmd_send_on",''.format(command))
         self.send_msg(self.get_message_on())
@@ -221,6 +242,7 @@ class Notify(polyinterface.Node):
                 'message': self.iname+' '+msg,
                 'device': self.get_device(),
                 'priority': self.get_priority() - 2,
+                'format': self.get_format(),
             }
         )
 
@@ -234,7 +256,8 @@ class Notify(polyinterface.Node):
         {'driver': 'GV2', 'value': 2, 'uom': 25},
         {'driver': 'GV3', 'value': 0, 'uom': 25},
         {'driver': 'GV4', 'value': 0, 'uom': 25},
-        {'driver': 'GV5', 'value': 2, 'uom': 25}
+        {'driver': 'GV5', 'value': 2, 'uom': 25},
+        {'driver': 'GV6', 'value': 0, 'uom': 25}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
@@ -242,6 +265,7 @@ class Notify(polyinterface.Node):
                 'SET_MESSAGE_DOF': cmd_set_message_off,
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
+                'SET_FORMAT': cmd_set_format,
                 'DON': cmd_send_on,
                 'DOF': cmd_send_off,
                 }

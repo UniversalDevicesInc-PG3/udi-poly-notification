@@ -25,6 +25,9 @@
               <cmd id="SET_PRIORITY">
                 <p id="" editor="PO_PRIORITY" init="GV5"/>
               </cmd>
+              <cmd id="SET_FORMAT">
+                <p id="" editor="PO_FORMAT" init="GV6"/>
+              </cmd>
               <cmd id="DON" />
               <cmd id="DOF" />
             </accepts>

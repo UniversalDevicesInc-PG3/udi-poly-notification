@@ -26,12 +26,13 @@ REMOVED_DEVICE = "RemovedDevice"
 class Pushover(polyinterface.Node):
     """
     """
-    def __init__(self, controller, primary, address, name, info):
+    def __init__(self, controller, primary, address, name, session, info):
         """
         """
         # Need these for l_debug
         self.name     = name
         self.address  = address
+        self.session  = session
         self.info     = info
         self.iname    = info['name']
         self.id       = 'pushover_' + self.iname
@@ -48,37 +49,40 @@ class Pushover(polyinterface.Node):
         self.driver = {}
         self.set_device(self.get_device())
         self.set_priority(self.get_priority())
-        self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
-        self.app = Application(self.app_key)
-        logger = logging.getLogger('chump')
-        # TODO: Add higher debug level, to turn this debug on
-        logger.setLevel(logging.INFO)
-        logger.addHandler(LOGGER.handlers[0])
+        self.set_format(self.get_format())
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices = self.customData.get('devices', {})
-        self.l_info('start',"self.devices={}".format(self.devices))
-        self.l_info('start',"Authorized={}".format(self.app.is_authenticated))
-        if self.app.is_authenticated:
-            self.l_debug('start','Authorizing pushover user {}'.format(self.user_key))
-            self.user = self.app.get_user(self.user_key)
-            self.l_info('start',"user authenticated={} devices={}".format(self.user.is_authenticated, self.user.devices))
-            if self.user.is_authenticated:
-                # TODO: Save devices in config, and use to build Profile
-                # TODO: Remember devices or always use index
-                # This will alwasy be an array to the current device
-                self.add_to_hash('all',self.devices)
-                for device in self.user.devices:
-                    self.add_to_hash(device,self.devices)
-                self.controller.saveCustomData({'devices': self.devices})
-                self.l_info('start',"self.devices={}".format(self.devices))
-                self.set_error(ERROR_NONE)
-                self._init_st = True
-            else:
-                self.set_error(ERROR_USER_AUTH)
-                self._init_st = False
+        self.l_info('start',"devices={}".format(self.devices))
+        self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
+        vstat = self.validate()
+        if vstat is False:
+            self.authorized = False
+        else:
+            self.authorized = True if vstat['status'] == 1 else False
+        self.l_info('start',"Authorized={}".format(self.authorized))
+        if self.authorized:
+            self.l_info('start',"got devices={}".format(vstat['devices']))
+            # TODO: Remember devices or always use index
+            self.add_to_hash('all',self.devices)
+            for device in vstat['devices']:
+                self.add_to_hash(device,self.devices)
+            self.l_info('start',"self.devices={}".format(self.devices))
+            self.controller.saveCustomData({'devices': self.devices})
+            self.set_error(ERROR_NONE)
+            self._init_st = True
         else:
             self.set_error(ERROR_APP_AUTH)
             self._init_st = False
+
+    def validate(self):
+        res = self.session.post("1/users/validate.json",
+            {
+                'user':  self.user_key,
+                'token': self.app_key,
+            })
+        self.l_debug('validate','got: {}'.format(res))
+        return res
+
 
     def in_saved_list(self,name,list):
         for idx in list:
@@ -236,6 +240,20 @@ class Pushover(polyinterface.Node):
             return 0
         return int(self.getDriver('GV2'))
 
+    def set_format(self,val):
+        self.l_info('set_format',val)
+        if val is None:
+            val = 0
+        val = int(val)
+        self.l_info('set_format','Set GV3 to {}'.format(val))
+        self.setDriver('GV3', val)
+
+    def get_format(self):
+        cval = self.getDriver('GV3')
+        if cval is None:
+            return 0
+        return int(self.getDriver('GV3'))
+
     def get_pushover_priority(self):
         return self.get_priority() - 2
 
@@ -249,6 +267,11 @@ class Pushover(polyinterface.Node):
         self.l_info("cmd_set_priority",val)
         self.set_priority(val)
 
+    def cmd_set_format(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_format",val)
+        self.set_format(val)
+
     def cmd_send(self,command):
         self.l_info("cmd_send",'')
         # Default create message params
@@ -259,66 +282,48 @@ class Pushover(polyinterface.Node):
     def do_send(self,params):
         self.l_info('cmd_send','params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
-        if 'message' in params:
-            message=params['message']
-        else:
-            message="NOT_SPECIFIED"
-        if 'title' in params:
-            title=params['title']
-        else:
-            title=None
+        if not 'message' in params:
+            params['message'] = "NOT_SPECIFIED"
         if 'device' in params:
-            device = self.get_device_name(params['device'])
+            params['device'] = self.get_device_name(params['device'])
         else:
-            device = self.get_device_name()
+            params['device'] = self.get_device_name()
         if 'priority' in params:
-            priority = params['priority']
-        else:
-            priority = self.get_pushover_priority()
-        html=False
-        timestamp=None
-        url=None
-        url_title=None
-        device=device
-        priority=priority
-        callback=None
-        retry=30
-        expire=86400
-        sound=None
-        #
-        # Build the message
-        #
-        try:
-            self.l_info('cmd_send','create_message: message={} device={} priority={}'.format(message,device,priority))
-            message = self.user.create_message(
-                message=message,
-                device=device,
-                priority=priority,
-                title=title,
-                html=html,
-                timestamp=timestamp,
-                url=url,
-                url_title=url_title,
-                callback=callback,
-                retry=retry,
-                expire=expire,
-                sound=sound,
-                )
-        except Exception as err:
-            self.l_error('cmd_send','create_message failed: {0}'.format(err))
-            self.set_error(ERROR_MESSAGE_CREATE)
-            return False
+            params['priority'] = self.get_pushover_priority()
+        if 'format' in params:
+            if params['format'] == 1:
+                params['html'] = 1
+            elif params['format'] == 2:
+                params['monospace'] = 1
+            del params['format']
+        elif not ('html' in params or 'monospace' in params):
+            p = self.get_format()
+            if p == 1:
+                params['html'] = 1
+            elif p == 2:
+                params['monospace'] = 1
+        params['user'] = self.user_key
+        params['token'] = self.app_key
+        #timestamp=None
+        #url=None
+        #url_title=None
+        #callback=None
+        #retry=30
+        #expire=86400
+        #sound=None
         #
         # Send the message
         #
-        try:
-            message.send()
-        except Exception as err:
-            self.l_error('cmd_send','send_message failed: {}'.format(err))
+        res = self.session.post("1/messages.json",params)
+        if res is False:
+            sent = False
+        else:
+            sent = True if res['status'] == 1 else False
+        if not sent:
             self.set_error(ERROR_MESSAGE_SEND)
             return False
-        self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
-        return message.is_sent
+        #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
+        return sent
 
     def rest_send(self,params):
         self.l_debug('rest_handler','params={}'.format(params))
@@ -330,11 +335,13 @@ class Pushover(polyinterface.Node):
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
         {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 2, 'uom': 25}
+        {'driver': 'GV2', 'value': 2, 'uom': 25},
+        {'driver': 'GV3', 'value': 0, 'uom': 25}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
+                'SET_FORMAT': cmd_set_format,
                 'SEND': cmd_send
                 }

@@ -160,6 +160,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.2 10/19/2019
+   - No longer use Chump pushover interface since it was easier to do it directly and now can use the monospace format
 - 0.1.1 10/16/2019
    - Added more default messages, made it easier to add more in the future
 - 0.1.0 10/15/2019

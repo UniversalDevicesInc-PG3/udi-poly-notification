@@ -305,46 +305,26 @@ class polyglotRESTServer():
 
 class polyglotSession():
 
-    def __init__(self,parent,logger,polyglotRESTServer,tmgr_mac=None):
+    def __init__(self,parent,url,logger):
         self.parent = parent
+        self.url    = url #
         self.logger = logger
-        self.polyglotRESTServer = polyglotRESTServer
-        self.tmgr_mac = tmgr_mac
-        self.tmgr_mac_st = False
+        # Our reusable session
         self.session = requests.Session()
-        self.select_tag_manager()
+        # Our headers never change...?
+        self.session.headers.update(
+            {
+                "Content-Type": "application/json"
+            }
+        )
 
-
-    def select_tag_manager(self,force=False):
-        if self.tmgr_mac is None:
-            return True
-        if not self.tmgr_mac_st or force:
-            mgd = self.api_post_dn('ethAccount.asmx/SelectTagManager',{'mac':self.tmgr_mac})
-            self.tmgr_mac_st = mgd['st']
-            self.session.headers.update({'X-Set-Mac': self.tmgr_mac})
-        return self.tmgr_mac_st
-
-    def post(self,path,payload,use_token=True):
-        url = "https://www.mytaglist.com/{}".format(path)
+    def post(self,path,payload):
+        url = "{}/{}".format(self.url,path)
         self.l_debug('post',"Sending: url={0} payload={1}".format(url,payload))
-        if use_token:
-            access_token = self.polyglotRESTServer.get_access_token()
-            if access_token is False:
-                self.l_error('post',"No authorization for url={0} payload={1}".format(url,payload))
-                return False
-            token_type   = self.polyglotRESTServer.get_token_type()
-            self.session.headers.update(
-                {
-                    "Authorization": "{0} {1}".format(token_type,access_token),
-                    "Content-Type": "application/json"
-                }
-            )
-        else:
-            self.session.headers.update({})
         try:
             response = self.session.post(
                 url,
-                data=payload,
+                data=json.dumps(payload),
                 timeout=60
             )
         # This is supposed to catch all request excpetions.
@@ -371,30 +351,6 @@ class polyglotSession():
         else:
             self.l_error('post',"Unknown response %s: %s %s" % (response.status_code, url, response.text) )
         return False
-
-    def api_post_d(self,path,payload,dump=True):
-        """
-        Call the api path with payload expecting data in d entry
-        Return status and result
-        """
-        # If we failed to set tag manager, try again
-        if not self.select_tag_manager(): return { 'st': False }
-        return self.api_post_dn(path,payload,dump)
-
-    def api_post_dn(self,path,payload,dump=True):
-        """
-        Just do the post, don't select tag manager
-        """
-        if dump:
-            payload = json.dumps(payload)
-        aret = self.post(path,payload)
-        self.l_debug('post','path={0} got={1}'.format(path,aret))
-        if aret == False or not 'd' in aret:
-            mret = { 'st': False }
-        else:
-            mret = { 'st': True, 'result': aret['d'] }
-        self.l_debug('post','ret={0}'.format(mret))
-        return mret
 
     def l_info(self, name, string):
         self.logger.info("%s:%s: %s" %  (self.parent.l_name,name,string))

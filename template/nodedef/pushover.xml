@@ -7,6 +7,7 @@
       <st id="ERR" editor="PO_ERR" />
       <st id="GV1" editor="PO_D_{1}" />
       <st id="GV2" editor="PO_PRIORITY" />
+      <st id="GV3" editor="PO_FORMAT" />
     </sts>
     <cmds>
       <sends />
@@ -18,7 +19,10 @@
         <cmd id="SET_PRIORITY">
           <p id="" editor="PO_PRIORITY" init="GV2"/>
         </cmd>
-          <cmd id="SEND" />
+        <cmd id="SET_FORMAT">
+          <p id="" editor="PO_FORMAT" init="GV3"/>
+        </cmd>
+        <cmd id="SEND" />
       </accepts>
     </cmds>
   </nodeDef>

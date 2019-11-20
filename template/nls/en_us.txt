@@ -29,15 +29,21 @@ ST-pov-ST-NAME = Last Status
 ST-pov-ERR-NAME = Error
 ST-pov-GV1-NAME = Device
 ST-pov-GV2-NAME = Priority
+ST-pov-GV3-NAME = Format
 
 CMD-SET_DEVICE-NAME = Device
 CMD-SET_PRIORITY-NAME = Priority
+CMD-SET_FORMAT-NAME = Format
 
 POVP-0 = Lowest
 POVP-1 = Low
 POVP-2 = Normal
 POVP-3 = High
 POVP-4 = Emergency
+
+POVF-0 = None
+POVF-1 = HTML
+POVF-2 = Monospace
 
 POVE-0 = None
 POVE-1 = Illegal Value

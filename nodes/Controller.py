@@ -6,7 +6,7 @@ import polyinterface
 from nodes import *
 import logging
 from node_funcs import *
-from PolyglotREST import polyglotRESTServer
+from PolyglotREST import polyglotRESTServer,polyglotSession
 from copy import deepcopy
 import re
 import time
@@ -23,6 +23,7 @@ class Controller(polyinterface.Controller):
         """
         super(Controller, self).__init__(polyglot)
         self.name = 'Notification Controller'
+        self.l_name = 'controller'
         self.hb = 0
         self.messages = None
         # List of all service nodes
@@ -159,9 +160,10 @@ class Controller(polyinterface.Controller):
         if self.pushover is None or len(self.pushover) == 0:
             self.l_info('process_pushover',"No Pushover Entries in the config: {}".format(self.pushover))
             return False
+        self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
         for pd in self.pushover:
             # TODO: See if this name already exists, when we start saving service_nodes to DB.
-            snode = self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), pd))
+            snode = self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), self.pushover_session, pd))
             self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
             self.l_info('process_pushover','service_nodes={}'.format(self.service_nodes))
         return True

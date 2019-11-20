@@ -15,7 +15,12 @@
       <range uom="25" subset="0-4" nls="POVP" />
     </editor>
 
-    <!-- Pusover User -->
+    <!-- Pushover Priority -->
+    <editor id="PO_FORMAT">
+      <range uom="25" subset="0-2" nls="POVF" />
+    </editor>
+
+    <!-- Pusover Errors -->
     <editor id="PO_ERR">
       <range uom="25" subset="0-5" nls="POVE" />
     </editor>
