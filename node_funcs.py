@@ -23,7 +23,7 @@ def get_messages():
         'Away',
         'Offline',
         'Low battery',
-        'Armed'
+        'Armed',
         'Disarmed',
         'Triggered',
         "Don't forget!",

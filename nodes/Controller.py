@@ -35,7 +35,10 @@ class Controller(polyinterface.Controller):
     def start(self):
         """
         """
-        LOGGER.info('Started notification NodeServer')
+        # This grabs the server.json data and checks profile_version is up to date
+        serverdata = self.poly.get_server_data()
+        LOGGER.info('Started Notification NodeServer {}'.format(serverdata['version']))
+        self.heartbeat()
         self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
         # TODO: Need to monitor thread and restart if it dies
         self.rest.start()
