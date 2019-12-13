@@ -254,8 +254,10 @@ class Pushover(polyinterface.Node):
             return 0
         return int(self.getDriver('GV3'))
 
-    def get_pushover_priority(self):
-        return self.get_priority() - 2
+    def get_pushover_priority(self,val=None):
+        if val is None:
+            val = int(self.get_priority())
+        return val - 2
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
@@ -289,6 +291,8 @@ class Pushover(polyinterface.Node):
         else:
             params['device'] = self.get_device_name()
         if 'priority' in params:
+            params['priority'] = self.get_pushover_priority(params['priority'])
+        else:
             params['priority'] = self.get_pushover_priority()
         if 'format' in params:
             if params['format'] == 1:

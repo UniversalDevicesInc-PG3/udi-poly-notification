@@ -241,7 +241,7 @@ class Notify(polyinterface.Node):
                 #'title': ,
                 'message': self.iname+' '+msg,
                 'device': self.get_device(),
-                'priority': self.get_priority() - 2,
+                'priority': self.get_priority(),
                 'format': self.get_format(),
             }
         )

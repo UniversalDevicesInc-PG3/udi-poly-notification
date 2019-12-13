@@ -1,3 +1,2 @@
-polyinterface
+polyinterface >= 2.0.34
 netifaces
-chump
