@@ -23,8 +23,9 @@ class Notify(polyinterface.Node):
         self.info     = info
         self.iname    = info['name']
         self.iid      = info['id']
-        self.id       = 'notify_' + self.iid
         self.service_node_name = self.info['service_node_name']
+        # TODO: pushoer_ should be passed in by looking up the server_node_name...
+        self.id       = 'pushover_' + self.service_node_name + '_notify'
         super(Notify, self).__init__(controller, primary, address, name)
 
     def start(self):
@@ -61,24 +62,8 @@ class Notify(polyinterface.Node):
 
     def write_profile(self,nls):
         pfx = 'write_profile'
-        self.l_info(pfx,'')
-        #
-        # Open the output nodedefs file
-        output_f   = 'profile/nodedef/{0}.xml'.format(self.iid)
-        make_file_dir(output_f)
-        # Open the template, and read into a string for formatting.
-        template_f = 'template/nodedef/notify.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
-        with open (template_f, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        # Write the nodedef file with our info
-        self.l_info(pfx,"Writing {}".format(output_f))
-        out_h = open(output_f, "w")
-        self.l_debug('write_profile','info={}'.format(self.info))
-        out_h.write(data.format(self.id,'PO_D_'+self.service_node_name))
-        out_h.close()
-        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
+        self.l_info(pfx,"Appending to nls")
+        nls.write("ND-{0}_notify-NAME = {1}\n".format(self.service_node_name,self.name))
         return True
 
     def setDriver(self,driver,value):

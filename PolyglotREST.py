@@ -322,9 +322,14 @@ class polyglotSession():
         url = "{}/{}".format(self.url,path)
         self.l_debug('post',"Sending: url={0} payload={1}".format(url,payload))
         try:
+            payload_js = json.dumps(payload)
+        except Exception as e:
+            self.l_error('post','Error converting to json: {}'.format(payload))
+            return False
+        try:
             response = self.session.post(
                 url,
-                data=json.dumps(payload),
+                data=payload_js,
                 timeout=60
             )
         # This is supposed to catch all request excpetions.

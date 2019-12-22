@@ -143,6 +143,7 @@ class Controller(polyinterface.Controller):
             save = True
             self.l_debug('process_config','Adding Notify Nodes...')
             for node in nodes:
+                # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dect
                 self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
 
         if save:

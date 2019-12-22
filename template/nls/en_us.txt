@@ -69,16 +69,16 @@ ASRU-1 = jna
 # Notify Node
 #
 ND-notify-NAME = Notify
-ST-nfy-GV1-NAME = Device On Message
-ST-nfy-GV2-NAME = Device Off Message
-ST-nfy-GV3-NAME = Service Node
-ST-nfy-GV4-NAME = Pushover Device
-ST-nfy-GV5-NAME = Pushover Priority
-CMD-nfy-SET_MESSAGE_DON-NAME = Set Device On Message
-CMD-nfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
-CMD-nfy-SET_NODE-NAME = Set Service Node
-CMD-nfy-SET_DEVICE-NAME = Set Pushover Device
-CMD-nfy-SET_PRIORIY-NAME = Set Pushover Priority
+ST-povnfy-GV1-NAME = Device On Message
+ST-povnfy-GV2-NAME = Device Off Message
+ST-povnfy-GV3-NAME = Service Node
+ST-povnfy-GV4-NAME = Pushover Device
+ST-povnfy-GV5-NAME = Pushover Priority
+CMD-povnfy-SET_MESSAGE_DON-NAME = Set Device On Message
+CMD-povnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
+CMD-povnfy-SET_NODE-NAME = Set Service Node
+CMD-povnfy-SET_DEVICE-NAME = Set Pushover Device
+CMD-povnfy-SET_PRIORIY-NAME = Set Pushover Priority
 
 
 NFYP-0 = Lowest

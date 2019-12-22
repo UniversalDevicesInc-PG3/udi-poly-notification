@@ -224,7 +224,7 @@ class Pushover(polyinterface.Node):
             val = 1
         self.l_info('set_error','Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
-        self.set_st(True if val == 0 else False)
+        self.set_st(True if val == 0 else False)s
 
     def set_priority(self,val):
         self.l_info('set_priority',val)
@@ -323,7 +323,9 @@ class Pushover(polyinterface.Node):
             sent = False
         else:
             sent = True if res['status'] == 1 else False
-        if not sent:
+        if sent:
+            self.set_error(ERROR_NONE)
+        else:
             self.set_error(ERROR_MESSAGE_SEND)
             return False
         #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
