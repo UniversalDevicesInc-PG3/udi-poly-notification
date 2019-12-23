@@ -224,7 +224,7 @@ class Pushover(polyinterface.Node):
             val = 1
         self.l_info('set_error','Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
-        self.set_st(True if val == 0 else False)s
+        self.set_st(True if val == 0 else False)
 
     def set_priority(self,val):
         self.l_info('set_priority',val)

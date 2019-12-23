@@ -25,7 +25,8 @@ class Notify(polyinterface.Node):
         self.iid      = info['id']
         self.service_node_name = self.info['service_node_name']
         # TODO: pushoer_ should be passed in by looking up the server_node_name...
-        self.id       = 'pushover_' + self.service_node_name + '_notify'
+        self.service_node_type = 'pushover'
+        self.id       = self.service_node_type + '_' + self.service_node_name + '_notify'
         super(Notify, self).__init__(controller, primary, address, name)
 
     def start(self):
@@ -63,7 +64,8 @@ class Notify(polyinterface.Node):
     def write_profile(self,nls):
         pfx = 'write_profile'
         self.l_info(pfx,"Appending to nls")
-        nls.write("ND-{0}_notify-NAME = {1}\n".format(self.service_node_name,self.name))
+        # TODO: Used passed
+        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
         return True
 
     def setDriver(self,driver,value):
@@ -221,7 +223,7 @@ class Notify(polyinterface.Node):
         msg = get_messages()[mi]
         # md will contain title and message
         self.l_info("cmd_send_on","msg={}".format(msg))
-        self.service_node['node'].do_send(
+        st = self.service_node['node'].do_send(
             {
                 #'title': ,
                 'message': self.iname+' '+msg,
@@ -230,6 +232,7 @@ class Notify(polyinterface.Node):
                 'format': self.get_format(),
             }
         )
+        self.set_st(st)
 
 
     _init_st = None
