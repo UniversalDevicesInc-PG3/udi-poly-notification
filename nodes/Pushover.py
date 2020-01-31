@@ -9,7 +9,6 @@
 """
 import polyinterface
 import logging
-from chump import Application
 from node_funcs import make_file_dir
 
 LOGGER = polyinterface.LOGGER
