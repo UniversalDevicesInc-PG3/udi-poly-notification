@@ -3,7 +3,10 @@
 
 ## Pushover
 
-- Make sure you have an API key as discussed on the [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md).
+You must have a user key for the [Pushover Service](https://pushover.net/dashboard) and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can [clone the Universal Devices application](https://pushover.net/apps/clone/universal_devices)
+
+To add the configuration:
+
 - For each Pushover application you want to use, Click "Add Pushover Keys" below.
   - Add the "Name" which is used as the ISY node address, and can be maximum of eight characters.
   - Add the User Key which can be found on your [Pushover Dashboard](https://pushover.net/dashboard)
