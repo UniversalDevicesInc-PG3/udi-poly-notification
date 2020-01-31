@@ -13,7 +13,7 @@ This is discussed on the forum post [Polglot Notification Nodeserver](https://fo
 
 ## Configuration
 
-The [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) is the same as the information included on the Polyglot Notification Nodeserver Configuration Page.
+All information is on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) which is the same as information included on the Polyglot Notification Nodeserver Configuration Page.
 
 ## How it works
 
