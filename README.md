@@ -160,6 +160,9 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.5: 02/01/2020
+  - Remove references to Chump
+  - Add info about adding network resources to configuration page
 - 0.1.4: 12/22/2019
   - Use common nodedef for notification node instead of custom for each one since they are the same.
 - 0.1.3: 12/12/2019

@@ -20,6 +20,7 @@ class Notify(polyinterface.Node):
         """
         #self.l_debug('init','{} {}'.format(self.address,self.name))
         self._init_st = None;
+        self.oid      = self.id
         self.info     = info
         self.iname    = info['name']
         self.iid      = info['id']

@@ -34,6 +34,7 @@ class Pushover(polyinterface.Node):
         self.session  = session
         self.info     = info
         self.iname    = info['name']
+        self.oid      = self.id
         self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']

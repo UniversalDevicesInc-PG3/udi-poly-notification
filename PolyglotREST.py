@@ -210,6 +210,7 @@ class polyglotRESTServer():
         if self.st is False:
             self.l_error('polyglotRESTServer:start','REST server not started {}'.format(self.st))
             return False
+        self.ip          = self.rest.ip
         self.listen_url  = self.rest.url
         self.listen_port = self.rest.listen_port
         self.url = self.rest.url

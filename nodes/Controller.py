@@ -233,8 +233,12 @@ class Controller(polyinterface.Controller):
             nls.write("NFYN-{} = {}\n".format(pd['index'],pd['name']))
             svc_cnt += 1
         nls.write("# End: Service Nodes\n\n")
-
-        self.config_info = [
+        config_info_nr = [
+            '<h3>Create ISY Network Resources</h3>',
+            '<p>For messages that contain a larger body use ISY Network Resources'
+            '<ul>'
+        ]
+        config_info_rest = [
             '<h3>Sending REST Commands</h3>',
             '<p>Pass /send with node=the_node'
             '<p>By default it is sent based on the current selected params of that node for device and priority.'
@@ -252,24 +256,54 @@ class Controller(polyinterface.Controller):
                 cnt = 0
                 while node.init_st() is None:
                     self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
-                    time.sleep(10)
+                    time.sleep(1)
                     cnt += 1
                     # Max is 10 minutes
                     if cnt > 60:
                         self.l_error('write_profile','{} time out waiting for initialize'.format(node_name))
                 if node.init_st():
-                    self.l_info('write_profile','node={}'.format(node_name))
+                    self.l_info('write_profile','node={} id={}'.format(node_name,node.id))
                     node.write_profile(nls)
-                    self.config_info.append(
-                        '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'
-                        .format(node.address,self.rest.listen_url)
-                    )
+                    if node.oid == 'pushover':
+                        # TODO: Move creating node info insdie nodes instead of here...
+                        config_info_rest.append(
+                            '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'
+                            .format(node.address,self.rest.listen_url)
+                        )
+                        config_info_nr.append(
+                            '<li>http POST Host:{0} Port:{1} Path:/send?node={2}&Subject=My+Subject&monospace=1&device=all&priority=2'
+                            .format(self.rest.ip,self.rest.listen_port,node.address)
+                        )
                 else:
                     self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name, node.init_st()))
         nls.write("# Start: End Service Nodes:\n")
         self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
-        self.config_info.append('</ul>')
+        config_info_rest.append('</ul>')
+        config_info_nr = config_info_nr + [
+            '</ul>',
+            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the node will be used'
+            '<table>',
+            '<tr><th>Name<th>Value<th>Description',
+
+            '<tr><td>monospace<td>1<td>use Monospace Font',
+            '<tr><td>&nbsp;<td>0<td>Normal Font',
+
+            '<tr><td>priority<td>0<td>Lowest',
+            '<tr><td>&nbsp;<td>1<td>Low',
+            '<tr><td>&nbsp;<td>2<td>Normal',
+            '<tr><td>&nbsp;<td>3<td>High',
+            '<tr><td>&nbsp;<td>4<td>Emergency',
+
+            '<tr><td>html<td>1<td>Enable html',
+            '<tr><td>&nbsp;<td>0<td>No html',
+
+            '<tr><td>device<td>0<td>All Devices',
+            '<tr><td>&nbsp;<td>1<td>Next device in the list, and so on ...',
+
+            '</table>'
+        ]
+        self.config_info = config_info_nr + config_info_rest
         s = "\n"
         cstr = s.join(self.config_info)
         self.poly.add_custom_config_docs(cstr,True)
