@@ -70,9 +70,28 @@ There are 3 types of nodes
 
 TODO: Add program info here
 
-## REST Interface
+## Sending messages
 
-### ISY Network Resource
+###  Canned Messages
+
+A canned message is simple to send from a program, add a Message in the config page, restart the admin console and you can create a program.  Here I created a canned message 'Good Morning' and send it with this program just to my phone.
+
+```
+HS Notify 01 - [ID 034D][Parent 0263]
+
+If
+        $s.HS.Current.DayNight is $s.HS.01.Morning
+ 
+Then
+        Set 'Notification Controller' Message Good Morning
+        Set 'Notification Controller / Service Pushover homeisy' Device JimsPhone
+        Set 'Notification Controller / Service Pushover homeisy' Priority Normal
+        Set 'Notification Controller / Service Pushover homeisy' Send
+```
+
+### REST Interface
+
+#### ISY Network Resource
 
 This allows creating simple network resources that doesn't need to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
 
@@ -107,7 +126,7 @@ Then
         Resource 'Test.1'
  ```
 
-### Testing
+### Testing with REST interface directly.
 
 You can test the REST interface from a command line by running curl:
 
