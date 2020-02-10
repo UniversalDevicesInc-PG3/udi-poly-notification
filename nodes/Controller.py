@@ -271,7 +271,7 @@ class Controller(polyinterface.Controller):
                             .format(node.address,self.rest.listen_url)
                         )
                         config_info_nr.append(
-                            '<li>http POST Host:{0} Port:{1} Path:/send?node={2}&Subject=My+Subject&monospace=1&device=all&priority=2'
+                            '<li>http POST Host:{0} Port:{1} Path:/send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2'
                             .format(self.rest.ip,self.rest.listen_port,node.address)
                         )
                 else:
@@ -475,6 +475,7 @@ class Controller(polyinterface.Controller):
         #if self.user == default_user or self.password == default_password:
         #    # This doesn't pass a key to test the old way.
         #    self.addNotice('Please set proper user and password in configuration page, and restart this nodeserver')
+
 
     def set_all_logs(self,level):
         LOGGER.setLevel(level)

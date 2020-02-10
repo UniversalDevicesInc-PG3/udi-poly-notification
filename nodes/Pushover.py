@@ -9,7 +9,7 @@
 """
 import polyinterface
 import logging
-from node_funcs import make_file_dir
+from node_funcs import make_file_dir,is_int
 
 LOGGER = polyinterface.LOGGER
 
@@ -20,7 +20,7 @@ ERROR_USER_AUTH  = 3
 ERROR_MESSAGE_CREATE = 4
 ERROR_MESSAGE_SEND   = 5
 
-REMOVED_DEVICE = "RemovedDevice"
+REM_PREFIX = "REMOVED-"
 
 class Pushover(polyinterface.Node):
     """
@@ -51,8 +51,8 @@ class Pushover(polyinterface.Node):
         self.set_priority(self.get_priority())
         self.set_format(self.get_format())
         self.customData = self.controller.polyConfig.get('customData', {})
-        self.devices = self.customData.get('devices', {})
-        self.l_info('start',"devices={}".format(self.devices))
+        self.devices_list = self.customData.get('devices_list',[])
+        self.l_info('start',"devices_list={}".format(self.devices_list))
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
         if vstat is False:
@@ -62,12 +62,8 @@ class Pushover(polyinterface.Node):
         self.l_info('start',"Authorized={}".format(self.authorized))
         if self.authorized:
             self.l_info('start',"got devices={}".format(vstat['devices']))
-            # TODO: Remember devices or always use index
-            self.add_to_hash('all',self.devices)
-            for device in vstat['devices']:
-                self.add_to_hash(device,self.devices)
-            self.l_info('start',"self.devices={}".format(self.devices))
-            self.controller.saveCustomData({'devices': self.devices})
+            self.build_device_list(vstat['devices'])
+            self.controller.saveCustomData({'devices_list': self.devices_list})
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -84,23 +80,24 @@ class Pushover(polyinterface.Node):
         return res
 
 
-    def in_saved_list(self,name,list):
-        for idx in list:
-            if list[idx] == name:
-                return idx
-        return False
+    # Add items in second list to first if they don't exist
+    #  self.controler.add_to_list(self.devices_list,vstat['devices'])
+    def build_device_list(self,vlist):
+        if len(self.devices_list) == 0:
+            self.devices_list.append('all')
+        self.devices_list[0] = 'all'
+        # Add new items
+        for item in vlist:
+            # If it's not in the saved list, append it
+            if self.devices_list.count(item) == 0:
+                self.devices_list.append(item)
+        # Make sure items are in the passed in list, otherwise prefix it
+        # in devices_list
+        for item in self.devices_list:
+            if item != 'all' and not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
+                self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
+        self.l_info('build_device_list',"devices_list={}".format(self.devices_list))
 
-    def add_to_hash(self,name,list):
-        # Find max in list
-        next = 0
-        add = True
-        for idx in list:
-            if list[idx] == name:
-                add = False
-            if int(idx) >= next:
-                next = int(idx)+1
-        if add:
-            list[str(next)] = name
 
     """
     This lets the controller know when we are initialized, or if we had
@@ -133,9 +130,40 @@ class Pushover(polyinterface.Node):
     def write_profile(self,nls):
         pfx = 'write_profile'
         self.l_info(pfx,'')
-        # Open the output editors file
-        output_f   = 'profile/editor/{0}.xml'.format(self.iname)
+        #
+        # nodedefs
+        #
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/nodedef/pushover.xml'
+        self.l_info(pfx,"Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Open the output nodedefs file
+        output_f   = 'profile/nodedef/{0}.xml'.format(self.iname)
         make_file_dir(output_f)
+        # Write the nodedef file with our info
+        self.l_info(pfx,"Writing {}".format(output_f))
+        out_h = open(output_f, "w")
+        out_h.write(data.format(self.id,self.iname))
+        out_h.close()
+        #
+        # nls
+        #
+        nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
+        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
+        idx = 0
+        subst = []
+        for item in self.devices_list:
+            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,item))
+            # Don't include REMOVED's in list
+            if not item.startswith(REM_PREFIX):
+                subst.append(str(idx))
+            idx += 1
+
+        #
+        # editor
+        #
         # Open the template, and read into a string for formatting.
         template_f = 'template/editor/pushover.xml'
         self.l_info(pfx,"Reading {}".format(template_f))
@@ -143,44 +171,25 @@ class Pushover(polyinterface.Node):
             data=myfile.read()
             myfile.close()
         # Write the editors file with our info
+        output_f   = 'profile/editor/{0}.xml'.format(self.iname)
+        make_file_dir(output_f)
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
-        # subset_str = '0-5'
-        subset_str = '0-'+str(len(self.devices)-1)
-        editor_h.write(data.format(self.iname,subset_str))
+        # TODO: We could create a better subst with - and , but do we need to?
+        editor_h.write(data.format(self.iname,",".join(subst)))
         editor_h.close()
-        #
-        # Open the output nodedefs file
-        output_f   = 'profile/nodedef/{0}.xml'.format(self.iname)
-        make_file_dir(output_f)
-        # Open the template, and read into a string for formatting.
-        template_f = 'template/nodedef/pushover.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
-        with open (template_f, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        # Write the nodedef file with our info
-        self.l_info(pfx,"Writing {}".format(output_f))
-        out_h = open(output_f, "w")
-        out_h.write(data.format(self.id,self.iname))
-        out_h.close()
-
-        nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
-        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
-        for idx in self.devices:
-            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,self.devices[idx]))
 
     def l_info(self, name, string):
         LOGGER.info("%s:%s:%s: %s" %  (self.id,self.name,name,string))
 
-    def l_error(self, name, string):
-        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string))
+    def l_error(self, name, string, exc_info=False):
+        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
 
-    def l_warning(self, name, string):
-        LOGGER.warning("%s:%s:%s: %s" % (self.id,self.name,name,string))
+    def l_warning(self, name, string, exc_info=False):
+        LOGGER.warning("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
 
-    def l_debug(self, name, string, execInfo=False):
-        LOGGER.debug("%s:%s:%s: %s" % (self.id,self.name,name,string))
+    def l_debug(self, name, string, exc_info=False):
+        LOGGER.debug("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
 
     def set_device(self,val):
         self.l_info('set_device',val)
@@ -196,14 +205,18 @@ class Pushover(polyinterface.Node):
             return 0
         return int(cval)
 
-    def get_device_name(self,dev=None):
+    def get_device_name_by_index(self,dev=None):
         if dev is None:
             dev = self.get_device()
-        self.l_debug('get_device_name','dev={}'.format(dev))
-        if dev == 0:
-            # This means all to chump
-            return None
-        return self.devices[str(dev)]
+        self.l_debug('get_device_name_by_index','dev={}'.format(dev))
+        dev_name = None
+        try:
+            # 0 is all, so return none, otherwise look up the name
+            if dev > 0:
+                dev_name = self.devices_list[dev]
+        except:
+            self.l_error('get_device_name','Bad device index {}'.format(dev),exc_info=True)
+        return dev_name
 
     def set_st(self,val):
         self.l_info('set_st',val)
@@ -279,17 +292,19 @@ class Pushover(polyinterface.Node):
         # Default create message params
         md = self.parent.get_current_message()
         # md will contain title and message
-        return self.do_send(md)
+        return self.do_send({ 'title': md['title'], 'message': md['message']})
 
     def do_send(self,params):
-        self.l_info('cmd_send','params={}'.format(params))
+        self.l_info('do_send','params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
         if not 'message' in params:
             params['message'] = "NOT_SPECIFIED"
         if 'device' in params:
-            params['device'] = self.get_device_name(params['device'])
+            if is_int(params['device']):
+                # It's an index, so getthe name
+                params['device'] = self.get_device_name(params['device'])
         else:
-            params['device'] = self.get_device_name()
+            params['device'] = self.get_device_name_by_index()
         if 'priority' in params:
             params['priority'] = self.get_pushover_priority(params['priority'])
         else:

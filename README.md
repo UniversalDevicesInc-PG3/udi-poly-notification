@@ -160,6 +160,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.6: 02/09/2020
+  - Fixed creating list of devices.  WARNING: Check programs to make sure correct devices are still selected, order may change, but should never change again.
 - 0.1.5: 02/01/2020
   - Remove references to Chump
   - Add info about adding network resources to configuration page
