@@ -144,15 +144,21 @@ class Controller(polyinterface.Controller):
             self.l_debug('process_config','Adding Notify Nodes...')
             for node in nodes:
                 # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dect
-                self.addNode(Notify(self, self.address, 'mn_{}'.format(node['id']), 'Notify {}'.format(node['name']), node))
+                self.addNode(Notify(self, self.address, get_valid_node_address('mn_'+node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
         if save:
-            try:
-                self.write_profile()
-            except:
-                # TODO: Need to set error on controller for this?
-                self.l_error('process_config:','write_profile failed: ',exc_info=True)
-                return
+            done = False
+            while (not done):
+                try:
+                    self.write_profile()
+                    done = True
+                except RuntimeError:
+                    # Occsionally happens because self.nodes gets updated while write_profile is running...
+                    pass
+                except:
+                    # TODO: Need to set error on controller for this?
+                    self.l_error('process_config:','write_profile failed: ',exc_info=True)
+                    return
             self.poly.installprofile()
 
     def process_pushover(self,pushover):
@@ -168,7 +174,8 @@ class Controller(polyinterface.Controller):
         self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
         for pd in self.pushover:
             # TODO: See if this name already exists, when we start saving service_nodes to DB.
-            snode = self.addNode(Pushover(self, self.address, 'po_{}'.format(pd['name']), 'Service Pushover {}'.format(pd['name']), self.pushover_session, pd))
+            pd['name'] = get_valid_node_address(pd['name'])[:8]
+            snode = self.addNode(Pushover(self, self.address, 'po_'+pd['name'], get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
             self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
             self.l_info('process_pushover','service_nodes={}'.format(self.service_nodes))
         return True

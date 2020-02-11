@@ -81,7 +81,7 @@ HS Notify 01 - [ID 034D][Parent 0263]
 
 If
         $s.HS.Current.DayNight is $s.HS.01.Morning
- 
+
 Then
         Set 'Notification Controller' Message Good Morning
         Set 'Notification Controller / Service Pushover homeisy' Device JimsPhone
@@ -179,6 +179,9 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.7: 02/10/2020
+  - Avoid race condition when building profile and nodes are not added yet it will retry
+  - Truncate pushover node names to 8 characters for users that don't follow instructions :)
 - 0.1.6: 02/09/2020
   - Fixed creating list of devices.  WARNING: Check programs to make sure correct devices are still selected, order may change, but should never change again.
 - 0.1.5: 02/01/2020

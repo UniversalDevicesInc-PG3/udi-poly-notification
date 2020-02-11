@@ -39,7 +39,6 @@ def get_messages():
     ]
     return _MESSAGES
 
-
 # Removes invalid charaters for ISY Node description
 def get_valid_node_name(name):
     # Only allow utf-8 characters
@@ -47,6 +46,9 @@ def get_valid_node_name(name):
     name = bytes(name, 'utf-8').decode('utf-8','ignore')
     # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
     return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"']+", "", name)
+
+def get_valid_node_address(name):
+    return get_valid_node_name(name)[:14].lower()
 
 def toC(tempF):
   # Round to the nearest .5
