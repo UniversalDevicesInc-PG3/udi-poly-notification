@@ -179,6 +179,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.8: 02/18/2020
+  - Fix crash in do_send https://github.com/jimboca/udi-poly-notification/issues/11
 - 0.1.7: 02/10/2020
   - Avoid race condition when building profile and nodes are not added yet it will retry
   - Truncate pushover node names to 8 characters for users that don't follow instructions :)

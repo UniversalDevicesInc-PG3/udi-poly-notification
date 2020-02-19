@@ -302,7 +302,7 @@ class Pushover(polyinterface.Node):
         if 'device' in params:
             if is_int(params['device']):
                 # It's an index, so getthe name
-                params['device'] = self.get_device_name(params['device'])
+                params['device'] = self.get_device_name_by_index(params['device'])
         else:
             params['device'] = self.get_device_name_by_index()
         if 'priority' in params:
