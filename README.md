@@ -144,6 +144,7 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 2. Go to the Polyglot Store in the UI and install Notification.
 3. Add Notification NodeServer in Polyglot
 4. Go to the Configuration page and read those instructions.
+5. Restart the ISY Admin Console if you already had it open
 
 ## Requirements
 1. [Polyglot V2](https://github.com/UniversalDevicesInc/polyglot-v2) >= 2.2.6
