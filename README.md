@@ -19,7 +19,7 @@ All information is on the [Configuration Page](https://github.com/jimboca/udi-po
 
 The nodeserver allows you to
 1. Create canned messages and send them to a notification service easily thru an ISY program
-2. Add a node to a scene to send messages when seen is controlled (Not working yet)
+2. Add a node to a scene to send messages when seen is controlled
 3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
 ## Nodes
