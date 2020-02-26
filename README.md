@@ -19,7 +19,7 @@ All information is on the [Configuration Page](https://github.com/jimboca/udi-po
 
 The nodeserver allows you to
 1. Create canned messages and send them to a notification service easily thru an ISY program
-2. Add a node to a scene to send messages when seen is controlled (Not working yet)
+2. Add a node to a scene to send messages when seen is controlled
 3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
 ## Nodes
@@ -144,6 +144,7 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 2. Go to the Polyglot Store in the UI and install Notification.
 3. Add Notification NodeServer in Polyglot
 4. Go to the Configuration page and read those instructions.
+5. Restart the ISY Admin Console if you already had it open
 
 ## Requirements
 1. [Polyglot V2](https://github.com/UniversalDevicesInc/polyglot-v2) >= 2.2.6
