@@ -123,6 +123,7 @@ class Controller(polyinterface.Controller):
         if not typedCustomData:
             return
         save = False
+        self.removeNoticesAll()
 
         self.messages = typedCustomData.get('messages')
         self.l_debug('process_config','messages={}'.format(self.messages))
@@ -130,21 +131,73 @@ class Controller(polyinterface.Controller):
             self.l_debug('process_config','No messages')
         else:
             save = True
+        err = 0
 
-        if self.process_pushover(typedCustomData.get('pushover')):
-            save = True
-
-        # TODO: Save service_nodes names in customParams
-
+        pushover = typedCustomData.get('pushover')
         nodes = typedCustomData.get('notify')
+        #
+        # Check the pushover configs are all good
+        #
+        pnames = dict()
+        self.l_info('process_config:','pushover={}'.format(pushover))
+        if pushover is None or len(pushover) == 0:
+            self.l_info('process_cofig',"No Pushover Entries in the config: {}".format(pushover))
+            pushover = None
+        else:
+            for pd in pushover:
+                address = self.get_service_node_address(pd['name'])
+                if address in pnames:
+                    pnames[address] += 1
+                    err += 1
+                else:
+                    pnames[address] = 1
+        #
+        # Check the message nodes are all good
+        #
         if nodes is None:
             self.l_debug('process_config','No Notify Nodes')
         else:
+            # First check that nodes are valid before we try to add them
+            mnames = dict()
+            for node in nodes:
+                address = self.get_message_node_address(node['id'])
+                if address in mnames:
+                    mnames[address] += 1
+                    err += 1
+                else:
+                    mnames[address] = 1
+        #
+        # Any errors, print them and stop
+        #
+        if err > 0:
+            self.addNotice('There are {} errors found'.format(err),'ecount')
+            for address in pnames:
+                if pnames[address] > 1:
+                    msg = "Need to shorten the pushover names's for {} for {}".format(pnames[address],address)
+                    self.l_error('process_config',msg)
+                    self.addNotice(msg,address)
+            for address in mnames:
+                if mnames[address] > 1:
+                    msg = "Need to shorten the id's for {} for {}".format(mnames[address],address)
+                    self.l_error('process_config',msg)
+                    self.addNotice(msg,address)
+            self.addNotice('Fix Errors and restart','restart')
+            return
+
+        if pushover is not None:
+            self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
+            for pd in pushover:
+                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
+                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                self.l_info('process_config','service_nodes={}'.format(self.service_nodes))
+
+        # TODO: Save service_nodes names in customParams
+        if nodes is not None:
             save = True
             self.l_debug('process_config','Adding Notify Nodes...')
             for node in nodes:
-                # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dect
-                self.addNode(Notify(self, self.address, get_valid_node_address('mn_'+node['id']), 'Notify '+get_valid_node_name(node['name']), node))
+                # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dict
+                self.addNode(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
         if save:
             done = False
@@ -161,24 +214,11 @@ class Controller(polyinterface.Controller):
                     return
             self.poly.installprofile()
 
-    def process_pushover(self,pushover):
-        self.pushover = pushover
-        self.l_info('process_pushover:','{}'.format(self.pushover))
-        # TODO: Create Pushover Nodes
-        #customParams = self.polyConfig.get('customParams', {})
-        #self.pushover_nodes = customParams.get('pushover')
-        # name must be <= 11 characters, and dont change since it's used as the node address
-        if self.pushover is None or len(self.pushover) == 0:
-            self.l_info('process_pushover',"No Pushover Entries in the config: {}".format(self.pushover))
-            return False
-        self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
-        for pd in self.pushover:
-            # TODO: See if this name already exists, when we start saving service_nodes to DB.
-            pd['name'] = get_valid_node_address(pd['name'])[:8]
-            snode = self.addNode(Pushover(self, self.address, 'po_'+pd['name'], get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
-            self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
-            self.l_info('process_pushover','service_nodes={}'.format(self.service_nodes))
-        return True
+    def get_message_node_address(self,id):
+        return get_valid_node_address('mn_'+id)
+
+    def get_service_node_address(self,id):
+        return get_valid_node_address('po_'+id)
 
     def write_profile(self):
         pfx = 'write_profile'

@@ -179,6 +179,8 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.9: 02/25/2020
+  - Add notices and error messages when notify node id's and pushover node names are not unique.
 - 0.1.8: 02/18/2020
   - Fix crash in do_send https://github.com/jimboca/udi-poly-notification/issues/11
 - 0.1.7: 02/10/2020
