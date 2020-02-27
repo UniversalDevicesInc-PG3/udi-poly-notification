@@ -159,9 +159,13 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 
 ## Issues
 
+### Forum
 If you are having problems please post on the [Polyglot Notification Service Node Server](https://forum.universal-devices.com/forum/166-polyglot-notification-service-node-server/)
 
+### Github
 There is a list of known issues on the [Github Issues Page](https://github.com/jimboca/udi-poly-notification/issues)
+
+### Log Package
 
 You can also send a Log Package from the Polyglot UI in the Notifications -> Log page hit "Download Log Package", and PM that to JimBo on the forum.
 
