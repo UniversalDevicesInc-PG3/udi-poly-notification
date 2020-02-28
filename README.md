@@ -19,7 +19,7 @@ All information is on the [Configuration Page](https://github.com/jimboca/udi-po
 
 The nodeserver allows you to
 1. Create canned messages and send them to a notification service easily thru an ISY program
-2. Add a node to a scene to send messages when seen is controlled
+2. Add a node to a scene to send messages when scene is controlled
 3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
 ## Nodes
@@ -157,9 +157,16 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
     * https://linuxconfig.org/raspbian-gnu-linux-upgrade-from-jessie-to-raspbian-stretch-9
 1. This has only been tested with ISY 5.0.16 so it is not confirmed to work with any prior version.
 
-## Issues Page
+## Issues
 
-See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
+### Forum
+If you are having problems please post on the [Polyglot Notification Service Node Server](https://forum.universal-devices.com/forum/166-polyglot-notification-service-node-server/)
+
+### Github
+There is a list of known issues on the [Github Issues Page](https://github.com/jimboca/udi-poly-notification/issues)
+
+### Log Package
+You can also send a Log Package from the Polyglot UI in the Notifications -> Log page hit "Download Log Package", and PM that to JimBo on the forum.
 
 ## Upgrading
 
