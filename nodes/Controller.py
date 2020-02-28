@@ -139,13 +139,16 @@ class Controller(polyinterface.Controller):
         # Check the pushover configs are all good
         #
         pnames = dict()
+        snames = dict()
         self.l_info('process_config:','pushover={}'.format(pushover))
         if pushover is None or len(pushover) == 0:
-            self.l_info('process_cofig',"No Pushover Entries in the config: {}".format(pushover))
+            self.l_info('process_config',"No Pushover Entries in the config: {}".format(pushover))
             pushover = None
         else:
             for pd in pushover:
-                address = self.get_service_node_address(pd['name'])
+                sname = pd['name']
+                snames[sname] = 1
+                address = self.get_service_node_address(sname)
                 if address in pnames:
                     pnames[address] += 1
                     err += 1
@@ -166,22 +169,28 @@ class Controller(polyinterface.Controller):
                     err += 1
                 else:
                     mnames[address] = 1
+                # And check that service node name is known
+                sname = node['service_node_name']
+                if not sname in snames:
+                    err += 1
+                    msg = "Unknown service node name {} in message node {}".format(sname,node['id'])
+                    self.l_error('process_config',msg)
+                    self.addNotice(msg,node['id']+sname)
         #
         # Any errors, print them and stop
         #
         if err > 0:
-            self.addNotice('There are {} errors found'.format(err),'ecount')
             for address in pnames:
                 if pnames[address] > 1:
-                    msg = "Need to shorten the pushover names's for {} for {}".format(pnames[address],address)
+                    msg = "Duplicate pushover names for {} for {}".format(pnames[address],address)
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
             for address in mnames:
                 if mnames[address] > 1:
-                    msg = "Need to shorten the id's for {} for {}".format(mnames[address],address)
+                    msg = "Duplicate Notify ids for {} for {}".format(mnames[address],address)
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
-            self.addNotice('Fix Errors and restart','restart')
+            self.addNotice('There are {} errors found please fix Errors and restart'.format(err),'ecount')
             return
 
         if pushover is not None:
@@ -372,7 +381,7 @@ class Controller(polyinterface.Controller):
         # Write the editors file with our info
         self.l_info(pfx,"Writing {}".format(editor_f))
         editor_h = open(editor_f, "w")
-        editor_h.write(data.format(full_subset_str,subset_str,msg_cnt,(svc_cnt-1)))
+        editor_h.write(data.format(full_subset_str,subset_str,(msg_cnt-1),(svc_cnt-1)))
         editor_h.close()
 
         return True

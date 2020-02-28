@@ -180,6 +180,9 @@ See [Github Issues](https://github.com/jimboca/udi-poly-notification/issues)
 
 ## Release Notes
 
+- 0.1.10: 02/27/2020
+  - Add some more error checking for valid service node names
+  - Added a few more default messages
 - 0.1.9: 02/25/2020
   - Add notices and error messages when notify node id's and pushover node names are not unique.
 - 0.1.8: 02/18/2020

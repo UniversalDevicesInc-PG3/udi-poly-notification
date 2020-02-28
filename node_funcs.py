@@ -35,7 +35,14 @@ def get_messages():
         'Problem',
         'Okay',
         'Good',
-        'Bad'
+        'Bad',
+        'Started',
+        'Finished',
+        'Sleeping',
+        'Awake',
+        'Alive',
+        'Dead',
+        'Not Responding',
     ]
     return _MESSAGES
 
