@@ -131,7 +131,6 @@ class Controller(polyinterface.Controller):
             self.l_debug('process_config','No messages')
         else:
             save = True
-        err = 0
 
         pushover = typedCustomData.get('pushover')
         nodes = typedCustomData.get('notify')
@@ -152,9 +151,11 @@ class Controller(polyinterface.Controller):
                 address = self.get_service_node_address(sname)
                 if address in pnames:
                     pnames[address].append(sname)
-                    err += 1
                 else:
                     pnames[address] = list(sname)
+            for address in pnames:
+                if pnames[address].count() > 1:
+                    err_list.append("Duplicate pushover names for {} for {}".format(address,",".join(pnames[address])))
         #
         # Check the message nodes are all good
         #
@@ -167,32 +168,23 @@ class Controller(polyinterface.Controller):
                 address = self.get_message_node_address(node['id'])
                 if address in mnames:
                     mnames[address].append(node['id'])
-                    err += 1
                 else:
                     mnames[address] = list(node['id'])
                 # And check that service node name is known
                 sname = node['service_node_name']
                 if not sname in snames:
                     err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
+            for address in mnames:
+                if mnames[address].count() > 1:
+                    err_list.append("Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address])))
         #
         # Any errors, print them and stop
         #
-        if err > 0 or err_list.count() > 0:
+        if err_list.count() > 0:
             for msg in err_list:
                 self.l_error('process_config',msg)
                 self.addNotice(msg)
-                err += 1
-            for address in pnames:
-                if pnames[address].count() > 1:
-                    msg = "Duplicate pushover names for {} for {}".format(address,",".join(pnames[address]))
-                    self.l_error('process_config',msg)
-                    self.addNotice(msg,address)
-            for address in mnames:
-                if mnames[address].count() > 1:
-                    msg = "Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address]))
-                    self.l_error('process_config',msg)
-                    self.addNotice(msg,address)
-            self.addNotice('There are {} errors found please fix Errors and restart'.format(err),'ecount')
+            self.addNotice('There are {} errors found please fix Errors and restart'.format(err_list.count()),'ecount')
             return
 
         if pushover is not None:
