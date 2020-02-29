@@ -154,7 +154,7 @@ class Controller(polyinterface.Controller):
                 else:
                     pnames[address] = list(sname)
             for address in pnames:
-                if pnames[address].count() > 1:
+                if len(pnames[address]) > 1:
                     err_list.append("Duplicate pushover names for {} for {}".format(address,",".join(pnames[address])))
         #
         # Check the message nodes are all good
@@ -175,16 +175,16 @@ class Controller(polyinterface.Controller):
                 if not sname in snames:
                     err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
             for address in mnames:
-                if mnames[address].count() > 1:
+                if len(mnames[address]) > 1:
                     err_list.append("Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address])))
         #
         # Any errors, print them and stop
         #
-        if err_list.count() > 0:
+        if len(err_list) > 0:
             for msg in err_list:
                 self.l_error('process_config',msg)
                 self.addNotice(msg)
-            self.addNotice('There are {} errors found please fix Errors and restart'.format(err_list.count()),'ecount')
+            self.addNotice('There are {} errors found please fix Errors and restart'.format(len(err_list),'ecount')
             return
 
         if pushover is not None:
