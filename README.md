@@ -187,6 +187,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.11: 02/28/2020
+  - Clean up error checking some more
 - 0.1.10: 02/27/2020
   - Add some more error checking for valid service node names
   - Added a few more default messages
