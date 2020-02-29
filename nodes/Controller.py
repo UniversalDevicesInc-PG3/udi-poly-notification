@@ -177,18 +177,18 @@ class Controller(polyinterface.Controller):
         #
         # Any errors, print them and stop
         #
-        if err > 0 or err_list.length() > 0:
+        if err > 0 or err_list.count() > 0:
             for msg in err_list:
                 self.l_error('process_config',msg)
                 self.addNotice(msg)
                 err += 1
             for address in pnames:
-                if pnames[address].length() > 1:
+                if pnames[address].count() > 1:
                     msg = "Duplicate pushover names for {} for {}".format(address,",".join(pnames[address]))
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
             for address in mnames:
-                if mnames[address].length() > 1:
+                if mnames[address].count() > 1:
                     msg = "Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address]))
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
