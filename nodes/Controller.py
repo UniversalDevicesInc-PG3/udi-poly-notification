@@ -154,7 +154,7 @@ class Controller(polyinterface.Controller):
                 pnames[address].append(sname)
             for address in pnames:
                 if len(pnames[address]) > 1:
-                    err_list.append("Duplicate pushover names for {} items {} for {}".format(len(pnames[address]),address,",".join(pnames[address])))
+                    err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
         #
         # Check the message nodes are all good
         #
@@ -174,7 +174,7 @@ class Controller(polyinterface.Controller):
                     err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
             for address in mnames:
                 if len(mnames[address]) > 1:
-                    err_list.append("Duplicate Notify ids for {} items {} for {}".format(len(mnames[address]),address,",".join(mnames[address])))
+                    err_list.append("Duplicate Notify ids for {} items {} from {}".format(len(mnames[address]),address,",".join(mnames[address])))
         #
         # Any errors, print them and stop
         #
@@ -431,7 +431,7 @@ class Controller(polyinterface.Controller):
                 'params': [
                     {
                         'name': 'name',
-                        'title': 'Name for reference, used as node name.<br>Must be 8 characters or less.',
+                        'title': 'Name for reference, used as node name. Must be 8 characters or less.',
                         'isRequired': True
                     },
                     {
@@ -456,7 +456,7 @@ class Controller(polyinterface.Controller):
                 'params': [
                     {
                         'name': 'id',
-                        'title': "ID for node, never change,<br>8 characters or less",
+                        'title': "ID for node, never change, 8 characters or less",
                         'isRequired': True
                     },
                     {
@@ -466,7 +466,7 @@ class Controller(polyinterface.Controller):
                     },
                     {
                         'name': 'service_node_name',
-                        'title': "Service Node Name<br>Must match an existing Service Node Name",
+                        'title': "Service Node Name Must match an existing Service Node Name",
                         'isRequired': True
                     },
                 ]
