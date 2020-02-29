@@ -184,7 +184,7 @@ class Controller(polyinterface.Controller):
             for msg in err_list:
                 self.l_error('process_config',msg)
                 self.addNotice(msg)
-            self.addNotice('There are {} errors found please fix Errors and restart'.format(len(err_list),'ecount')
+            self.addNotice('There are {} errors found please fix Errors and restart'.format(len(err_list)),'ecount')
             return
 
         if pushover is not None:
