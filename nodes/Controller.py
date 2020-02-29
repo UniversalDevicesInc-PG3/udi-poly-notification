@@ -139,7 +139,7 @@ class Controller(polyinterface.Controller):
         # Check the pushover configs are all good
         #
         pnames = dict()
-        snames = dict()
+        snames = list()
         self.l_info('process_config:','pushover={}'.format(pushover))
         if pushover is None or len(pushover) == 0:
             self.l_info('process_config',"No Pushover Entries in the config: {}".format(pushover))
@@ -147,13 +147,13 @@ class Controller(polyinterface.Controller):
         else:
             for pd in pushover:
                 sname = pd['name']
-                snames[sname] = 1
+                snames.push(sname) # List for checking later
                 address = self.get_service_node_address(sname)
                 if address in pnames:
-                    pnames[address] += 1
+                    pnames[address].push(sname)
                     err += 1
                 else:
-                    pnames[address] = 1
+                    pnames[address] = list(sname)
         #
         # Check the message nodes are all good
         #
@@ -165,29 +165,30 @@ class Controller(polyinterface.Controller):
             for node in nodes:
                 address = self.get_message_node_address(node['id'])
                 if address in mnames:
-                    mnames[address] += 1
+                    mnames[address].push(node['id'])
                     err += 1
                 else:
-                    mnames[address] = 1
+                    mnames[address] = list(node['id'])
                 # And check that service node name is known
                 sname = node['service_node_name']
                 if not sname in snames:
-                    err += 1
-                    msg = "Unknown service node name {} in message node {}".format(sname,node['id'])
-                    self.l_error('process_config',msg)
-                    self.addNotice(msg,node['id']+sname)
+                    err_list.push("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
         #
         # Any errors, print them and stop
         #
-        if err > 0:
+        if err > 0 or err_list.lenght() > 0:
+            for msg in err_list:
+                self.l_error('process_config',msg)
+                self.addNotice(msg)
+                err += 1
             for address in pnames:
-                if pnames[address] > 1:
-                    msg = "Duplicate pushover names for {} for {}".format(pnames[address],address)
+                if pnames[address].length() > 1:
+                    msg = "Duplicate pushover names for {} for {}".format(address,",".join(pnames[address]))
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
             for address in mnames:
-                if mnames[address] > 1:
-                    msg = "Duplicate Notify ids for {} for {}".format(mnames[address],address)
+                if mnames[address].length() > 1:
+                    msg = "Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address]))
                     self.l_error('process_config',msg)
                     self.addNotice(msg,address)
             self.addNotice('There are {} errors found please fix Errors and restart'.format(err),'ecount')
@@ -404,7 +405,7 @@ class Controller(polyinterface.Controller):
             custom_params[ack] = ""
             self.addCustomParam(custom_params)
         if val != 'I understand and agree':
-            self.addNotice('Before using you must follow the link to <a href="https://github.com/jimboca/udi-poly-notification/blob/master/ACKNOWLEDGE.md">acknowledge</a>')
+            self.addNotice('Before using you must follow the link to <a href="https://github.com/jimboca/udi-poly-notification/blob/master/ACKNOWLEDGE.md" target="_blank">acknowledge</a>')
             return False
 
         params = [
@@ -433,13 +434,13 @@ class Controller(polyinterface.Controller):
             },
             {
                 'name': 'pushover',
-                'title': 'Service Pushover Node Keys',
+                'title': 'Pushover Service Nodes',
                 'desc': 'Config for https://pushover.net/',
                 'isList': True,
                 'params': [
                     {
                         'name': 'name',
-                        'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                        'title': 'Name for reference, used as node name.<br>Must be 8 characters or less.',
                         'isRequired': True
                     },
                     {
@@ -464,7 +465,7 @@ class Controller(polyinterface.Controller):
                 'params': [
                     {
                         'name': 'id',
-                        'title': 'ID for node, never change, 8 characters or less',
+                        'title': "ID for node, never change,<br>8 characters or less",
                         'isRequired': True
                     },
                     {
@@ -474,14 +475,14 @@ class Controller(polyinterface.Controller):
                     },
                     {
                         'name': 'service_node_name',
-                        'title': 'Service Node Name',
+                        'title': "Service Node Name<br>Must match an existing Service Node Name",
                         'isRequired': True
                     },
                 ]
             },
             {
                 'name': 'assistant_relay',
-                'title': 'Assistant Relay',
+                'title': 'Assistant Relay Service Nodes',
                 'desc': 'Config for https://github.com/greghesp/assistant-relay',
                 'isList': True,
                 'params': [

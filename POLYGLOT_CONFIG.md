@@ -1,15 +1,21 @@
 
 # Polyglot Node Server Configuration
 
-## Pushover
+## Service Nodes
 
-You must have a user key for the [Pushover Service](https://pushover.net/dashboard) and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can [clone the Universal Devices application](https://pushover.net/apps/clone/universal_devices)
+The Serice nodes allow you to send messages to a service, currently the only supported service is Pushover.  You must also define at least one Service Node.
+
+### Pushover
+
+You must have a user key for the [Pushover Service](https://pushover.net/dashboard){:target="_ blank"} and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can [clone the Universal Devices application](https://pushover.net/apps/clone/universal_devices){:target="_ blank"}
+
+You may create multiple Applications on Pushover, just list each one with a unique name.  This allows you to use different icons to easily distinguish and categorize the messages in the Pushover app.
 
 To add the configuration:
 
-- For each Pushover application you want to use, Click "Add Pushover Keys" below.
+- For each Pushover application you want to use, Click "Add Pushover Service Nodes" below.
   - Add the "Name" which is used as the ISY node address, and can be maximum of eight characters.
-  - Add the User Key which can be found on your [Pushover Dashboard](https://pushover.net/dashboard)
+  - Add the User Key which can be found on your [Pushover Dashboard](https://pushover.net/dashboard){:target="_ blank"}
   - Add the Application Key
 - Restart the Nodeserver
 
@@ -17,7 +23,7 @@ To add the configuration:
 
 ## Messages
 
-These are the messages you want to send.  Create at least one message, restart NodeServer and re-open admin console to see the messages on the controller node.
+These are short custom messages you want to send.  Create at least one message, restart NodeServer and re-open admin console to see the messages on the controller node.
 
 - ID = This is the message ID.
   - It is used to build the profile, so you should never change this number if ANY message is referenced in a program.
@@ -31,6 +37,6 @@ After changing any configuration you must restart the node server.
 
 ## Help
 
-Please see [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md) for more information.
+Please see [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md){:target="_ blank"} for more information.
 
 <i>Note: The information below is generated on the fly and will be updated on each nodeserver restart or when discover or update profile is run from the Admin Console.  It takes a minute to update since it polls the pushover servers.</i>
