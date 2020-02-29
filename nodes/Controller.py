@@ -140,6 +140,7 @@ class Controller(polyinterface.Controller):
         #
         pnames = dict()
         snames = list()
+        err_list = list()
         self.l_info('process_config:','pushover={}'.format(pushover))
         if pushover is None or len(pushover) == 0:
             self.l_info('process_config',"No Pushover Entries in the config: {}".format(pushover))
