@@ -147,10 +147,10 @@ class Controller(polyinterface.Controller):
         else:
             for pd in pushover:
                 sname = pd['name']
-                snames.push(sname) # List for checking later
+                snames.append(sname) # List for checking later
                 address = self.get_service_node_address(sname)
                 if address in pnames:
-                    pnames[address].push(sname)
+                    pnames[address].append(sname)
                     err += 1
                 else:
                     pnames[address] = list(sname)
@@ -165,14 +165,14 @@ class Controller(polyinterface.Controller):
             for node in nodes:
                 address = self.get_message_node_address(node['id'])
                 if address in mnames:
-                    mnames[address].push(node['id'])
+                    mnames[address].append(node['id'])
                     err += 1
                 else:
                     mnames[address] = list(node['id'])
                 # And check that service node name is known
                 sname = node['service_node_name']
                 if not sname in snames:
-                    err_list.push("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
+                    err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
         #
         # Any errors, print them and stop
         #
@@ -195,9 +195,9 @@ class Controller(polyinterface.Controller):
             return
 
         if pushover is not None:
-            self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
+            self.appendover_session = polyglotSession(self,"https://api.appendover.net",LOGGER)
             for pd in pushover:
-                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
+                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.appendover_session, pd))
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 self.l_info('process_config','service_nodes={}'.format(self.service_nodes))
 
