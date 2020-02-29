@@ -149,13 +149,12 @@ class Controller(polyinterface.Controller):
                 sname = pd['name']
                 snames.append(sname) # List for checking later
                 address = self.get_service_node_address(sname)
-                if address in pnames:
-                    pnames[address].append(sname)
-                else:
-                    pnames[address] = list(sname)
+                if not address in pnames:
+                    pnames[address] = list()
+                pnames[address].append(sname)
             for address in pnames:
                 if len(pnames[address]) > 1:
-                    err_list.append("Duplicate pushover names for {} {} for {}".format(len(pnames[address]),address,",".join(pnames[address])))
+                    err_list.append("Duplicate pushover names for {} items {} for {}".format(len(pnames[address]),address,",".join(pnames[address])))
         #
         # Check the message nodes are all good
         #
@@ -166,17 +165,16 @@ class Controller(polyinterface.Controller):
             mnames = dict()
             for node in nodes:
                 address = self.get_message_node_address(node['id'])
-                if address in mnames:
-                    mnames[address].append(node['id'])
-                else:
-                    mnames[address] = list(node['id'])
+                if not address in mnames:
+                    mnames[address] = list()
+                mnames[address].append(node['id'])
                 # And check that service node name is known
                 sname = node['service_node_name']
                 if not sname in snames:
                     err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
             for address in mnames:
                 if len(mnames[address]) > 1:
-                    err_list.append("Duplicate Notify ids for {} for {}".format(address,",".join(mnames[address])))
+                    err_list.append("Duplicate Notify ids for {} items {} for {}".format(len(mnames[address]),address,",".join(mnames[address])))
         #
         # Any errors, print them and stop
         #
