@@ -155,7 +155,7 @@ class Controller(polyinterface.Controller):
                     pnames[address] = list(sname)
             for address in pnames:
                 if len(pnames[address]) > 1:
-                    err_list.append("Duplicate pushover names for {} for {}".format(address,",".join(pnames[address])))
+                    err_list.append("Duplicate pushover names for {} {} for {}".format(len(pnames[address]),address,",".join(pnames[address])))
         #
         # Check the message nodes are all good
         #
