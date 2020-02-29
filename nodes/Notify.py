@@ -221,9 +221,13 @@ class Notify(polyinterface.Node):
         self.send_msg(self.get_message_off())
 
     def send_msg(self,mi):
+        self.l_info("cmd_send_on","m={}".format(mi))
+        if int(mi) == 0:
+            self.l_info("cmd_send_on","m={} so not sending anything".format(mi))
+            return
         msg = get_messages()[mi]
         # md will contain title and message
-        self.l_info("cmd_send_on","msg={}".format(msg))
+        self.l_info("cmd_send_on","mi={} msg={}".format(mi,msg))
         st = self.service_node['node'].do_send(
             {
                 #'title': ,

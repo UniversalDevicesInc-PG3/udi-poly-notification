@@ -6,7 +6,7 @@ import json
 
 def get_messages():
     _MESSAGES = [
-        'Blank',
+        '(IGNORE)',
         'On',
         'Off',
         'Light on',

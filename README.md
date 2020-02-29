@@ -61,10 +61,13 @@ There are 3 types of nodes
             - Normal
             - High
             - Emergency
-  - Message Nodes
-    - Message nodes defined by user on the Configuration Page
+  - Notify Nodes
+    - Notify nodes defined by user on the Configuration Page
     - They are meant to be added to a Scene and send messages when DON or DOFF is received.
-    - They are going to be complicated, not sure how to do it properly yet, because they will need to have the ability to send messages to any or all services or devices...
+    - You can also just send an ON or OFF in a program as well
+    - The only available messages are in the canned message list, send a request on the forum if you would like a new one added
+    - I may add the ability to add a custom list of messages if necessary
+    - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
 
 ## Heartbeat monitoring
 
@@ -187,6 +190,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.13: 02/28/2020
+  - Set a notify node On or Off message to "(IGNORE)" to disable a message from being sent
+  - Cleaned up documentation a little for Notify Nodes.
 - 0.1.12: 02/29/2020
   - Fix bug from previous version casued by global search/replace.
 - 0.1.11: 02/28/2020
