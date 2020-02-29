@@ -187,6 +187,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.12: 02/29/2020
+  - Fix bug from previous version casued by global search/replace.
 - 0.1.11: 02/28/2020
   - Clean up error checking some more
 - 0.1.10: 02/27/2020

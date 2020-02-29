@@ -186,9 +186,9 @@ class Controller(polyinterface.Controller):
             return
 
         if pushover is not None:
-            self.appendover_session = polyglotSession(self,"https://api.appendover.net",LOGGER)
+            self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
-                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.appendover_session, pd))
+                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 self.l_info('process_config','service_nodes={}'.format(self.service_nodes))
 
