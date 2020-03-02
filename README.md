@@ -55,12 +55,12 @@ There are 3 types of nodes
         - Device
           - This is the Pushover Device as configured on the pushover site.
         - Priority
-          - This is the Pushover Priority
+          - This is the <a href="https://pushover.net/api#priority" target="_ blank">Pushover Priority</a>
             - Lowest
             - Low
             - Normal
             - High
-            - Emergency
+            - Emergency <a href="https://github.com/jimboca/udi-poly-notification/issues/14">Currently not supported</a>
   - Notify Nodes
     - Notify nodes defined by user on the Configuration Page
     - They are meant to be added to a Scene and send messages when DON or DOFF is received.
