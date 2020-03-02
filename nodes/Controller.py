@@ -214,7 +214,7 @@ class Controller(polyinterface.Controller):
         msg_cnt = 0
         nls.write("# Start: Internal Messages:\n")
         for message in get_messages():
-            nls.write("NMESSAGE-{}: {}\n".format(msg_cnt,message))
+            nls.write("NMESSAGE-{} = {}\n".format(msg_cnt,message))
             msg_cnt += 1
         nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
@@ -229,7 +229,7 @@ class Controller(polyinterface.Controller):
             if 'message' not in message or message['message'] == '':
                 message['message'] = message['title']
             self.l_info(pfx, 'message={}'.format(message))
-            nls.write("MID-{}: {}\n".format(message['id'],message['title']))
+            nls.write("MID-{} = {}\n".format(message['id'],message['title']))
         #
         nls.write("# End: Custom Messages:\n\n")
 
