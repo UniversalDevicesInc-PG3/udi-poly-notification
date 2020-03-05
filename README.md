@@ -218,6 +218,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.15: 03/05/2020
+  - <a href="https://github.com/jimboca/udi-poly-notification/pull/15">Fixed incorrect char in Name Mapped Value</a>
 - 0.1.14: 03/04/2020
   - Clean up documentation a little more
   - Add instructions for <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#notify-node>Adding a notify node</a> into a scene
