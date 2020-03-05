@@ -39,6 +39,8 @@ class Notify(polyinterface.Node):
         self.set_device(self.get_device())
         self.set_priority(self.get_priority())
         self.set_format(self.get_format())
+        self.set_retry(self.get_retry())
+        self.set_expire(self.get_expire())
         # Make sure we know who our service node is
         self.service_node = self.controller.get_service_node(self.service_node_name)
         if self.service_node is False:
@@ -187,6 +189,36 @@ class Notify(polyinterface.Node):
             return 0
         return int(cval)
 
+    def set_retry(self,val):
+        dv = 'GV7'
+        self.l_info('set_expire',val)
+        if val is None:
+            val = 30
+        val = int(val)
+        self.l_info('set_retry','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
+    def get_retry(self):
+        cval = self.getDriver('GV7')
+        if cval is None:
+            return 30
+        return int(cval)
+
+    def set_expire(self,val):
+        dv = 'GV8'
+        self.l_info('set_expire',val)
+        if val is None:
+            val = 10800
+        val = int(val)
+        self.l_info('set_expire','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
+    def get_expire(self):
+        cval = self.getDriver('GV8')
+        if cval is None:
+            return 10800
+        return int(cval)
+
     def cmd_set_message_on(self,command):
         val = int(command.get('value'))
         self.l_info("cmd_set_message_on",val)
@@ -212,6 +244,16 @@ class Notify(polyinterface.Node):
         self.l_info("cmd_set_format",val)
         self.set_format(val)
 
+    def cmd_set_retry(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_retry",val)
+        self.set_retry(val)
+
+    def cmd_set_expire(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_expire",val)
+        self.set_expire(val)
+
     def cmd_send_on(self,command):
         self.l_info("cmd_send_on",''.format(command))
         self.send_msg(self.get_message_on())
@@ -235,6 +277,8 @@ class Notify(polyinterface.Node):
                 'device': self.get_device(),
                 'priority': self.get_priority(),
                 'format': self.get_format(),
+                'retry': self.get_retry(),
+                'expire': self.get_expire(),
             }
         )
         self.set_st(st)
@@ -250,7 +294,9 @@ class Notify(polyinterface.Node):
         {'driver': 'GV3', 'value': 0, 'uom': 25},
         {'driver': 'GV4', 'value': 0, 'uom': 25},
         {'driver': 'GV5', 'value': 2, 'uom': 25},
-        {'driver': 'GV6', 'value': 0, 'uom': 25}
+        {'driver': 'GV6', 'value': 0, 'uom': 25},
+        {'driver': 'GV7', 'value': 30, 'uom': 56},
+        {'driver': 'GV8', 'value': 10800, 'uom': 56}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
@@ -259,6 +305,8 @@ class Notify(polyinterface.Node):
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
                 'SET_FORMAT': cmd_set_format,
+                'SET_RETRY': cmd_set_retry,
+                'SET_EXPIRE': cmd_set_expire,
                 'DON': cmd_send_on,
                 'DOF': cmd_send_off,
                 }

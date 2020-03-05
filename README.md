@@ -61,6 +61,10 @@ There are 3 types of nodes
             - Normal
             - High
             - Emergency
+        - Retry
+          - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
+        - Expires
+          - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
   - Notify Nodes
     - Notify nodes defined by user on the Configuration Page
     - They are meant to be added to a Scene and send messages when DON or DOFF is received.
@@ -91,6 +95,22 @@ Then
         Set 'Notification Controller / Service Pushover homeisy' Priority Normal
         Set 'Notification Controller / Service Pushover homeisy' Send
 ```
+
+### Notify Node
+
+A Notify node accepts a DON/DOFF from a scene or a program
+- Create a Notify node in the Configuration using "Add Notify Nodes"
+- Set id to a short unique string to be used for the nodeid in the ISY
+- Set the Name for the node to be the beginning of the message to send
+- Set the Service Node Name to match to the Name of an existing Service Node you created.
+- Press 'Save Changes'
+- Press 'Restart'
+
+You should see the node show up in the ISY in the Admin Console, if it was already running and this is your first Notify Node, you will need to restart the admin console. If there are issues you should see messages in the Polyglot UI.
+
+You can now add that node to a scene and when the scene is turned off the Message will be sent, along with the On and OFf Message you configure on the Node in the Admin Console.
+
+
 
 ### REST Interface
 
@@ -190,6 +210,11 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.14: 03/04/2020
+  - Clean up documentation a little more
+  - Add instructions for <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#notify-node>Adding a notify node</a> into a scene
+  - Pushover Emergency reporting now works
+  - Set Controller ST=True on startup
 - 0.1.13: 02/28/2020
   - Set a notify node On or Off message to "(IGNORE)" to disable a message from being sent
   - Cleaned up documentation a little for Notify Nodes.

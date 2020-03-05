@@ -7,7 +7,7 @@ The Serice nodes allow you to send messages to a service, currently the only sup
 
 ### Pushover
 
-You must have a user key for the [Pushover Service](https://pushover.net/dashboard){:target="_ blank"} and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can [clone the Universal Devices application](https://pushover.net/apps/clone/universal_devices){:target="_ blank"}
+You must have a user key for the <a href="https://pushover.net/dashboard" target="_ blank">Pushover Service</a> and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can <a href="https://pushover.net/apps/clone/universal_devices" target="_ blank">clone the Universal Devices application</a>
 
 You may create multiple Applications on Pushover, just list each one with a unique name.  This allows you to use different icons to easily distinguish and categorize the messages in the Pushover app.
 
@@ -15,7 +15,7 @@ To add the configuration:
 
 - For each Pushover application you want to use, Click "Add Pushover Service Nodes" below.
   - Add the "Name" which is used as the ISY node address, and can be maximum of eight characters.
-  - Add the User Key which can be found on your [Pushover Dashboard](https://pushover.net/dashboard){:target="_ blank"}
+  - Add the User Key which can be found on your <a href="https://pushover.net/dashboard" target="_ blank">Pushover Dashboard</a>
   - Add the Application Key
 - Restart the Nodeserver
 
@@ -37,6 +37,6 @@ After changing any configuration you must restart the node server.
 
 ## Help
 
-Please see [README](https://github.com/jimboca/udi-poly-notification/blob/master/README.md){:target="_ blank"} for more information.
+Please see <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md" target="_ blank">README</a> for more information.
 
 <i>Note: The information below is generated on the fly and will be updated on each nodeserver restart or when discover or update profile is run from the Admin Console.  It takes a minute to update since it polls the pushover servers.</i>

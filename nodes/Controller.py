@@ -39,6 +39,7 @@ class Controller(polyinterface.Controller):
         #serverdata = self.poly.get_server_data()
         #LOGGER.info('Started Notification NodeServer {}'.format(serverdata['version']))
         LOGGER.info('Started Notification NodeServer')
+        self.setDriver('ST',1)
         self.heartbeat()
         self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
         # TODO: Need to monitor thread and restart if it dies

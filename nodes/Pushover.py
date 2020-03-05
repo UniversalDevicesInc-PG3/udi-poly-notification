@@ -50,6 +50,8 @@ class Pushover(polyinterface.Node):
         self.set_device(self.get_device())
         self.set_priority(self.get_priority())
         self.set_format(self.get_format())
+        self.set_retry(self.get_retry())
+        self.set_expire(self.get_expire())
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices_list = self.customData.get('devices_list',[])
         self.l_info('start',"devices_list={}".format(self.devices_list))
@@ -267,6 +269,34 @@ class Pushover(polyinterface.Node):
             return 0
         return int(self.getDriver('GV3'))
 
+    def set_retry(self,val):
+        self.l_info('set_retry',val)
+        if val is None:
+            val = 30
+        val = int(val)
+        self.l_info('set_retry','Set GV4 to {}'.format(val))
+        self.setDriver('GV4', val)
+
+    def get_retry(self):
+        cval = self.getDriver('GV4')
+        if cval is None:
+            return 30
+        return int(self.getDriver('GV4'))
+
+    def set_expire(self,val):
+        self.l_info('set_expire',val)
+        if val is None:
+            val = 10800
+        val = int(val)
+        self.l_info('set_expire','Set GV5 to {}'.format(val))
+        self.setDriver('GV5', val)
+
+    def get_expire(self):
+        cval = self.getDriver('GV5')
+        if cval is None:
+            return 10800
+        return int(self.getDriver('GV5'))
+
     def get_pushover_priority(self,val=None):
         if val is None:
             val = int(self.get_priority())
@@ -286,6 +316,16 @@ class Pushover(polyinterface.Node):
         val = int(command.get('value'))
         self.l_info("cmd_set_format",val)
         self.set_format(val)
+
+    def cmd_set_retry(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_retry",val)
+        self.set_retry(val)
+
+    def cmd_set_expire(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_expire",val)
+        self.set_expire(val)
 
     def cmd_send(self,command):
         self.l_info("cmd_send",'')
@@ -309,6 +349,12 @@ class Pushover(polyinterface.Node):
             params['priority'] = self.get_pushover_priority(params['priority'])
         else:
             params['priority'] = self.get_pushover_priority()
+        if params['priority'] == 2:
+            if not 'retry' in params:
+                params['retry'] = self.get_retry()
+            if not 'expire' in params:
+                params['expire'] = self.get_expire()
+
         if 'format' in params:
             if params['format'] == 1:
                 params['html'] = 1
@@ -357,12 +403,16 @@ class Pushover(polyinterface.Node):
         {'driver': 'ERR', 'value': 0, 'uom': 25},
         {'driver': 'GV1', 'value': 0, 'uom': 25},
         {'driver': 'GV2', 'value': 2, 'uom': 25},
-        {'driver': 'GV3', 'value': 0, 'uom': 25}
+        {'driver': 'GV3', 'value': 0, 'uom': 25},
+        {'driver': 'GV4', 'value': 30, 'uom': 56},
+        {'driver': 'GV5', 'value': 10800, 'uom': 56}
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
                 'SET_DEVICE': cmd_set_device,
                 'SET_PRIORITY': cmd_set_priority,
                 'SET_FORMAT': cmd_set_format,
+                'SET_RETRY': cmd_set_retry,
+                'SET_EXPIRE': cmd_set_expire,
                 'SEND': cmd_send
                 }
