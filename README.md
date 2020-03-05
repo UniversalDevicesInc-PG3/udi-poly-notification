@@ -25,7 +25,7 @@ The nodeserver allows you to
 ## Nodes
 
 There are 3 types of nodes
-- Controller
+### Controller
   - This is the main node which contains the Status of the nodeserver.
   - Status
     - Nodeserver Online
@@ -35,7 +35,7 @@ There are 3 types of nodes
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
       - Message
         -  This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
-- Service Nodes
+### Service Nodes
   - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
   - These are the nodes you can add to a program to configure and send any message defined in the Controller node.
     - Pushover Service Node
@@ -55,7 +55,7 @@ There are 3 types of nodes
         - Device
           - This is the Pushover Device as configured on the pushover site.
         - Priority
-          - This is the Pushover Priority
+          - This is the <a href="https://pushover.net/api#priority" target="_ blank">Pushover Priority</a>
             - Lowest
             - Low
             - Normal
@@ -72,6 +72,14 @@ There are 3 types of nodes
     - The only available messages are in the canned message list, send a request on the forum if you would like a new one added
     - I may add the ability to add a custom list of messages if necessary
     - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
+
+### Notify Nodes
+  - Notify nodes defined by user on the Configuration Page
+  - They are meant to be added to a Scene and send messages when DON or DOFF is received.
+  - You can also just send an ON or OFF in a program as well
+  - The only available messages are in the canned message list, send a request on the forum if you would like a new one added
+  - I may add the ability to add a custom list of messages if necessary
+  - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
 
 ## Heartbeat monitoring
 
