@@ -26,14 +26,14 @@ The nodeserver allows you to
 
 There are 3 types of nodes
 ### Notification Controller
-This is the main node which contains the Status of the nodeserver and provides access to your short messages that were setup in Config.
+This is the main node which contains the Status of the nodeserver and provides access to your short messages that you setup in Config.
   - Status
     - Nodeserver Online
       - If the nodeserver crashes or exit this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it not running.
   - Control
       - Debug level
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
-      - Message
+  - Message
         -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
 ### Service Nodes
 These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page
@@ -82,7 +82,7 @@ TODO: Add program info here
 
 The short messages that you added in Config are simple to send from a program. The first step is to add a Message in the config page, saving, and restarting the NodeServer. Then restart the admin console and then create a program. In the program you will set the message to be sent by adding the Notification Controller node and selecting the message. Then you will add the Service node, such as Pushover and select items such as: the Device to send it to, the priority, etc. Below is an example of sending a message 'Good Morning' that I have set up, to my phone with a Normal priority.
 
-The structure of the program is a) set message in Notification Controller, choose any other parameters (optional), Send using one of your services.
+The structure of the program is a) set message in Notification Controller, b) choose any other parameters (optional), c) Send using one of your services.
 
 ```
 HS Notify 01 - [ID 034D][Parent 0263]
@@ -99,7 +99,7 @@ Then
 
 ### Notify Nodes with predefined messages
 
-A Notify node accepts a Device ON/DeviceOFF from a scene or a program
+A Notify node accepts a Device ON / Device OFF from a scene or a program
 - Create a Notify node in the Configuration using "Add Notify Nodes” as follows:
   - ID for Node: Set this to a short unique string (to be used for the nodeid in the ISY)
   - Name for Node: This text string will become the beginning of the message sent so descriptive names are helpful here. For example ‘Kitchen’. So when used with the predefined Light on message, the message delivered is ‘Kitchen Light on’
