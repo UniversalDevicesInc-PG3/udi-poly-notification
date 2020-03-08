@@ -14,7 +14,7 @@ These are short custom messages you want to send.  Create at least one message, 
 
 ## Service Pushover Nodes Keys:
 
-The Service nodes allow you to send messages to a service, currently the only supported service is Pushover.  You must also define at least one Service Node. The name chosen will be used in drop down menus when programming. See below. 
+The Service nodes allow you to send messages to a service, currently the only supported service is Pushover.  You must define at least one Service Node. See below:
 
 ### Pushover
 
