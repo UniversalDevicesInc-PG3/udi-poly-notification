@@ -32,7 +32,7 @@ You may create multiple Applications on Pushover, just list each one with a uniq
 
 A Notify node accepts a Device ON / Device OFF from a scene or a program. Create a Notify node in the Configuration using "Add Notify Nodes” as follows:
   - ID for Node: Set this to a short unique string (to be used for the nodei d in the ISY)
-  - Name for Node: This text string will become the beginning of the message sent so descriptive names are helpful here. For example ‘Kitchen’. So when used with the predefined Light on message, the message delivered is ‘Kitchen Light on’
+  - Name for Node: This text string will become the beginning of the message sent.
   - Service Node Name: Set to match to the Name of an existing Service Node you created above. 
 - Press 'Save Changes'
 - Press 'Restart'
