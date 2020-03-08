@@ -14,9 +14,7 @@ These are short custom messages you want to send.  Create at least one message, 
 
 ## Service Pushover Nodes Keys:
 
-The Service nodes allow you to send messages to a service, currently the only supported service is Pushover.  You must define at least one Service Node. See below:
-
-### Pushover
+The Service nodes allow you to send messages to a service, currently the only supported service is Pushover.  You must define at least one Service Node. For Pushover:
 
 You must have a user key for the <a href="https://pushover.net/dashboard" target="_ blank">Pushover Service</a> and you will need at least one application key which are listed at the bottom of that page under "Your Applications". If you don't have one, or want to create a different one you can <a href="https://pushover.net/apps/clone/universal_devices" target="_ blank">clone the Universal Devices application</a>
 
