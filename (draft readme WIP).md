@@ -72,6 +72,10 @@ Notify nodes are defined by user on the Configuration Page and are meant to be a
   - I may add the ability to add a custom list of messages if necessary
   - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
 
+## Deleting Nodes
+
+When a Notify Node or Pushover Servicer Node is deleted under the Config tab, it WILL NOT be deleted from the NodeServer or the ISY. To delete a node, go under NODES on the Nodeserver.  Here you will see each of your nodes that you have ever created. A node can be deleted here by clicking on the X on the upper right of each node description. Restart the NodeServer and the nodes will be removed from both the node server and the ISY.
+
 ## Heartbeat monitoring
 
 TODO: Add program info here
