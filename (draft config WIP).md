@@ -9,8 +9,8 @@ These are short custom messages you want to send.  Create at least one message, 
 - ID: This is the message ID.
   - It is used to build the profile inside of the ISY, so you should never change this number if ANY message is referenced in a program.
   - It also determines the order the messages show up in the drop down list in the node
-TITLE: The short message title. This is shown when selecting the message in the ISY Admin Console either under the Notification Controller Node, or when adding the Notification Controller to a program. See example in the README.
-MESSAGE: The message body, if empty then it will be the same as the Title
+- TITLE: The short message title. This is shown when selecting the message in the ISY Admin Console either under the Notification Controller Node, or when adding the Notification Controller to a program. See example in the README.
+- MESSAGE: The message body, if empty then it will be the same as the Title
 
 ## Service Pushover Nodes Keys:
 
