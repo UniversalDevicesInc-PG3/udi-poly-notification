@@ -214,6 +214,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.16: 03/09/2020
+  - Documentation updates by @dbwnaples
 - 0.1.15: 03/05/2020
   - <a href="https://github.com/jimboca/udi-poly-notification/pull/15">Fixed incorrect char in Name Mapped Value</a>
 - 0.1.14: 03/04/2020
