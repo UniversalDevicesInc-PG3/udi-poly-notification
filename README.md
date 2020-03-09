@@ -18,26 +18,26 @@ All information is on the [Configuration Page](https://github.com/jimboca/udi-po
 ## How it works
 
 The nodeserver allows you to
-1. Create canned messages and send them to a notification service easily thru an ISY program
-2. Add a node to a scene to send messages when scene is controlled
-3. Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
+1. MESSAGES: Create short messages under Config and send them to a Notification Service easily thru an ISY program
+2. NOTIFY NODES: Create a node that can be added to a scene to send canned messages when the scene is controlled
+3. LARGE MESSAGES WITH SYSTEM VARIABLES: Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
 ## Nodes
 
 There are 3 types of nodes
-### Controller
-  - This is the main node which contains the Status of the nodeserver.
+### Notification Controller
+This is the main node which contains the Status of the nodeserver and provides access to your short messages that you setup in Config.
   - Status
     - Nodeserver Online
       - If the nodeserver crashes or exit this should change to False.  But for other issues, like Polyglot or Machine crash it will not change, so you should use Heartbeat as documented below if you really want to know when it not running.
   - Control
       - Debug level
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
-      - Message
-        -  This will contain the list of Messages you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The chosen message will be sent when you call Send on a Service or node.
+  - Message
+        -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
 ### Service Nodes
-  - For services such as Pushover, can be multiple for each Service if defined in the Configuration Page
-  - These are the nodes you can add to a program to configure and send any message defined in the Controller node.
+These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page
+  - These are the nodes you can add to a program to configure and send any of your short message previously defined in Config which show in the Notification Controller node above.
     - Pushover Service Node
       - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
       - Status
@@ -65,21 +65,16 @@ There are 3 types of nodes
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
-  - Notify Nodes
-    - Notify nodes defined by user on the Configuration Page
-    - They are meant to be added to a Scene and send messages when DON or DOFF is received.
-    - You can also just send an ON or OFF in a program as well
-    - The only available messages are in the canned message list, send a request on the forum if you would like a new one added
-    - I may add the ability to add a custom list of messages if necessary
-    - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
-
 ### Notify Nodes
-  - Notify nodes defined by user on the Configuration Page
-  - They are meant to be added to a Scene and send messages when DON or DOFF is received.
-  - You can also just send an ON or OFF in a program as well
-  - The only available messages are in the canned message list, send a request on the forum if you would like a new one added
+Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
+  - This device can be turned on or off in a program as well
+  - The only available messages are in the canned message list under the Notify node in your MyLighting Tree. If additional messages are desired, send a request on the forum
   - I may add the ability to add a custom list of messages if necessary
   - To disable the ON or OFF from sending a message, set the message to the first one "(BLANK)" and it will be ignore
+
+## Deleting Nodes
+
+When a Notify Node or Pushover Servicer Node is deleted under the Config tab, it WILL NOT be deleted from the NodeServer or the ISY. To delete a node, go under NODES on the Nodeserver.  Here you will see each of your nodes that you have ever created. A node can be deleted here by clicking on the X on the upper right of each node description. Restart the NodeServer and the nodes will be removed from both the node server and the ISY.
 
 ## Heartbeat monitoring
 
@@ -87,9 +82,11 @@ TODO: Add program info here
 
 ## Sending messages
 
-###  Canned Messages
+###  Short Messages defined by user
 
-A canned message is simple to send from a program, add a Message in the config page, restart the admin console and you can create a program.  Here I created a canned message 'Good Morning' and send it with this program just to my phone.
+The short messages that you added in Config are simple to send from a program. The first step is to add a Message in the config page, saving, and restarting the NodeServer. Then restart the admin console and then create a program. In the program you will set the message to be sent by adding the Notification Controller node and selecting the message. Then you will add the Service node, such as Pushover and select items such as: the Device to send it to, the priority, etc. Below is an example of sending a message 'Good Morning' that I have set up, to my phone with a Normal priority.
+
+The structure of the program is a) set message in Notification Controller, b) choose any other parameters (optional), c) Send using one of your services.
 
 ```
 HS Notify 01 - [ID 034D][Parent 0263]
@@ -104,20 +101,19 @@ Then
         Set 'Notification Controller / Service Pushover homeisy' Send
 ```
 
-### Notify Node
+### Notify Nodes with predefined messages
 
-A Notify node accepts a DON/DOFF from a scene or a program
-- Create a Notify node in the Configuration using "Add Notify Nodes"
-- Set id to a short unique string to be used for the nodeid in the ISY
-- Set the Name for the node to be the beginning of the message to send
-- Set the Service Node Name to match to the Name of an existing Service Node you created.
+A Notify node accepts a Device ON / Device OFF from a scene or a program
+- Create a Notify node in the Configuration using "Add Notify Nodes” as follows:
+  - ID for Node: Set this to a short unique string (to be used for the nodeid in the ISY)
+  - Name for Node: This text string will become the beginning of the message sent so descriptive names are helpful here. For example ‘Kitchen’. So when used with the predefined Light on message, the message delivered is ‘Kitchen Light on’
+  - Service Node Name: Set to match to the Name of an existing Service Node you created. In the above programming example, my Service Node Name is ‘homeisy’. This is the name I used for my Pushover service. Therefore if I want to use this Pushover service to deliver this predefined message, it needs to match this name and therefore would be ‘homeisy’. 
 - Press 'Save Changes'
 - Press 'Restart'
 
 You should see the node show up in the ISY in the Admin Console, if it was already running and this is your first Notify Node, you will need to restart the admin console. If there are issues you should see messages in the Polyglot UI.
 
-You can now add that node to a scene and when the scene is turned off the Message will be sent, along with the On and OFf Message you configure on the Node in the Admin Console.
-
+You can now add that node to a scene and when the scene is turned on or off, either by a controller or a program, the Message as defined in the node (one for on, one for off), will be sent.
 
 
 ### REST Interface
@@ -172,9 +168,9 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 
 1. Backup Your ISY in case of problems!
    * Really, do the backup, please
-2. Go to the Polyglot Store in the UI and install Notification.
-3. Add Notification NodeServer in Polyglot
-4. Go to the Configuration page and read those instructions.
+2. Go to the Polyglot Store in the UI and click on Install for the Notification Nodeserver.
+3. After installed, under Polyglot, go to Nodeservers menu and click on Add NodeServer. This will add the node server to your ISY
+4. Go to the Configuration page and read those instructions. After configuration, restart the node sever.
 5. Restart the ISY Admin Console if you already had it open
 
 ## Requirements
