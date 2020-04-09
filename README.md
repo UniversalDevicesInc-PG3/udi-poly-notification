@@ -120,26 +120,35 @@ You can now add that node to a scene and when the scene is turned on or off, eit
 
 #### ISY Network Resource
 
-This allows creating simple network resources that doesn't need to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
+This allows creating a simple network resource that can send messages via the Pushover service. These messages can contain text, system variables and any other node values etc. Additioanlly, they do not need to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
 
-- Create a Network Resource
-  - http
-  - POST
-  - Host: The machine running Polyglot, check the nodeserver log to see the IP address.
+- To create a Network Resource, use the following guide for each field under Configuration / Networking / Network Resources tab in the ISY Admin Console:
+  - First field: Select http
+  - Second field: Select POST
+  - Host: Enter the IP address of where the nodeserver is running. Example: IP of Polyisy can be found by your target IP, or in the Polyisy, under Settings / Polyisy Configuration. Example 10.0.1.23. 
   - Port: 8199 (Currently Hardcoded)
   - Path: /send?opt1=val1&opt2=val2...
     - Params
-      - node=One of your Service nodes (required)
+      - node=One of your Service nodes (required) in the format of po_example. Use all small letters and the po_ in front of your Pushover service name.
       - subject=Your subject (optional)
         - Use '+' for spaces, e.g. This+Is+The+Subject
-    - Example: /send?node=po_develop&subject=Test+From+Network+Resource
-      - This will send the message to the po_develop node
-  - Encode URL: not checked
+    - Example: /send?node=po_wind&subject=Weather+Update
+      - This will send the message to the pushover node Wind with the subject Weather Update
+ - Encode URL: not checked
   - Timeout: 5000
   - Mode: Raw Text
-  - Body: The message body you want to send. It can be many lines and contain system variables! as described in [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables)
-- Save it, then click on it an hit Test.
-- Create a program to send the NR
+  - Body: The message body you want to send. It can be many lines and contain system variables, ISY nodes as well as other node server nodes as described in [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables)
+	
+An example below that outputs “38ºF, 14mph N, Gusts 23, Rain 78%” includes the following: 
+	- ISY Integer variable #28, 
+	- ISY State variable #49, 
+	- Value of Nodeserver n002 (DarkSky) node GV18 (found under Polyisy/Dashboard/Darksky Nodes)
+	
+The resource code for the above looks like this: 
+${var.1.28}ºF, ${var.2.48}mph N, Gusts ${var.2.49}, Rain ${sys.node.n002_weather.GV18}
+
+- Once completed, save the new resource, then hit Save again under the resource tab,  then click on it an hit Test.
+- Create a program to send the new resource
 ```
 Notification NR Test
 
@@ -148,10 +157,9 @@ If
      Or Time is  6:00:00PM
 
 Then
-        Set 'Notification Controller / Service Pushover develop' Priority Normal
-        Set 'Notification Controller / Service Pushover develop' Device JimsPhone
+        Set 'Notification Controller / Service Pushover WIND' Priority Normal
+        Set 'Notification Controller / Service Pushover WIND' Device JimsPhone
         Resource 'Test.1'
- ```
 
 ### Testing with REST interface directly.
 
