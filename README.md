@@ -149,8 +149,7 @@ An example below that outputs “38ºF, 14mph N, Gusts 23, Rain 78%” looks lik
    - ISY State variable #49, 
    - Value of Nodeserver n002 (DarkSky) node GV18 (found under Polyisy/Dashboard/Darksky Nodes)
 	
-- Once completed, save the new resource, then hit Save again under the resource tab,  then click on it an hit Test.
-- Create a program to send the new resource
+Once completed, save the new resource, then hit Save again under the resource tab,  then click on it an hit Test.Then create a program to send the new resource
 ```
 Notification NR Test
 
