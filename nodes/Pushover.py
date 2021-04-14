@@ -298,9 +298,13 @@ class Pushover(polyinterface.Node):
         return int(self.getDriver('GV5'))
 
     def get_pushover_priority(self,val=None):
+        self.l_info("get_pushover_priority",'val={}'.format(val))
         if val is None:
-            val = int(self.get_priority())
-        return val - 2
+            val = int(self.get_priority()) - 2
+        else:
+            val = int(val)
+        self.l_info("get_pushover_priority",'val={}'.format(val))
+        return val
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
