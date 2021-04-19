@@ -132,6 +132,9 @@ This allows creating a simple network resource that can send messages via the Pu
       - node=One of your Service nodes (required) in the format of po_example. Use all small letters and the po_ in front of your Pushover service name.
       - subject=Your subject (optional)
         - Use '+' for spaces, e.g. This+Is+The+Subject
+      - html 1 = allow html
+      - monospace 1 = use monospace font
+      - priority any legal [Pushover Priority](https://pushover.net/api#priority) 
     - Example: /send?node=po_wind&subject=Weather+Update
       - This will send the message to the pushover node Wind with the subject Weather Update
  - Encode URL: not checked

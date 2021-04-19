@@ -284,7 +284,7 @@ class Controller(polyinterface.Controller):
         nls.write("# End: Service Nodes\n\n")
         config_info_nr = [
             '<h3>Create ISY Network Resources</h3>',
-            '<p>For messages that contain a larger body use ISY Network Resources'
+            '<p>For messages that contain a larger body use ISY Network Resources. More information available at <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#rest-interface" target="_ blank">README - REST Interfae</a>'
             '<ul>'
         ]
         config_info_rest = [
@@ -331,9 +331,12 @@ class Controller(polyinterface.Controller):
         config_info_rest.append('</ul>')
         config_info_nr = config_info_nr + [
             '</ul>',
-            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the node will be used'
+            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the pushover node will be used'
             '<table>',
             '<tr><th>Name<th>Value<th>Description',
+
+            '<tr><td>device<td>0<td>All Devices',
+            '<tr><td>&nbsp;<td>1<td>Next device in the list, and so on ...',
 
             '<tr><td>monospace<td>1<td>use Monospace Font',
             '<tr><td>&nbsp;<td>0<td>Normal Font',
@@ -347,8 +350,8 @@ class Controller(polyinterface.Controller):
             '<tr><td>html<td>1<td>Enable html',
             '<tr><td>&nbsp;<td>0<td>No html',
 
-            '<tr><td>device<td>0<td>All Devices',
-            '<tr><td>&nbsp;<td>1<td>Next device in the list, and so on ...',
+            '<tr><td>retry<td>n<td>Set Emergency retry to n',
+            '<tr><td>expire<td>n<td>Set Emergency exipre to n',
 
             '</table>'
         ]
