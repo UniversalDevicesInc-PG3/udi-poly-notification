@@ -336,27 +336,41 @@ class polyglotSession():
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
             self.l_error('post',"Connection error for %s: %s" % (url, e))
-            return False
-        self.l_debug('post',' Got: code=%s' % (response.status_code))
+            return { 'status': False, 'status_code': None, 'code': None }
+        return(self.response(response,'post'))
+
+    def response(self,response,name):
+        fname = 'reponse:'+name
+        self.l_debug(fname,' Got: code=%s' % (response.status_code))
+        self.l_debug(fname,'      text=%s' % (response.text))
+        json_data = False
+        st = False
         if response.status_code == 200:
-            #self.l_debug('http_post',"Got: text=%s" % response.text)
-            try:
-                d = json.loads(response.text)
-            except (Exception) as err:
-                self.l_error('http_post','Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
-                return False
-            return d
+            self.l_debug(fname,' All good!')
+            st = True
         elif response.status_code == 400:
-            self.l_error('post',"Bad request: %s" % (url) )
+            self.l_error(fname,"Bad request: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 404:
-            self.l_error('post',"Not Found: %s" % (url) )
+            self.l_error(fname,"Not Found: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 401:
             # Authentication error
-            self.l_error('post',
-                "Failed to authenticate, please check your username and password")
+            self.l_error(fname,"Unauthorized: %s: text: %s" % (response.url,response.text) )
+        elif response.status_code == 500:
+            self.l_error(fname,"Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
+        elif response.status_code == 522:
+            self.l_error(fname,"Timeout Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
         else:
-            self.l_error('post',"Unknown response %s: %s %s" % (response.status_code, url, response.text) )
-        return False
+            self.l_error(fname,"Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
+            self.l_error(fname,"Check system status: https://status.ecobee.com/")
+        # No matter what, return the code and error
+        try:
+            json_data = json.loads(response.text)
+        except (Exception) as err:
+            # Only complain about this error if we didn't have an error above
+            if st:
+                self.l_error(fname,'Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
+            json_data = False
+        return { 'status': st, 'code': response.status_code, 'data': json_data }
 
     def l_info(self, name, string):
         self.logger.info("%s:%s: %s" %  (self.parent.l_name,name,string))

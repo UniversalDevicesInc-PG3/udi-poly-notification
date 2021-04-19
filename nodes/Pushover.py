@@ -7,6 +7,8 @@
     - Make list of sounds
     - Allow groups of devices in configuration
 """
+from threading import Thread,Event
+import time
 import polyinterface
 import logging
 from node_funcs import make_file_dir,is_int
@@ -57,14 +59,14 @@ class Pushover(polyinterface.Node):
         self.l_info('start',"devices_list={}".format(self.devices_list))
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
-        if vstat is False:
+        if vstat['status'] is False:
             self.authorized = False
         else:
             self.authorized = True if vstat['status'] == 1 else False
         self.l_info('start',"Authorized={}".format(self.authorized))
         if self.authorized:
-            self.l_info('start',"got devices={}".format(vstat['devices']))
-            self.build_device_list(vstat['devices'])
+            self.l_info('start',"got devices={}".format(vstat['data']['devices']))
+            self.build_device_list(vstat['data']['devices'])
             self.controller.saveCustomData({'devices_list': self.devices_list})
             self.set_error(ERROR_NONE)
             self._init_st = True
@@ -377,22 +379,48 @@ class Pushover(polyinterface.Node):
         #url=None
         #url_title=None
         #callback=None
-        #retry=30
-        #expire=86400
         #sound=None
         #
-        # Send the message
+        # Send the message in a thread with retries
         #
-        res = self.session.post("1/messages.json",params)
-        if res is False:
-            sent = False
-        else:
-            sent = True if res['status'] == 1 else False
-        if sent:
-            self.set_error(ERROR_NONE)
-        else:
+        # Just keep serving until we are killed
+        self.thread = Thread(target=self.post,args=(params,))
+        self.thread.daemon = True
+        self.l_debug('cmd_send','Starting Thread')
+        st = self.thread.start()
+        self.l_debug('cmd_send','Thread start st={}'.format(st))
+        # Always have to return true case we don't know..
+        return True
+
+    def post(self,params):
+        sent = False
+        retry = True
+        cnt  = 0
+        max  = 10
+        retry_wait = 5
+        while (not sent and retry and cnt < max):
+            cnt += 1
+            self.l_debug('post','send try #{}'.format(cnt))
+            res = self.session.post("1/messages.json",params)
+            if res['status'] is True and res['data']['status'] == 1:
+                sent = True
+                self.set_error(ERROR_NONE)
+            else:
+                if 'data' in res:
+                    if 'errors' in res['data']:
+                        self.l_error('post','From Pushover: {}'.format(res['data']['errors']))
+                # No status code or not 4xx code is
+                self.l_debug('post','res={}'.format(res))
+                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                    self.l_warning('post','Previous error can not be fixed, will not retry')
+                    retry = False 
+                else:
+                    self.l_warning('post','Previous error is retryable...')
             self.set_error(ERROR_MESSAGE_SEND)
-            return False
+            if (not sent and retry):
+                time.sleep(retry_wait)
+        if (cnt > max):
+            self.l_error('post','Gave up after {} tries'.format(cnt))
         #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
 
