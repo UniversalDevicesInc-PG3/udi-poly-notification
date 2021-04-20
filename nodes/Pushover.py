@@ -299,12 +299,14 @@ class Pushover(polyinterface.Node):
             return 10800
         return int(self.getDriver('GV5'))
 
+    # Returns pushover priority numbers which start at -2 and our priority nubmers that start at zero
     def get_pushover_priority(self,val=None):
         self.l_info("get_pushover_priority",'val={}'.format(val))
         if val is None:
-            val = int(self.get_priority()) - 2
+            val = int(self.get_priority())
         else:
             val = int(val)
+        val -= 2
         self.l_info("get_pushover_priority",'val={}'.format(val))
         return val
 
@@ -426,6 +428,9 @@ class Pushover(polyinterface.Node):
 
     def rest_send(self,params):
         self.l_debug('rest_handler','params={}'.format(params))
+        if 'priority' in params:
+            # Our priority's start at 0 pushovers starts at -2... Should have used their numbers...
+            params['priority'] = int(params['priority']) + 1
         return self.do_send(params)
 
     _init_st = None
