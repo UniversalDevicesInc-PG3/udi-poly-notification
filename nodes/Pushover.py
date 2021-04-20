@@ -430,7 +430,8 @@ class Pushover(polyinterface.Node):
         self.l_debug('rest_handler','params={}'.format(params))
         if 'priority' in params:
             # Our priority's start at 0 pushovers starts at -2... Should have used their numbers...
-            params['priority'] = int(params['priority']) + 1
+            # So assume rest calls pass in pushover number, so convert to our number.
+            params['priority'] = int(params['priority']) + 2
         return self.do_send(params)
 
     _init_st = None
