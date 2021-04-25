@@ -229,6 +229,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 0.1.18: 04/24/2021
+  - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
 - 0.1.17: 04/13/2021
   - Fixed Bug: [REST Interface Call Fails when priority param is specified](https://github.com/jimboca/udi-poly-notification/issues/18)
 - 0.1.15: 03/05/2020
