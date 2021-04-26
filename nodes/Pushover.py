@@ -56,6 +56,7 @@ class Pushover(polyinterface.Node):
         self.set_expire(self.get_expire())
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices_list = self.customData.get('devices_list',[])
+        self.sounds_list = self.customData.get('sounds_list',[])
         self.l_info('start',"devices_list={}".format(self.devices_list))
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
@@ -67,6 +68,7 @@ class Pushover(polyinterface.Node):
         if self.authorized:
             self.l_info('start',"got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
+            self.build_sound_list()
             self.controller.saveCustomData({'devices_list': self.devices_list})
             self.set_error(ERROR_NONE)
             self._init_st = True
@@ -101,6 +103,27 @@ class Pushover(polyinterface.Node):
             if item != 'all' and not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
                 self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
         self.l_info('build_device_list',"devices_list={}".format(self.devices_list))
+
+    def build_sound_list(self):
+        res = self.get("1/sounds.json")
+        self.l_debug('validate','got: {}'.format(res))
+        if res['status']:
+            vlist = []
+            for skey in res['data']['sounds']:
+                vlist.append(res['data']['sounds'][skey])
+            # Add new items
+            for item in vlist:
+                # If it's not in the saved list, append it
+                if self.sounds_list.count(item) == 0:
+                    self.sounds_list.append(item)
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
+            # Make sure items are in the passed in list, otherwise prefix it
+            # in devices_list
+            for item in self.sounds_list:
+                if not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
+                    self.sounds_list[self.sounds_list.index(item)] = REM_PREFIX + item
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
+        return res
 
 
     """
@@ -425,6 +448,43 @@ class Pushover(polyinterface.Node):
             self.l_error('post','Gave up after {} tries'.format(cnt))
         #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
+
+    def get(self,url,params={}):
+        params['token'] = self.app_key
+        sent = False
+        retry = True
+        cnt  = 0
+        max  = 10
+        retry_wait = 5
+        while (not sent and retry and cnt < max):
+            cnt += 1
+            self.l_debug('get','send try {} #{}'.format(url,cnt))
+            res = self.session.get(url,params)
+            self.l_debug('get','got {}'.format(res))
+            if res['status'] is True and res['data']['status'] == 1:
+                sent = True
+                self.set_error(ERROR_NONE)
+            else:
+                if 'data' in res:
+                    if 'errors' in res['data']:
+                        self.l_error('post','From Pushover: {}'.format(res['data']['errors']))
+                # No status code or not 4xx code is
+                self.l_debug('post','res={}'.format(res))
+                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                    self.l_warning('post','Previous error can not be fixed, will not retry')
+                    retry = False 
+                else:
+                    self.l_warning('post','Previous error is retryable...')
+            self.set_error(ERROR_MESSAGE_SEND)
+            if (not sent and retry):
+                time.sleep(retry_wait)
+        if (cnt > max):
+            self.l_error('post','Gave up after {} tries'.format(cnt))
+        #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
+        if 'data' in res:
+            return { 'status': sent, 'data': res['data'] }
+        else:
+            return { 'status': sent, 'data': False }
 
     def rest_send(self,params):
         self.l_debug('rest_handler','params={}'.format(params))

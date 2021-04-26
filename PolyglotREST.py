@@ -319,6 +319,30 @@ class polyglotSession():
             }
         )
 
+    def get(self,path,params={},auth=None):
+        url = "{}/{}".format(self.url,path)
+        self.l_debug('get',"Sending: url={0} payload={1}".format(url,params))
+        # No speical headers?
+        headers = {
+            "Content-Type": "application/json"
+        }
+        if auth is not None:
+            headers['Authorization'] = auth
+        self.l_debug('get', "headers={}".format(headers))
+        #self.session.headers.update(headers)
+        try:
+            response = self.session.get(
+                url,
+                params=params,
+                timeout=(61,10)
+            )
+            self.l_debug('get', "url={}".format(response.url))
+        # This is supposed to catch all request excpetions.
+        except requests.exceptions.RequestException as e:
+            self.l_error('get',"Connection error for %s: %s" % (url, e))
+            return False
+        return(self.response(response,'get'))
+
     def post(self,path,payload):
         url = "{}/{}".format(self.url,path)
         self.l_debug('post',"Sending: url={0} payload={1}".format(url,payload))
@@ -331,7 +355,7 @@ class polyglotSession():
             response = self.session.post(
                 url,
                 data=payload_js,
-                timeout=60
+                timeout=(61,10)
             )
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
