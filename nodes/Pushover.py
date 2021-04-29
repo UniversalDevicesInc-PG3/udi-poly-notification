@@ -55,9 +55,10 @@ class Pushover(polyinterface.Node):
         self.set_format(self.get_format())
         self.set_retry(self.get_retry())
         self.set_expire(self.get_expire())
+        self.set_sound(self.get_sound())
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices_list = self.customData.get('devices_list',[])
-        self.sounds_dict = self.customData.get('sounds_dict',collections.OrderedDict())
+        self.sounds_list = self.customData.get('sounds_list',[])
         self.l_info('start',"devices_list={}".format(self.devices_list))
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
@@ -70,7 +71,11 @@ class Pushover(polyinterface.Node):
             self.l_info('start',"got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
-            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_dict': self.sounds_dict})
+            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_list': self.sounds_list})
+            # For quick lookup of longname to shortname
+            self.sounds_dict = {}
+            for item in self.sounds_list:
+                self.sounds_dict[item[1]] = item[0]
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -106,22 +111,30 @@ class Pushover(polyinterface.Node):
         self.l_info('build_device_list',"devices_list={}".format(self.devices_list))
 
     # Build the list of sounds, make sure the order of the list never changes.
+    # sounds_list is a list of 2 element lists with shortname, longname
+    # It has to be a list to keep the order the same, and be able to store
+    # in Polyglot params
     def build_sound_list(self):
         res = self.get("1/sounds.json")
         self.l_debug('validate','got: {}'.format(res))
         if res['status']:
+            # for quick lookup
+            es = {}
+            for item in self.sounds_list:
+                es[item[0]] = item[1]                
             # Add to our list if not exists.
             for skey in res['data']['sounds']:
                 # If it's not in the saved list, append it
-                if not skey in self.sounds_dict:
-                    self.sounds_dict[skey] = res['data']['sounds'][skey]
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_dict))
+                if not skey in es:
+                    self.sounds_list.append([skey, res['data']['sounds'][skey]])
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
             # Make sure items are in the existing list, otherwise prefix it
             # in devices_list
-            for skey in self.sounds_dict:
-                if not skey in res['data']['sounds'] and not skey.startswith(REM_PREFIX):
-                    self.sounds_dict[skey] = REM_PREFIX + self.sounds_dict[skey]
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_dict))
+            for item in self.sounds_list:
+                if not item[0] in res['data']['sounds'] and not item[1].startswith(REM_PREFIX):
+                    # TODO: FIx this to replace item in array
+                    self.sounds_list[skey] = REM_PREFIX + self.sounds_list[skey]
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
         return res
 
 
@@ -188,10 +201,10 @@ class Pushover(polyinterface.Node):
             idx += 1
         idx = 0
         sound_subst = []
-        for skey in self.sounds_dict:
-            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,self.sounds_dict[skey]))
+        for item in self.sounds_list:
+            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,item[1]))
             # Don't include REMOVED's in list
-            if not item.startswith(REM_PREFIX):
+            if not item[1].startswith(REM_PREFIX):
                 sound_subst.append(str(idx))
             idx += 1
 
@@ -329,6 +342,20 @@ class Pushover(polyinterface.Node):
             return 10800
         return int(self.getDriver('GV5'))
 
+    def get_sound(self):
+        cval = self.getDriver('GV6')
+        if cval is None:
+            return 10800
+        return int(self.getDriver('GV6'))
+
+    def set_sound(self,val):
+        self.l_info('set_sound',val)
+        if val is None:
+            val = 0
+        val = int(val)
+        self.l_info('set_sound','Set GV6 to {}'.format(val))
+        self.setDriver('GV6', val)
+
     # Returns pushover priority numbers which start at -2 and our priority nubmers that start at zero
     def get_pushover_priority(self,val=None):
         self.l_info("get_pushover_priority",'val={}'.format(val))
@@ -337,6 +364,17 @@ class Pushover(polyinterface.Node):
         else:
             val = int(val)
         val -= 2
+        self.l_info("get_pushover_priority",'val={}'.format(val))
+        return val
+
+    # Returns pushover sound key from the number
+    def get_pushover_priority(self,val=None):
+        self.l_info("get_pushover_sound",'val={}'.format(val))
+        if val is None:
+            val = int(self.get_sound())
+        else:
+            val = int(val)
+        val = self.sounds_list[val][0]
         self.l_info("get_pushover_priority",'val={}'.format(val))
         return val
 
@@ -364,6 +402,11 @@ class Pushover(polyinterface.Node):
         val = int(command.get('value'))
         self.l_info("cmd_set_expire",val)
         self.set_expire(val)
+
+    def cmd_set_sound(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_sound",val)
+        self.set_sound(val)
 
     def cmd_send(self,command):
         self.l_info("cmd_send",'')
@@ -510,7 +553,8 @@ class Pushover(polyinterface.Node):
         {'driver': 'GV2', 'value': 2, 'uom': 25},
         {'driver': 'GV3', 'value': 0, 'uom': 25},
         {'driver': 'GV4', 'value': 30, 'uom': 56},
-        {'driver': 'GV5', 'value': 10800, 'uom': 56}
+        {'driver': 'GV5', 'value': 10800, 'uom': 56},
+        {'driver': 'GV6', 'value': 0, 'uom': 25},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
@@ -519,5 +563,6 @@ class Pushover(polyinterface.Node):
                 'SET_FORMAT': cmd_set_format,
                 'SET_RETRY': cmd_set_retry,
                 'SET_EXPIRE': cmd_set_expire,
+                'SET_SOUND': cmd_set_sound,
                 'SEND': cmd_send
                 }

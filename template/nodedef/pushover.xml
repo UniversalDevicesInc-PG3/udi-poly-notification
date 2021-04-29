@@ -8,6 +8,7 @@
       <st id="GV1" editor="PO_D_{1}" />
       <st id="GV2" editor="PO_PRIORITY" />
       <st id="GV3" editor="PO_FORMAT" />
+      <st id="GV6" editor="PO_S_{`}" />
       <st id="GV4" editor="PO_RETRY" />
       <st id="GV5" editor="PO_EXPIRE" />
     </sts>
@@ -49,6 +50,7 @@
           <st id="GV4" editor="PO_D_{1}" />
           <st id="GV5" editor="PO_PRIORITY" />
           <st id="GV6" editor="PO_FORMAT" />
+          <st id="GV9" editor="PO_S_{1}" />
           <st id="GV7" editor="PO_RETRY" />
           <st id="GV8" editor="PO_EXPIRE" />
       </sts>

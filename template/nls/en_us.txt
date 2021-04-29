@@ -32,12 +32,14 @@ ST-pov-GV2-NAME = Priority
 ST-pov-GV3-NAME = Format
 ST-pov-GV4-NAME = Retry
 ST-pov-GV5-NAME = Expire
+ST-pov-GV6-NAME = Sound
 
 CMD-SET_DEVICE-NAME = Device
 CMD-SET_PRIORITY-NAME = Priority
 CMD-SET_FORMAT-NAME = Format
 CMD-SET_RETRY-NAME = Retry
 CMD-SET_EXPIRE-NAME = Expire
+CMD-SET_SOUND-NAME = Sound
 
 POVP-0 = Lowest
 POVP-1 = Low
@@ -81,6 +83,7 @@ ST-povnfy-GV5-NAME = Pushover Priority
 ST-povnfy-GV6-NAME = Pushover Format
 ST-povnfy-GV7-NAME = Pushover Retry
 ST-povnfy-GV8-NAME = Pushover Expire
+ST-povnfy-GV9-NAME = Pushover Sound
 CMD-povnfy-SET_MESSAGE_DON-NAME = Set Device On Message
 CMD-povnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
 CMD-povnfy-SET_NODE-NAME = Set Service Node
@@ -89,6 +92,7 @@ CMD-povnfy-SET_PRIORIY-NAME = Set Pushover Priority
 CMD-povnfy-SET_FORMAT-NAME = Set Pushover Format
 CMD-povnfy-SET_RETRY-NAME = Set Pushover Retry
 CMD-povnfy-SET_EXPIRE-NAME = Set Pushover Expire
+CMD-povnfy-SET_SOUND-NAME = Set Pushover Sound
 
 
 NFYP-0 = Lowest
