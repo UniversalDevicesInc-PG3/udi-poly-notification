@@ -122,7 +122,7 @@ You can now add that node to a scene and when the scene is turned on or off, eit
 
 This allows creating a simple network resource that can send messages via the Pushover service. These messages can contain text, system variables and any other node values etc. Additionally, they do not need to contain all the necessary paramaters for the Service, like user key, api key, devices, ...
 
-- To create a Network Resource, use the following guide for each field under Configuration / Networking / Network Resources tab in the ISY Admin Console:
+- To create a Network Resource, use the following guide for each field under Configuration / Networking / Network Resources tab in the ISY Admin Console.  You can see all these options and apporpriate values in the Polyglot UI config page for the nodeserver which will show the real IP address and list out the actual values to use for device and sound.
   - First field: Select http
   - Second field: Select POST
   - Host: Enter the IP address of where the nodeserver is running. Example: IP of Polyisy can be found by your target IP, or in the Polyisy, under Settings / Polyisy Configuration. Example 10.0.1.23. 
@@ -140,7 +140,7 @@ This allows creating a simple network resource that can send messages via the Pu
         - expire for Emergency Priority
     - Example: /send?node=po_wind&subject=Weather+Update
       - This will send the message to the pushover node Wind with the subject Weather Update
- - Encode URL: not checked
+  - Encode URL: not checked
   - Timeout: 5000
   - Mode: Raw Text
   - Body: The message body you want to send. It can be many lines and contain system variables, ISY nodes as well as other node server nodes as described in [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables)
@@ -229,8 +229,10 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
-- 0.1.18: 04/24/2021
+- 1.0.0: 04/29/2020:
   - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
+  - Enhancement: [Support setting custom sounds](https://github.com/jimboca/udi-poly-notification/issues/20)
+  - Enhancement: [Generate config docs on the fly](https://github.com/jimboca/udi-poly-notification/issues/23)
 - 0.1.17: 04/13/2021
   - Fixed Bug: [REST Interface Call Fails when priority param is specified](https://github.com/jimboca/udi-poly-notification/issues/18)
 - 0.1.15: 03/05/2020

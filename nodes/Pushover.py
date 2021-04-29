@@ -172,7 +172,7 @@ class Pushover(polyinterface.Node):
 
     def config_info_nr(self):
         info = [
-            '<li>Example settings for NR<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
+            '<li>Example settings for NR<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
             '</ul>',
             '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the pushover node will be used'
             '<table>',
@@ -194,11 +194,11 @@ class Pushover(polyinterface.Node):
             '<tr><td>monospace<td>1<td>use Monospace Font',
             '<tr><td>&nbsp;<td>0<td>Normal Font',
 
-            '<tr><td>priority<td>0<td>Lowest',
-            '<tr><td>&nbsp;<td>1<td>Low',
-            '<tr><td>&nbsp;<td>2<td>Normal',
-            '<tr><td>&nbsp;<td>3<td>High',
-            '<tr><td>&nbsp;<td>4<td>Emergency',
+            '<tr><td>priority<td>-2<td>Lowest',
+            '<tr><td>&nbsp;<td>-1<td>Low',
+            '<tr><td>&nbsp;<td>0<td>Normal',
+            '<tr><td>&nbsp;<td>1<td>High',
+            '<tr><td>&nbsp;<td>2<td>Emergency',
 
             '<tr><td>html<td>1<td>Enable html',
             '<tr><td>&nbsp;<td>0<td>No html',
