@@ -24,6 +24,9 @@
         <cmd id="SET_FORMAT">
           <p id="" editor="PO_FORMAT" init="GV3"/>
         </cmd>
+        <cmd id="SET_SOUND">
+          <p id="" editor="PO_S_{1}" init="GV6"/>
+        </cmd>
         <cmd id="SET_RETRY">
           <p id="" editor="PO_RETRY" init="GV4"/>
         </cmd>
@@ -66,6 +69,9 @@
             </cmd>
             <cmd id="SET_FORMAT">
               <p id="" editor="PO_FORMAT" init="GV6"/>
+            </cmd>
+            <cmd id="SET_SOUND">
+              <p id="" editor="PO_S_{1}" init="GV9"/>
             </cmd>
             <cmd id="SET_RETRY">
               <p id="" editor="PO_RETRY" init="GV7"/>

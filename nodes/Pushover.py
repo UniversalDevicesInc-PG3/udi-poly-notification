@@ -69,7 +69,7 @@ class Pushover(polyinterface.Node):
             self.l_info('start',"got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
-            self.controller.saveCustomData({'devices_list': self.devices_list})
+            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_list': self.sounds_list})
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -104,6 +104,7 @@ class Pushover(polyinterface.Node):
                 self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
         self.l_info('build_device_list',"devices_list={}".format(self.devices_list))
 
+    # Build the list of sounds, make sure the order of the list never changes.
     def build_sound_list(self):
         res = self.get("1/sounds.json")
         self.l_debug('validate','got: {}'.format(res))
@@ -187,6 +188,14 @@ class Pushover(polyinterface.Node):
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
+        idx = 0
+        sound_subst = []
+        for item in self.sounds_list:
+            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,item))
+            # Don't include REMOVED's in list
+            if not item.startswith(REM_PREFIX):
+                sound_subst.append(str(idx))
+            idx += 1
 
         #
         # editor
@@ -203,7 +212,7 @@ class Pushover(polyinterface.Node):
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
         # TODO: We could create a better subst with - and , but do we need to?
-        editor_h.write(data.format(self.iname,",".join(subst)))
+        editor_h.write(data.format(self.iname,",".join(subst),",".join(sound_subst)))
         editor_h.close()
 
     def l_info(self, name, string):
