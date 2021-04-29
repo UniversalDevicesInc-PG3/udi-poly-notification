@@ -127,9 +127,9 @@ class Controller(polyinterface.Controller):
         self.removeNoticesAll()
 
         self.messages = typedCustomData.get('messages')
-        self.l_debug('process_config','messages={}'.format(self.messages))
-        if self.messages is None:
-            self.l_debug('process_config','No messages')
+        self.l_info('process_config','messages={}'.format(self.messages))
+        if self.messages is None or len(self.messages) == 0:
+            self.l_info('process_config','No messages')
         else:
             save = True
 
