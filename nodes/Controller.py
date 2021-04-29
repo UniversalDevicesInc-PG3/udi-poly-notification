@@ -313,48 +313,14 @@ class Controller(polyinterface.Controller):
                 if node.init_st():
                     self.l_info('write_profile','node={} id={}'.format(node_name,node.id))
                     node.write_profile(nls)
-                    if node.oid == 'pushover':
-                        # TODO: Move creating node info insdie nodes instead of here...
-                        config_info_rest.append(
-                            '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'
-                            .format(node.address,self.rest.listen_url)
-                        )
-                        config_info_nr.append(
-                            '<li>http POST Host:{0} Port:{1} Path:/send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2'
-                            .format(self.rest.ip,self.rest.listen_port,node.address)
-                        )
+                    config_info_nr.append(node.config_info_nr())
+                    config_info_rest.append(node.config_info_rest())
                 else:
                     self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name, node.init_st()))
         nls.write("# Start: End Service Nodes:\n")
         self.l_info(pfx,"Closing {}".format(en_us_txt))
         nls.close()
         config_info_rest.append('</ul>')
-        config_info_nr = config_info_nr + [
-            '</ul>',
-            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the pushover node will be used'
-            '<table>',
-            '<tr><th>Name<th>Value<th>Description',
-
-            '<tr><td>device<td>0<td>All Devices',
-            '<tr><td>&nbsp;<td>1<td>Next device in the list, and so on ...',
-
-            '<tr><td>monospace<td>1<td>use Monospace Font',
-            '<tr><td>&nbsp;<td>0<td>Normal Font',
-
-            '<tr><td>priority<td>0<td>Lowest',
-            '<tr><td>&nbsp;<td>1<td>Low',
-            '<tr><td>&nbsp;<td>2<td>Normal',
-            '<tr><td>&nbsp;<td>3<td>High',
-            '<tr><td>&nbsp;<td>4<td>Emergency',
-
-            '<tr><td>html<td>1<td>Enable html',
-            '<tr><td>&nbsp;<td>0<td>No html',
-
-            '<tr><td>retry<td>n<td>Set Emergency retry to n',
-            '<tr><td>expire<td>n<td>Set Emergency exipre to n',
-
-            '</table>'
-        ]
         self.config_info = config_info_nr + config_info_rest
         s = "\n"
         cstr = s.join(self.config_info)

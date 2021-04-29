@@ -166,6 +166,50 @@ class Pushover(polyinterface.Node):
         else:
             return super(Pushover, self).getDriver(driver)
 
+    def config_info_rest(self):
+        str = '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'.format(self.address,self.controller.rest.listen_url)
+        return str
+
+    def config_info_nr(self):
+        info = [
+            '<li>Example settings for NR<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
+            '</ul>',
+            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the pushover node will be used'
+            '<table>',
+            '<tr><th>Name<th>Value<th>Description',
+        ]
+        i = 0
+        t = 'device'
+        for item in self.devices_list:
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
+            i += 1
+            t = '&nbsp;'
+        i = 0
+        t = 'sound'
+        for item in self.sounds_list:
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item[1]))
+            i += 1
+            t = '&nbsp;'
+        info = info + [
+            '<tr><td>monospace<td>1<td>use Monospace Font',
+            '<tr><td>&nbsp;<td>0<td>Normal Font',
+
+            '<tr><td>priority<td>0<td>Lowest',
+            '<tr><td>&nbsp;<td>1<td>Low',
+            '<tr><td>&nbsp;<td>2<td>Normal',
+            '<tr><td>&nbsp;<td>3<td>High',
+            '<tr><td>&nbsp;<td>4<td>Emergency',
+
+            '<tr><td>html<td>1<td>Enable html',
+            '<tr><td>&nbsp;<td>0<td>No html',
+
+            '<tr><td>retry<td>n<td>Set Emergency retry to n',
+            '<tr><td>expire<td>n<td>Set Emergency exipre to n',
+
+            '</table>'
+        ]
+        return ''.join(info)
+
     def write_profile(self,nls):
         pfx = 'write_profile'
         self.l_info(pfx,'')
@@ -368,14 +412,14 @@ class Pushover(polyinterface.Node):
         return val
 
     # Returns pushover sound key from the number
-    def get_pushover_priority(self,val=None):
+    def get_pushover_sound(self,val=None):
         self.l_info("get_pushover_sound",'val={}'.format(val))
         if val is None:
             val = int(self.get_sound())
         else:
             val = int(val)
         val = self.sounds_list[val][0]
-        self.l_info("get_pushover_priority",'val={}'.format(val))
+        self.l_info("get_pushover_sound",'val={}'.format(val))
         return val
 
     def cmd_set_device(self,command):
@@ -430,6 +474,10 @@ class Pushover(polyinterface.Node):
             params['priority'] = self.get_pushover_priority(params['priority'])
         else:
             params['priority'] = self.get_pushover_priority()
+        if 'sound' in params:
+            params['sound'] = self.get_pushover_sound(params['sound'])
+        else:
+            params['sound'] = self.get_pushover_sound()
         if params['priority'] == 2:
             if not 'retry' in params:
                 params['retry'] = self.get_retry()

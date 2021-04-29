@@ -41,6 +41,7 @@ class Notify(polyinterface.Node):
         self.set_format(self.get_format())
         self.set_retry(self.get_retry())
         self.set_expire(self.get_expire())
+        self.set_sound(self.get_sound())
         # Make sure we know who our service node is
         self.service_node = self.controller.get_service_node(self.service_node_name)
         if self.service_node is False:
@@ -191,7 +192,7 @@ class Notify(polyinterface.Node):
 
     def set_retry(self,val):
         dv = 'GV7'
-        self.l_info('set_expire',val)
+        self.l_info('set_retry',val)
         if val is None:
             val = 30
         val = int(val)
@@ -215,6 +216,21 @@ class Notify(polyinterface.Node):
 
     def get_expire(self):
         cval = self.getDriver('GV8')
+        if cval is None:
+            return 10800
+        return int(cval)
+
+    def set_sound(self,val):
+        dv = 'GV9'
+        self.l_info('set_sound',val)
+        if val is None:
+            val = 0
+        val = int(val)
+        self.l_info('set_sound','Set {} to {}'.format(dv,val))
+        self.setDriver(dv, val)
+
+    def get_sound(self):
+        cval = self.getDriver('GV9')
         if cval is None:
             return 10800
         return int(cval)
@@ -254,6 +270,11 @@ class Notify(polyinterface.Node):
         self.l_info("cmd_set_expire",val)
         self.set_expire(val)
 
+    def cmd_set_sound(self,command):
+        val = int(command.get('value'))
+        self.l_info("cmd_set_sound",val)
+        self.set_sound(val)
+
     def cmd_send_on(self,command):
         self.l_info("cmd_send_on",''.format(command))
         self.send_msg(self.get_message_on())
@@ -279,10 +300,15 @@ class Notify(polyinterface.Node):
                 'format': self.get_format(),
                 'retry': self.get_retry(),
                 'expire': self.get_expire(),
+                'sound': self.get_sound(),
             }
         )
         self.set_st(st)
 
+    def config_info_nr(self):
+        return ""
+    def config_info_rest(self):
+        return ""
 
     _init_st = None
     id = 'notify'
@@ -296,7 +322,8 @@ class Notify(polyinterface.Node):
         {'driver': 'GV5', 'value': 2, 'uom': 25},
         {'driver': 'GV6', 'value': 0, 'uom': 25},
         {'driver': 'GV7', 'value': 30, 'uom': 56},
-        {'driver': 'GV8', 'value': 10800, 'uom': 56}
+        {'driver': 'GV8', 'value': 10800, 'uom': 56},
+        {'driver': 'GV9', 'value': 0, 'uom': 25},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
@@ -307,6 +334,7 @@ class Notify(polyinterface.Node):
                 'SET_FORMAT': cmd_set_format,
                 'SET_RETRY': cmd_set_retry,
                 'SET_EXPIRE': cmd_set_expire,
+                'SET_SOUND': cmd_set_sound,
                 'DON': cmd_send_on,
                 'DOF': cmd_send_off,
                 }
