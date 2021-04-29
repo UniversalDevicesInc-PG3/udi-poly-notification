@@ -11,6 +11,7 @@ from threading import Thread,Event
 import time
 import polyinterface
 import logging
+import collections
 from node_funcs import make_file_dir,is_int
 
 LOGGER = polyinterface.LOGGER
@@ -56,7 +57,7 @@ class Pushover(polyinterface.Node):
         self.set_expire(self.get_expire())
         self.customData = self.controller.polyConfig.get('customData', {})
         self.devices_list = self.customData.get('devices_list',[])
-        self.sounds_list = self.customData.get('sounds_list',[])
+        self.sounds_dict = self.customData.get('sounds_dict',collections.OrderedDict())
         self.l_info('start',"devices_list={}".format(self.devices_list))
         self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
@@ -69,7 +70,7 @@ class Pushover(polyinterface.Node):
             self.l_info('start',"got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
-            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_list': self.sounds_list})
+            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_dict': self.sounds_dict})
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -109,21 +110,18 @@ class Pushover(polyinterface.Node):
         res = self.get("1/sounds.json")
         self.l_debug('validate','got: {}'.format(res))
         if res['status']:
-            vlist = []
+            # Add to our list if not exists.
             for skey in res['data']['sounds']:
-                vlist.append(res['data']['sounds'][skey])
-            # Add new items
-            for item in vlist:
                 # If it's not in the saved list, append it
-                if self.sounds_list.count(item) == 0:
-                    self.sounds_list.append(item)
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
-            # Make sure items are in the passed in list, otherwise prefix it
+                if not skey in self.sounds_dict:
+                    self.sounds_dict[skey] = res['data']['sounds'][skey]
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_dict))
+            # Make sure items are in the existing list, otherwise prefix it
             # in devices_list
-            for item in self.sounds_list:
-                if not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
-                    self.sounds_list[self.sounds_list.index(item)] = REM_PREFIX + item
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
+            for skey in self.sounds_dict:
+                if not skey in res['data']['sounds'] and not skey.startswith(REM_PREFIX):
+                    self.sounds_dict[skey] = REM_PREFIX + self.sounds_dict[skey]
+            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_dict))
         return res
 
 
@@ -190,8 +188,8 @@ class Pushover(polyinterface.Node):
             idx += 1
         idx = 0
         sound_subst = []
-        for item in self.sounds_list:
-            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,item))
+        for skey in self.sounds_dict:
+            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,self.sounds_dict[skey]))
             # Don't include REMOVED's in list
             if not item.startswith(REM_PREFIX):
                 sound_subst.append(str(idx))
