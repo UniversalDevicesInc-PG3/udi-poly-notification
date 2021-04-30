@@ -253,7 +253,7 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
   - Bug fix for improper initialization of Notify node sound
 - 1.0.0: 04/29/2020:
   - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
-    - See "Message Retry" section above.
+    - See [Message Retry](https://github.com/jimboca/udi-poly-notification/blob/master/README.md#message-retry)
   - Enhancement: [Support setting custom sounds](https://github.com/jimboca/udi-poly-notification/issues/20)
   - Enhancement: [Generate config docs on the fly](https://github.com/jimboca/udi-poly-notification/issues/23)
 - 0.1.17: 04/13/2021
