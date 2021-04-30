@@ -231,8 +231,9 @@ class Notify(polyinterface.Node):
 
     def get_sound(self):
         cval = self.getDriver('GV9')
-        if cval is None:
-            return 10800
+        # Bad release set this to 10800
+        if cval is None or cval == "10800":
+            return 0
         return int(cval)
 
     def cmd_set_message_on(self,command):
