@@ -65,6 +65,8 @@ These are the Services such as Pushover that are called when a Send is issued.  
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
+### Message Retry
+  When the nodeserver sends a message and there is an error it will set the Service Node's Last Status and Error, then will continue to retry sending the message every 5 seconds, up to 10 times.  See <a href="https://github.com/jimboca/udi-poly-notification/issues/19" target="_ blank">Add more retry and timeouts to message posting</a> and comment there if you have suggestions.
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
   - This device can be turned on or off in a program as well
@@ -235,6 +237,7 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
   - Bug fix for improper initialization of Notify node sound
 - 1.0.0: 04/29/2020:
   - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
+    - See "Message Retry" section above.
   - Enhancement: [Support setting custom sounds](https://github.com/jimboca/udi-poly-notification/issues/20)
   - Enhancement: [Generate config docs on the fly](https://github.com/jimboca/udi-poly-notification/issues/23)
 - 0.1.17: 04/13/2021
