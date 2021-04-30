@@ -521,6 +521,8 @@ class Pushover(polyinterface.Node):
         cnt  = 0
         max  = 10
         retry_wait = 5
+        # Clear error if there was one
+        self.set_error(ERROR_NONE)
         while (not sent and retry and cnt < max):
             cnt += 1
             self.l_debug('post','send try #{}'.format(cnt))
@@ -539,7 +541,8 @@ class Pushover(polyinterface.Node):
                     retry = False 
                 else:
                     self.l_warning('post','Previous error is retryable...')
-            self.set_error(ERROR_MESSAGE_SEND)
+            if (not sent):
+                self.set_error(ERROR_MESSAGE_SEND)
             if (not sent and retry):
                 time.sleep(retry_wait)
         if (cnt > max):

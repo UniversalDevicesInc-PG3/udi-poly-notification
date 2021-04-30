@@ -229,7 +229,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
-- 1.0.1: 04/29/2020:
+- 1.0.3: 04/29/2020:
+  - Fix bug to only set ERR when there is an error
+- 1.0.2: 04/29/2020:
   - Bug fix for improper initialization of Notify node sound
 - 1.0.0: 04/29/2020:
   - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
