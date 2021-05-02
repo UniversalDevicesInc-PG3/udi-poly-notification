@@ -247,7 +247,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
-- 1.0.4: 04/29/2020:
+- 1.0.5: 05/01/2020:
+  - Bug: Fixed Notify Node Names
+- 1.0.4: 05/01/2020:
   - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
     - Changed to retry forever.
 - 1.0.3: 04/29/2020:

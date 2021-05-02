@@ -69,7 +69,7 @@ class Notify(polyinterface.Node):
         pfx = 'write_profile'
         self.l_info(pfx,"Appending to nls")
         # TODO: Used passed
-        nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
+        nls.write("ND-{0}-NAME = Service Pushover {1} Notify\n".format(self.id,self.service_node_name))
         return True
 
     def setDriver(self,driver,value):
