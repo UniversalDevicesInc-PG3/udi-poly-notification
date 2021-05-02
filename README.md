@@ -66,7 +66,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
 ### Message Retry
-  When the nodeserver sends a message and there is an error it will set the Service Node's Last Status and Error, then will continue to retry sending the message every 5 seconds, up to 10 times.  See <a href="https://github.com/jimboca/udi-poly-notification/issues/19" target="_ blank">Add more retry and timeouts to message posting</a> and comment there if you have suggestions.
+  When the nodeserver sends a message and there is an error it will set the Service Node's Last Status and Error, then will continue to retry sending the message every 5 seconds forever, or until the nodeserver is restarted.  See <a href="https://github.com/jimboca/udi-poly-notification/issues/19" target="_ blank">Add more retry and timeouts to message posting</a> and comment there if you have suggestions.
   If you are very concernted about catching the errors, you can create a program like:
 ```
 If
@@ -247,6 +247,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 1.0.4: 04/29/2020:
+  - Enhancement: [Add more retry and timeouts to message posting](https://github.com/jimboca/udi-poly-notification/issues/19)
+    - Changed to retry forever.
 - 1.0.3: 04/29/2020:
   - Fix bug to only set ERR when there is an error
 - 1.0.2: 04/29/2020:

@@ -25,6 +25,11 @@ ERROR_MESSAGE_SEND   = 5
 
 REM_PREFIX = "REMOVED-"
 
+# How many tries to get or post, -1 is forever
+RETRY_MAX = -1
+# How long to wait between tries, in seconds
+RETRY_WAIT = 5
+
 class Pushover(polyinterface.Node):
     """
     """
@@ -519,11 +524,9 @@ class Pushover(polyinterface.Node):
         sent = False
         retry = True
         cnt  = 0
-        max  = 10
-        retry_wait = 5
         # Clear error if there was one
         self.set_error(ERROR_NONE)
-        while (not sent and retry and cnt < max):
+        while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
             self.l_debug('post','send try #{}'.format(cnt))
             res = self.session.post("1/messages.json",params)
@@ -543,10 +546,11 @@ class Pushover(polyinterface.Node):
                     self.l_warning('post','Previous error is retryable...')
             if (not sent):
                 self.set_error(ERROR_MESSAGE_SEND)
+                if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
+                    self.l_error('post','Giving up after {} tries'.format(cnt))
+                    retry = False
             if (not sent and retry):
-                time.sleep(retry_wait)
-        if (cnt > max):
-            self.l_error('post','Gave up after {} tries'.format(cnt))
+                time.sleep(RETRY_WAIT)
         #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
 
@@ -555,32 +559,32 @@ class Pushover(polyinterface.Node):
         sent = False
         retry = True
         cnt  = 0
-        max  = 10
-        retry_wait = 5
-        while (not sent and retry and cnt < max):
+        while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            self.l_debug('get','send try {} #{}'.format(url,cnt))
+            self.l_warning('get','send try {} #{}'.format(url,cnt))
             res = self.session.get(url,params)
-            self.l_debug('get','got {}'.format(res))
+            self.l_info('get','got {}'.format(res))
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
                 self.set_error(ERROR_NONE)
             else:
                 if 'data' in res:
                     if 'errors' in res['data']:
-                        self.l_error('post','From Pushover: {}'.format(res['data']['errors']))
+                        self.l_error('get','From Pushover: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
-                self.l_debug('post','res={}'.format(res))
+                self.l_debug('get','res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
-                    self.l_warning('post','Previous error can not be fixed, will not retry')
+                    self.l_warning('get','Previous error can not be fixed, will not retry')
                     retry = False 
                 else:
-                    self.l_warning('post','Previous error is retryable...')
-            self.set_error(ERROR_MESSAGE_SEND)
+                    self.l_warning('get','Previous error is retryable...')
+            if (not sent):
+                self.set_error(ERROR_UNKNOWN)
+                if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
+                    self.l_error('post','Giving up after {} tries'.format(cnt))
+                    retry = False
             if (not sent and retry):
-                time.sleep(retry_wait)
-        if (cnt > max):
-            self.l_error('post','Gave up after {} tries'.format(cnt))
+                time.sleep(RETRY_WAIT)
         #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         if 'data' in res:
             return { 'status': sent, 'data': res['data'] }
