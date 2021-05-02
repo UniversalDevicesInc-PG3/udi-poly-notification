@@ -247,6 +247,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 1.0.6: 05/02/2021:
+  - Bug: Fix checking device index when passed in directly from network resource
 - 1.0.5: 05/01/2020:
   - Bug: Fixed Notify Node Names
 - 1.0.4: 05/01/2020:

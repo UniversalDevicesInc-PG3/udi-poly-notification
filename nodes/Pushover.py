@@ -302,9 +302,15 @@ class Pushover(polyinterface.Node):
         return int(cval)
 
     def get_device_name_by_index(self,dev=None):
+        self.l_debug('get_device_name_by_index','dev={}'.format(dev))
         if dev is None:
             dev = self.get_device()
-        self.l_debug('get_device_name_by_index','dev={}'.format(dev))
+            self.l_debug('get_device_name_by_index','dev={}'.format(dev))
+        else:
+            if not is_int(dev):
+                self.l_error('get_device_name_by_index','Passed in {} is not an integer'.format(dev))
+                return 0
+            dev = int(dev)
         dev_name = None
         try:
             # 0 is all, so return none, otherwise look up the name
@@ -312,6 +318,7 @@ class Pushover(polyinterface.Node):
                 dev_name = self.devices_list[dev]
         except:
             self.l_error('get_device_name','Bad device index {}'.format(dev),exc_info=True)
+            return 0
         return dev_name
 
     def set_st(self,val):
