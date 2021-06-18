@@ -71,7 +71,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
 ```
 If
         'Polyglot / Notification Controller / Service Pushover homeisy' Error is not None
- 
+
 Then
         Send Notification to 'Text-Jim' content 'Polyglot Notification Status'
         Send Notification to 'Email-Jim' content 'Polyglot Notification Status'
@@ -79,8 +79,8 @@ Then
   and in that Custom Notification use something like
 ```
 Subject: ${sys.program.#.name}
-Body: 
-Notification: ST=${sys.node.n005_controller.ST} HB=${var.2.232} 
+Body:
+Notification: ST=${sys.node.n005_controller.ST} HB=${var.2.232}
   ${sys.node.n005_po_homeisy.name} ERR=${sys.node.n005_po_homeisy.ERR}
 ```
 ### Notify Nodes
@@ -125,7 +125,7 @@ A Notify node accepts a Device ON / Device OFF from a scene or a program
 - Create a Notify node in the Configuration using "Add Notify Nodes” as follows:
   - ID for Node: Set this to a short unique string (to be used for the nodeid in the ISY)
   - Name for Node: This text string will become the beginning of the message sent so descriptive names are helpful here. For example ‘Kitchen’. So when used with the predefined Light on message, the message delivered is ‘Kitchen Light on’
-  - Service Node Name: Set to match to the Name of an existing Service Node you created, cap sensitive. In the above programming example, my Service Node Name is ‘homeisy’. This is the name I used for my Pushover service. Therefore if I want to use this Pushover service to deliver this predefined message, it needs to match this name and therefore would be ‘homeisy’. 
+  - Service Node Name: Set to match to the Name of an existing Service Node you created, cap sensitive. In the above programming example, my Service Node Name is ‘homeisy’. This is the name I used for my Pushover service. Therefore if I want to use this Pushover service to deliver this predefined message, it needs to match this name and therefore would be ‘homeisy’.
 - Press 'Save Changes'
 - Press 'Restart'
 
@@ -143,7 +143,7 @@ This allows creating a simple network resource that can send messages via the Pu
 - To create a Network Resource, use the following guide for each field under Configuration / Networking / Network Resources tab in the ISY Admin Console.  You can see all these options and apporpriate values in the Polyglot UI config page for the nodeserver which will show the real IP address and list out the actual values to use for device and sound.
   - First field: Select http
   - Second field: Select POST
-  - Host: Enter the IP address of where the nodeserver is running. Example: IP of Polyisy can be found by your target IP, or in the Polyisy, under Settings / Polyisy Configuration. Example 10.0.1.23. 
+  - Host: Enter the IP address of where the nodeserver is running. Example: IP of Polyisy can be found by your target IP, or in the Polyisy, under Settings / Polyisy Configuration. Example 10.0.1.23.
   - Port: 8199 (Currently Hardcoded)
   - Path: /send?opt1=val1&opt2=val2...
     - Params
@@ -162,17 +162,17 @@ This allows creating a simple network resource that can send messages via the Pu
   - Timeout: 5000
   - Mode: Raw Text
   - Body: The message body you want to send. It can be many lines and contain system variables, ISY nodes as well as other node server nodes as described in [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables)
-	
+
 An example below that outputs “38ºF, 14mph N, Gusts 23, Rain 78%” looks like this:
 
   ${var.1.28}ºF, ${var.2.48}mph N, Gusts ${var.2.49}, Rain ${sys.node.n002_weather.GV18}
 
   It includes the following:
-   - ISY Integer variable #28, 
+   - ISY Integer variable #28,
    - ISY State variable #48,
-   - ISY State variable #49, 
+   - ISY State variable #49,
    - Value of Nodeserver n002 (DarkSky) node GV18 (found under Polyisy/Dashboard/Darksky Nodes)
-	
+
 Once completed, save the new resource, then hit Save again under the resource tab,  then click on it an hit Test.Then create a program to send the new resource
 ```
 Notification NR Test
@@ -185,7 +185,7 @@ Then
         Set 'Notification Controller / Service Pushover WIND' Priority Normal
         Set 'Notification Controller / Service Pushover WIND' Device JimsPhone
         Resource 'Test.1'
-``` 
+```
 ### Testing with REST interface directly.
 
 You can test the REST interface from a command line by running curl:
@@ -247,6 +247,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 ## Release Notes
 
+- 1.0.7: 06/18/2021:
+  - Bug: Fix getting current sound on first restart after adding a new Service nodes
+  - Buf: Fix error on restart calling server stop
 - 1.0.6: 05/02/2021:
   - Bug: Fix checking device index when passed in directly from network resource
 - 1.0.5: 05/01/2020:

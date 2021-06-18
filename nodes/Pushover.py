@@ -126,7 +126,7 @@ class Pushover(polyinterface.Node):
             # for quick lookup
             es = {}
             for item in self.sounds_list:
-                es[item[0]] = item[1]                
+                es[item[0]] = item[1]
             # Add to our list if not exists.
             for skey in res['data']['sounds']:
                 # If it's not in the saved list, append it
@@ -401,7 +401,7 @@ class Pushover(polyinterface.Node):
     def get_sound(self):
         cval = self.getDriver('GV6')
         if cval is None:
-            return 10800
+            return 0
         return int(self.getDriver('GV6'))
 
     def set_sound(self,val):
@@ -548,7 +548,7 @@ class Pushover(polyinterface.Node):
                 self.l_debug('post','res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
                     self.l_warning('post','Previous error can not be fixed, will not retry')
-                    retry = False 
+                    retry = False
                 else:
                     self.l_warning('post','Previous error is retryable...')
             if (not sent):
@@ -582,7 +582,7 @@ class Pushover(polyinterface.Node):
                 self.l_debug('get','res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
                     self.l_warning('get','Previous error can not be fixed, will not retry')
-                    retry = False 
+                    retry = False
                 else:
                     self.l_warning('get','Previous error is retryable...')
             if (not sent):

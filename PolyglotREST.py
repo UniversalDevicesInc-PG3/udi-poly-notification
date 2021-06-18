@@ -221,6 +221,9 @@ class polyglotRESTServer():
         self._slock = False
         return True
 
+    def stop(self):
+        self.rest.stop()
+
     def get_handler(self,command,params,post_data):
         """
         This is passed the incoming http get's to processes
