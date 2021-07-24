@@ -46,6 +46,40 @@ def get_messages():
     ]
     return _MESSAGES
 
+# These are the default Pushover sounds, we save this so 
+# the order never changes, and they are always first in the list.
+_DEFAULT_SOUNDS = [
+    'pushover',   
+    'bike',
+    'bugle',
+    'cashregister',
+    'classical',
+    'cosmic',
+    'falling',
+    'gamelan',
+    'incoming',
+    'intermission',
+    'magic',
+    'mechanical',
+    'pianobar',
+    'siren',
+    'spacealarm',
+    'tugboat',
+    'alien',
+    'climb',
+    'persistent',
+    'echo',
+    'updown',
+    'vibrate',
+    'none',            
+]
+
+def get_default_sound_index(name):
+    try:
+        return _DEFAULT_SOUNDS.index(name)
+    except ValueError:
+        return -1
+
 # Removes invalid charaters for ISY Node description
 def get_valid_node_name(name):
     # Only allow utf-8 characters

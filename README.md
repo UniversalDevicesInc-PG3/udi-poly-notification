@@ -246,7 +246,13 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
-
+- 1.0.8: 07/24/2021:
+  - Fix: [Support setting custom sounds](https://github.com/jimboca/udi-poly-notification/issues/20)
+    - Default Pushover sounds are now always first in the list, followed by custom sounds.
+    - IMPORTANT: After updating and restarting the nodeserver AND restarted admin console:
+      - All custom sounds indexes have changed, so you must edit your programs that have custom sounds.
+      - If you have custom sounds and they were first in the list, then all sound indexes have change, so edit your programs
+      - The indexes are all properly tracked now so they will never change in the future.
 - 1.0.7: 06/18/2021:
   - Bug: Fix getting current sound on first restart after adding a new Service nodes
   - Buf: Fix error on restart calling server stop

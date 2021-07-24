@@ -12,7 +12,7 @@ import time
 import polyinterface
 import logging
 import collections
-from node_funcs import make_file_dir,is_int
+from node_funcs import make_file_dir,is_int,get_default_sound_index
 
 LOGGER = polyinterface.LOGGER
 
@@ -77,10 +77,6 @@ class Pushover(polyinterface.Node):
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
             self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_list': self.sounds_list})
-            # For quick lookup of longname to shortname
-            self.sounds_dict = {}
-            for item in self.sounds_list:
-                self.sounds_dict[item[1]] = item[0]
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -121,24 +117,59 @@ class Pushover(polyinterface.Node):
     # in Polyglot params
     def build_sound_list(self):
         res = self.get("1/sounds.json")
-        self.l_debug('validate','got: {}'.format(res))
+        self.l_debug('build_sound_list','got: {}'.format(res))
+        # Always build a new list
+        sounds_list  = []
+        custom_index = 100 # First index for a custom sound
         if res['status']:
-            # for quick lookup
+            #
+            # Build list with default sounds
+            #
+            for skey in res['data']['sounds']:
+                # Is it a default?
+                idx = get_default_sound_index(skey)
+                if idx >= 0:
+                    sounds_list.append([skey, res['data']['sounds'][skey], idx])
+            self.l_debug('build_sound_list','sounds={}'.format(sounds_list))
+            #
+            # Add any custom sounds
+            #
+            # hash for quick lookup of name to index of existing sounds_list
             es = {}
             for item in self.sounds_list:
-                es[item[0]] = item[1]
+                es[item[0]] = item
+                if len(item) == 3:
+                    # New style, if already have custom ones saved remember the max index
+                    if item[2] > custom_index:
+                        custom_index = item[2]
             # Add to our list if not exists.
             for skey in res['data']['sounds']:
-                # If it's not in the saved list, append it
-                if not skey in es:
-                    self.sounds_list.append([skey, res['data']['sounds'][skey]])
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
-            # Make sure items are in the existing list, otherwise prefix it
-            # in devices_list
+                # Add to list if we have it, otherwise append
+                if skey in es:
+                    # and not a default
+                    if get_default_sound_index(skey) == -1:
+                        item = es[skey]
+                        if len(item) == 2:
+                            # Old style, add index
+                            custom_index += 1
+                            sounds_list.append([item[0],item[1],custom_index])
+                        else:
+                            sounds_list.append(item)
+                else:
+                    custom_index += 1
+                    sounds_list.append([skey, res['data']['sounds'][skey], custom_index])
+            self.l_debug('build_sound_list','sounds={}'.format(sounds_list))
+            # Make sure items are in the existing list, otherwise prefix it in devices_list
             for item in self.sounds_list:
-                if not item[0] in res['data']['sounds'] and not item[1].startswith(REM_PREFIX):
-                    # TODO: FIx this to replace item in array
-                    self.sounds_list[skey] = REM_PREFIX + self.sounds_list[skey]
+                if not item[0] in res['data']['sounds']:
+                    name = item[0] if item[0].startswith(REM_PREFIX) else REM_PREFIX + item[0] 
+                    if len(item) == 2:
+                        # Old style without index
+                        custom_index += 1
+                        sounds_list.append([item[0],name,custom_index])
+                    else:
+                        sounds_list.append([item[0],name,item[2]])
+            self.sounds_list = sounds_list
             self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
         return res
 
@@ -189,11 +220,9 @@ class Pushover(polyinterface.Node):
             info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
             i += 1
             t = '&nbsp;'
-        i = 0
         t = 'sound'
         for item in self.sounds_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item[1]))
-            i += 1
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t,item[2],item[1]))
             t = '&nbsp;'
         info = info + [
             '<tr><td>monospace<td>1<td>use Monospace Font',
@@ -248,14 +277,12 @@ class Pushover(polyinterface.Node):
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
-        idx = 0
         sound_subst = []
         for item in self.sounds_list:
-            nls.write("POS_{}-{} = {}\n".format(self.iname,idx,item[1]))
+            nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
             # Don't include REMOVED's in list
             if not item[1].startswith(REM_PREFIX):
-                sound_subst.append(str(idx))
-            idx += 1
+                sound_subst.append(str(item[2]))
 
         #
         # editor
@@ -430,8 +457,11 @@ class Pushover(polyinterface.Node):
             val = int(self.get_sound())
         else:
             val = int(val)
-        val = self.sounds_list[val][0]
-        self.l_info("get_pushover_sound",'val={}'.format(val))
+        rval = 0
+        for item in self.sounds_list:
+            if item[2] == val:
+                rval = val
+        self.l_info("get_pushover_sound",'val={}'.format(rval))
         return val
 
     def cmd_set_device(self,command):
