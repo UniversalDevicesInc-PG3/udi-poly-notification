@@ -450,7 +450,7 @@ class Pushover(polyinterface.Node):
         self.l_info("get_pushover_priority",'val={}'.format(val))
         return val
 
-    # Returns pushover sound key from the number
+    # Returns pushover sound name from our index number
     def get_pushover_sound(self,val=None):
         self.l_info("get_pushover_sound",'val={}'.format(val))
         if val is None:
@@ -460,9 +460,22 @@ class Pushover(polyinterface.Node):
         rval = 0
         for item in self.sounds_list:
             if item[2] == val:
-                rval = val
-        self.l_info("get_pushover_sound",'val={}'.format(rval))
-        return val
+                rval = item[0]
+        self.l_info("get_pushover_sound",'{}'.format(rval))
+        return rval
+
+    # Returns pushover sound name by name, return default if not found
+    def get_pushover_sound_by_name(self,name):
+        self.l_info("get_pushover_sound_by_namne",'name={}'.format(name))
+        rval = False
+        for item in self.sounds_list:
+            if name == item[0]:
+                rval = name
+        if rval is False:
+            self.l_error('get_pushover_sound_by_name',"No sound name found matching '{}".format(name))
+            rval = 'pushover'
+        self.l_info("get_pushover_sound",'{}'.format(rval))
+        return rval
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
@@ -517,7 +530,10 @@ class Pushover(polyinterface.Node):
         else:
             params['priority'] = self.get_pushover_priority()
         if 'sound' in params:
-            params['sound'] = self.get_pushover_sound(params['sound'])
+            if is_int(params['sound']):
+                params['sound'] = self.get_pushover_sound(params['sound'])
+            else:
+                params['sound'] = self.get_pushover_sound_by_name(params['sound'])
         else:
             params['sound'] = self.get_pushover_sound()
         if params['priority'] == 2:
@@ -525,7 +541,6 @@ class Pushover(polyinterface.Node):
                 params['retry'] = self.get_retry()
             if not 'expire' in params:
                 params['expire'] = self.get_expire()
-
         if 'format' in params:
             if params['format'] == 1:
                 params['html'] = 1
@@ -563,9 +578,10 @@ class Pushover(polyinterface.Node):
         cnt  = 0
         # Clear error if there was one
         self.set_error(ERROR_NONE)
+        self.l_debug('post','params={}'.format(params))
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            self.l_debug('post','send try #{}'.format(cnt))
+            self.l_debug('post','try #{}'.format(cnt))
             res = self.session.post("1/messages.json",params)
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
@@ -598,7 +614,7 @@ class Pushover(polyinterface.Node):
         cnt  = 0
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            self.l_warning('get','send try {} #{}'.format(url,cnt))
+            self.l_warning('get','try {} #{}'.format(url,cnt))
             res = self.session.get(url,params)
             self.l_info('get','got {}'.format(res))
             if res['status'] is True and res['data']['status'] == 1:

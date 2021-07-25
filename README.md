@@ -55,12 +55,14 @@ These are the Services such as Pushover that are called when a Send is issued.  
         - Device
           - This is the Pushover Device as configured on the pushover site.
         - Priority
-          - This is the <a href="https://pushover.net/api#priority" target="_ blank">Pushover Priority</a>
+          - This is the <a href="https://pushover.net/api#priority" target="_blank">Pushover Priority</a>
             - Lowest
             - Low
             - Normal
             - High
             - Emergency
+        - Sound
+          - This is the <a href="https://pushover.net/api#sounds" target="_blank">Pushover Sound</a> to use, you can add your own custom sounds in the Pushover.
         - Retry
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
         - Expires
@@ -154,6 +156,7 @@ This allows creating a simple network resource that can send messages via the Pu
         - html 1 = allow html
         - monospace 1 = use monospace font
         - priority any legal [Pushover Priority](https://pushover.net/api#priority)
+        - sound any legal [Pusover Sound Name](https://pushover.net/api#sounds) from the defaults or your added custom sounds
         - retry for Emergency Priority
         - expire for Emergency Priority
     - Example: /send?node=po_wind&subject=Weather+Update
@@ -195,7 +198,7 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 # Customized Content
 
-I've been begging Michel and Chris to allow sending ISY "Customized Content" to a nodeserver.  This would make things much simpler.  Even better if ISY added Pushover as a service inside the Emails/Notifications page :)
+I've been begging Michel and Chris to allow sending ISY "Customized Content" to a nodeserver.  This would make things much simpler. Chris has said this is on the list, so hopefully will happen soon. Even better if ISY added Pushover as a service inside the Emails/Notifications page :)
 
 ## Installation
 
@@ -246,6 +249,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
+- 1.0.10: 07/25/2021:
+  - Fix [Not all service node defaults are being passed to send](https://github.com/jimboca/udi-poly-notification/issues/29)
+  - Also, now allow passing sound by name instead of just the index in REST calls.
 - 1.0.9: 07/24/2021:
   - Fix: [Command Name discrepancy Query/Refresh](https://github.com/jimboca/udi-poly-notification/issues/16)
     - Also fixes so query command works

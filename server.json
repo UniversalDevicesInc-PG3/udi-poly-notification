@@ -13,7 +13,7 @@
         {
             "title": "notification: The NodeServer for Sending Notifications",
             "author": "Jim Searle (JimBoCA)",
-            "version": "1.0.9",
+            "version": "1.0.10",
             "date": "Juley 24, 2021",
             "source": "https://github.com/jimboca/udi-poly-notification",
             "license": "https://raw.githubusercontent.com/jimboca/udi-poly-notification/master/LICENSE"
