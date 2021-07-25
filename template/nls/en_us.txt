@@ -2,7 +2,7 @@
 # controller
 ND-controller-NAME = Notification Controller
 
-CMD-ctl-REFRESH-NAME = Refresh
+CMD-ctl-QUERY-NAME = Query
 CMD-ctl-PROCESS_CONFIG-NAME = Process Config
 CMD-ctl-BUILD_PROFILE-NAME = Build Profile
 CMD-ctl-INSTALL_PROFILE-NAME = Install Profile

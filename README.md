@@ -246,6 +246,9 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
+- 1.0.9: 07/24/2021:
+  - Fix: [Command Name discrepancy Query/Refresh](https://github.com/jimboca/udi-poly-notification/issues/16)
+    - Also fixes so query command works
 - 1.0.8: 07/24/2021:
   - Fix: [Support setting custom sounds](https://github.com/jimboca/udi-poly-notification/issues/20)
     - Default Pushover sounds are now always first in the list, followed by custom sounds.
