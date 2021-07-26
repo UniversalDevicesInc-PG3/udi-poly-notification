@@ -249,6 +249,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
+- 1.0.11: 07/26/2021:
+  - Fix when sound integers are not in order
 - 1.0.10: 07/25/2021:
   - Fix [Not all service node defaults are being passed to send](https://github.com/jimboca/udi-poly-notification/issues/29)
   - Also, now allow passing sound by name instead of just the index in REST calls.

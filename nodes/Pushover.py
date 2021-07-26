@@ -162,7 +162,7 @@ class Pushover(polyinterface.Node):
             # Make sure items are in the existing list, otherwise prefix it in devices_list
             for item in self.sounds_list:
                 if not item[0] in res['data']['sounds']:
-                    name = item[0] if item[0].startswith(REM_PREFIX) else REM_PREFIX + item[0] 
+                    name = item[0] if item[0].startswith(REM_PREFIX) else REM_PREFIX + item[0]
                     if len(item) == 2:
                         # Old style without index
                         custom_index += 1
@@ -277,13 +277,14 @@ class Pushover(polyinterface.Node):
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
+        subst.sort()
         sound_subst = []
         for item in self.sounds_list:
             nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
             # Don't include REMOVED's in list
             if not item[1].startswith(REM_PREFIX):
                 sound_subst.append(str(item[2]))
-
+        sound_subst.sort()
         #
         # editor
         #
@@ -299,6 +300,7 @@ class Pushover(polyinterface.Node):
         self.l_info(pfx,"Writing {}".format(output_f))
         editor_h = open(output_f, "w")
         # TODO: We could create a better subst with - and , but do we need to?
+        # TODO: Test calling get_subset_str in node_funcs.py
         editor_h.write(data.format(self.iname,",".join(subst),",".join(sound_subst)))
         editor_h.close()
 

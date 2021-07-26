@@ -46,10 +46,10 @@ def get_messages():
     ]
     return _MESSAGES
 
-# These are the default Pushover sounds, we save this so 
+# These are the default Pushover sounds, we save this so
 # the order never changes, and they are always first in the list.
 _DEFAULT_SOUNDS = [
-    'pushover',   
+    'pushover',
     'bike',
     'bugle',
     'cashregister',
@@ -71,7 +71,7 @@ _DEFAULT_SOUNDS = [
     'echo',
     'updown',
     'vibrate',
-    'none',            
+    'none',
 ]
 
 def get_default_sound_index(name):
