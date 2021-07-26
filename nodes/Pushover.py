@@ -169,7 +169,7 @@ class Pushover(polyinterface.Node):
                         sounds_list.append([item[0],name,custom_index])
                     else:
                         sounds_list.append([item[0],name,item[2]])
-            self.sounds_list = sounds_list
+            self.sounds_list = sorted(sounds_list, key=lambda sound: sound[2])
             self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
         return res
 
@@ -277,14 +277,12 @@ class Pushover(polyinterface.Node):
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
-        subst.sort()
         sound_subst = []
         for item in self.sounds_list:
             nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
             # Don't include REMOVED's in list
             if not item[1].startswith(REM_PREFIX):
                 sound_subst.append(str(item[2]))
-        sound_subst.sort()
         #
         # editor
         #
