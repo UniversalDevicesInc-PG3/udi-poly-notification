@@ -21,6 +21,11 @@ CDM-50 = Critical
 
 CMD-SET_MESSAGE-NAME = Message
 
+# Controller Status
+CST-0 = Disconnected
+CST-1 = Connected
+CST-2 = Failed
+
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node
 CMD-pov-SEND-NAME = Send

@@ -1,0 +1,11 @@
+__pycache__/*
+*/__pycache__/*
+logs/*
+*.pyc
+zip_exclude.lst
+*.zip
+udi_interface*/*
+pyharmony/*
+profile/*/custom.xml
+profile/*/homeisy.xml
+profile/nls/*

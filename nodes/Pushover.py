@@ -7,14 +7,12 @@
     - Make list of sounds
     - Allow groups of devices in configuration
 """
+from udi_interface import Node,LOGGER
 from threading import Thread,Event
 import time
-import polyinterface
 import logging
 import collections
 from node_funcs import make_file_dir,is_int,get_default_sound_index
-
-LOGGER = polyinterface.LOGGER
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
@@ -30,7 +28,7 @@ RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
 
-class Pushover(polyinterface.Node):
+class Pushover(Node):
     """
     """
     def __init__(self, controller, primary, address, name, session, info):
@@ -39,6 +37,7 @@ class Pushover(polyinterface.Node):
         # Need these for l_debug
         self.name     = name
         self.address  = address
+        self.controller = controller
         self.session  = session
         self.info     = info
         self.iname    = info['name']
@@ -46,13 +45,14 @@ class Pushover(polyinterface.Node):
         self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
-        self.l_debug('init','{} {}'.format(address,name))
-        super(Pushover, self).__init__(controller, primary, address, name)
+        LOGGER.debug('{} {}'.format(address,name))
+        controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
+        super(Pushover, self).__init__(controller.poly, primary, address, name)
 
-    def start(self):
+    def handler_start(self):
         """
         """
-        self.l_info('start','')
+        LOGGER.info('')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
@@ -61,22 +61,24 @@ class Pushover(polyinterface.Node):
         self.set_retry(self.get_retry())
         self.set_expire(self.get_expire())
         self.set_sound(self.get_sound())
-        self.customData = self.controller.polyConfig.get('customData', {})
-        self.devices_list = self.customData.get('devices_list',[])
-        self.sounds_list = self.customData.get('sounds_list',[])
-        self.l_info('start',"devices_list={}".format(self.devices_list))
-        self.l_debug('start','Authorizing pushover app {}'.format(self.app_key))
+        # TODO: This should be stored at the node level, but PG2 didn't allow
+        # that so eventually it should be moved to the node?
+        self.devices_list = self.controller.Data.get('devices_list',[])
+        self.sounds_list  = self.controller.Data.get('sounds_list',[])
+        LOGGER.info("devices_list={}".format(self.devices_list))
+        LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
         if vstat['status'] is False:
             self.authorized = False
         else:
             self.authorized = True if vstat['status'] == 1 else False
-        self.l_info('start',"Authorized={}".format(self.authorized))
+        LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
-            self.l_info('start',"got devices={}".format(vstat['data']['devices']))
+            LOGGER.info("got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
-            self.controller.saveCustomData({'devices_list': self.devices_list, 'sounds_list': self.sounds_list})
+            self.controller.Data['devices_list'] = self.devices_list
+            self.controller.Data['sounds_list']  = self.sounds_list
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
@@ -89,7 +91,7 @@ class Pushover(polyinterface.Node):
                 'user':  self.user_key,
                 'token': self.app_key,
             })
-        self.l_debug('validate','got: {}'.format(res))
+        LOGGER.debug('got: {}'.format(res))
         return res
 
 
@@ -109,7 +111,7 @@ class Pushover(polyinterface.Node):
         for item in self.devices_list:
             if item != 'all' and not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
                 self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
-        self.l_info('build_device_list',"devices_list={}".format(self.devices_list))
+        LOGGER.info("devices_list={}".format(self.devices_list))
 
     # Build the list of sounds, make sure the order of the list never changes.
     # sounds_list is a list of 2 element lists with shortname, longname
@@ -117,7 +119,7 @@ class Pushover(polyinterface.Node):
     # in Polyglot params
     def build_sound_list(self):
         res = self.get("1/sounds.json")
-        self.l_debug('build_sound_list','got: {}'.format(res))
+        LOGGER.debug('got: {}'.format(res))
         # Always build a new list
         sounds_list  = []
         custom_index = 100 # First index for a custom sound
@@ -130,7 +132,7 @@ class Pushover(polyinterface.Node):
                 idx = get_default_sound_index(skey)
                 if idx >= 0:
                     sounds_list.append([skey, res['data']['sounds'][skey], idx])
-            self.l_debug('build_sound_list','sounds={}'.format(sounds_list))
+            LOGGER.debug('sounds={}'.format(sounds_list))
             #
             # Add any custom sounds
             #
@@ -158,7 +160,7 @@ class Pushover(polyinterface.Node):
                 else:
                     custom_index += 1
                     sounds_list.append([skey, res['data']['sounds'][skey], custom_index])
-            self.l_debug('build_sound_list','sounds={}'.format(sounds_list))
+            LOGGER.debug('sounds={}'.format(sounds_list))
             # Make sure items are in the existing list, otherwise prefix it in devices_list
             for item in self.sounds_list:
                 if not item[0] in res['data']['sounds']:
@@ -170,7 +172,7 @@ class Pushover(polyinterface.Node):
                     else:
                         sounds_list.append([item[0],name,item[2]])
             self.sounds_list = sorted(sounds_list, key=lambda sound: sound[2])
-            self.l_debug('build_sound_list','sounds={}'.format(self.sounds_list))
+            LOGGER.debug('sounds={}'.format(self.sounds_list))
         return res
 
 
@@ -185,11 +187,6 @@ class Pushover(polyinterface.Node):
         return self._init_st
 
     def query(self):
-        """
-        Called by ISY to report all drivers for this node. This is done in
-        the parent class, so you don't need to override this method unless
-        there is a need.
-        """
         self.reportDrivers()
 
     def setDriver(self,driver,value):
@@ -203,7 +200,7 @@ class Pushover(polyinterface.Node):
             return super(Pushover, self).getDriver(driver)
 
     def config_info_rest(self):
-        str = '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json}}\'" -X POST {1}/send'.format(self.address,self.controller.rest.listen_url)
+        str = '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json"}}\' -X POST {1}/send'.format(self.address,self.controller.rest.listen_url)
         return str
 
     def config_info_nr(self):
@@ -246,13 +243,13 @@ class Pushover(polyinterface.Node):
 
     def write_profile(self,nls):
         pfx = 'write_profile'
-        self.l_info(pfx,'')
+        LOGGER.debug('')
         #
         # nodedefs
         #
         # Open the template, and read into a string for formatting.
         template_f = 'template/nodedef/pushover.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
+        LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
             myfile.close()
@@ -260,7 +257,7 @@ class Pushover(polyinterface.Node):
         output_f   = 'profile/nodedef/{0}.xml'.format(self.iname)
         make_file_dir(output_f)
         # Write the nodedef file with our info
-        self.l_info(pfx,"Writing {}".format(output_f))
+        LOGGER.debug("Writing {}".format(output_f))
         out_h = open(output_f, "w")
         out_h.write(data.format(self.id,self.iname))
         out_h.close()
@@ -288,38 +285,26 @@ class Pushover(polyinterface.Node):
         #
         # Open the template, and read into a string for formatting.
         template_f = 'template/editor/pushover.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
+        LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
             myfile.close()
         # Write the editors file with our info
         output_f   = 'profile/editor/{0}.xml'.format(self.iname)
         make_file_dir(output_f)
-        self.l_info(pfx,"Writing {}".format(output_f))
+        LOGGER.debug("Writing {}".format(output_f))
         editor_h = open(output_f, "w")
         # TODO: We could create a better subst with - and , but do we need to?
         # TODO: Test calling get_subset_str in node_funcs.py
         editor_h.write(data.format(self.iname,",".join(subst),",".join(sound_subst)))
         editor_h.close()
 
-    def l_info(self, name, string):
-        LOGGER.info("%s:%s:%s: %s" %  (self.id,self.name,name,string))
-
-    def l_error(self, name, string, exc_info=False):
-        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
-
-    def l_warning(self, name, string, exc_info=False):
-        LOGGER.warning("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
-
-    def l_debug(self, name, string, exc_info=False):
-        LOGGER.debug("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
-
     def set_device(self,val):
-        self.l_info('set_device',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_device','Set GV1 to {}'.format(val))
+        LOGGER.info('Set GV1 to {}'.format(val))
         self.setDriver('GV1', val)
 
     def get_device(self):
@@ -329,13 +314,13 @@ class Pushover(polyinterface.Node):
         return int(cval)
 
     def get_device_name_by_index(self,dev=None):
-        self.l_debug('get_device_name_by_index','dev={}'.format(dev))
+        LOGGER.debug('dev={}'.format(dev))
         if dev is None:
             dev = self.get_device()
-            self.l_debug('get_device_name_by_index','dev={}'.format(dev))
+            LOGGER.debug('dev={}'.format(dev))
         else:
             if not is_int(dev):
-                self.l_error('get_device_name_by_index','Passed in {} is not an integer'.format(dev))
+                LOGGER.error('Passed in {} is not an integer'.format(dev))
                 return 0
             dev = int(dev)
         dev_name = None
@@ -344,37 +329,37 @@ class Pushover(polyinterface.Node):
             if dev > 0:
                 dev_name = self.devices_list[dev]
         except:
-            self.l_error('get_device_name','Bad device index {}'.format(dev),exc_info=True)
+            LOGGER.error('Bad device index {}'.format(dev),exc_info=True)
             return 0
         return dev_name
 
     def set_st(self,val):
-        self.l_info('set_st',val)
+        LOGGER.info(val)
         if val is False or val is None:
             val = 0
         elif val is True:
             val = 1
         else:
             val = int(val)
-        self.l_info('set_st','Set ST to {}'.format(val))
+        LOGGER.info('Set ST to {}'.format(val))
         self.setDriver('ST', val)
 
     def set_error(self,val):
-        self.l_info('set_error',val)
+        LOGGER.info(val)
         if val is False:
             val = 0
         elif val is True:
             val = 1
-        self.l_info('set_error','Set ERR to {}'.format(val))
+        LOGGER.info('Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
         self.set_st(True if val == 0 else False)
 
     def set_priority(self,val):
-        self.l_info('set_priority',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_priority','Set GV2 to {}'.format(val))
+        LOGGER.info('Set GV2 to {}'.format(val))
         self.setDriver('GV2', val)
 
     def get_priority(self):
@@ -384,11 +369,11 @@ class Pushover(polyinterface.Node):
         return int(self.getDriver('GV2'))
 
     def set_format(self,val):
-        self.l_info('set_format',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_format','Set GV3 to {}'.format(val))
+        LOGGER.info('Set GV3 to {}'.format(val))
         self.setDriver('GV3', val)
 
     def get_format(self):
@@ -398,11 +383,11 @@ class Pushover(polyinterface.Node):
         return int(self.getDriver('GV3'))
 
     def set_retry(self,val):
-        self.l_info('set_retry',val)
+        LOGGER.info(val)
         if val is None:
             val = 30
         val = int(val)
-        self.l_info('set_retry','Set GV4 to {}'.format(val))
+        LOGGER.info('Set GV4 to {}'.format(val))
         self.setDriver('GV4', val)
 
     def get_retry(self):
@@ -412,11 +397,11 @@ class Pushover(polyinterface.Node):
         return int(self.getDriver('GV4'))
 
     def set_expire(self,val):
-        self.l_info('set_expire',val)
+        LOGGER.info(val)
         if val is None:
             val = 10800
         val = int(val)
-        self.l_info('set_expire','Set GV5 to {}'.format(val))
+        LOGGER.info('Set GV5 to {}'.format(val))
         self.setDriver('GV5', val)
 
     def get_expire(self):
@@ -432,27 +417,27 @@ class Pushover(polyinterface.Node):
         return int(self.getDriver('GV6'))
 
     def set_sound(self,val):
-        self.l_info('set_sound',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_sound','Set GV6 to {}'.format(val))
+        LOGGER.info('Set GV6 to {}'.format(val))
         self.setDriver('GV6', val)
 
     # Returns pushover priority numbers which start at -2 and our priority nubmers that start at zero
     def get_pushover_priority(self,val=None):
-        self.l_info("get_pushover_priority",'val={}'.format(val))
+        LOGGER.info('val={}'.format(val))
         if val is None:
             val = int(self.get_priority())
         else:
             val = int(val)
         val -= 2
-        self.l_info("get_pushover_priority",'val={}'.format(val))
+        LOGGER.info('val={}'.format(val))
         return val
 
     # Returns pushover sound name from our index number
     def get_pushover_sound(self,val=None):
-        self.l_info("get_pushover_sound",'val={}'.format(val))
+        LOGGER.info('val={}'.format(val))
         if val is None:
             val = int(self.get_sound())
         else:
@@ -461,61 +446,61 @@ class Pushover(polyinterface.Node):
         for item in self.sounds_list:
             if item[2] == val:
                 rval = item[0]
-        self.l_info("get_pushover_sound",'{}'.format(rval))
+        LOGGER.info('{}'.format(rval))
         return rval
 
     # Returns pushover sound name by name, return default if not found
     def get_pushover_sound_by_name(self,name):
-        self.l_info("get_pushover_sound_by_namne",'name={}'.format(name))
+        LOGGER.info('name={}'.format(name))
         rval = False
         for item in self.sounds_list:
             if name == item[0]:
                 rval = name
         if rval is False:
-            self.l_error('get_pushover_sound_by_name',"No sound name found matching '{}".format(name))
+            LOGGER.error("No sound name found matching '{}".format(name))
             rval = 'pushover'
-        self.l_info("get_pushover_sound",'{}'.format(rval))
+        LOGGER.info('{}'.format(rval))
         return rval
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_device",val)
+        LOGGER.info(val)
         self.set_device(val)
 
     def cmd_set_priority(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_priority",val)
+        LOGGER.info(val)
         self.set_priority(val)
 
     def cmd_set_format(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_format",val)
+        LOGGER.info(val)
         self.set_format(val)
 
     def cmd_set_retry(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_retry",val)
+        LOGGER.info(val)
         self.set_retry(val)
 
     def cmd_set_expire(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_expire",val)
+        LOGGER.info(val)
         self.set_expire(val)
 
     def cmd_set_sound(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_sound",val)
+        LOGGER.info(val)
         self.set_sound(val)
 
     def cmd_send(self,command):
-        self.l_info("cmd_send",'')
+        LOGGER.info('')
         # Default create message params
-        md = self.parent.get_current_message()
+        md = self.controller.get_current_message()
         # md will contain title and message
         return self.do_send({ 'title': md['title'], 'message': md['message']})
 
     def do_send(self,params):
-        self.l_info('do_send','params={}'.format(params))
+        LOGGER.info('params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
         if not 'message' in params:
             params['message'] = "NOT_SPECIFIED"
@@ -566,9 +551,9 @@ class Pushover(polyinterface.Node):
         # Just keep serving until we are killed
         self.thread = Thread(target=self.post,args=(params,))
         self.thread.daemon = True
-        self.l_debug('cmd_send','Starting Thread')
+        LOGGER.debug('Starting Thread')
         st = self.thread.start()
-        self.l_debug('cmd_send','Thread start st={}'.format(st))
+        LOGGER.debug('Thread start st={}'.format(st))
         # Always have to return true case we don't know..
         return True
 
@@ -578,10 +563,10 @@ class Pushover(polyinterface.Node):
         cnt  = 0
         # Clear error if there was one
         self.set_error(ERROR_NONE)
-        self.l_debug('post','params={}'.format(params))
+        LOGGER.debug('params={}'.format(params))
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            self.l_debug('post','try #{}'.format(cnt))
+            LOGGER.debug('try #{}'.format(cnt))
             res = self.session.post("1/messages.json",params)
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
@@ -589,22 +574,22 @@ class Pushover(polyinterface.Node):
             else:
                 if 'data' in res:
                     if 'errors' in res['data']:
-                        self.l_error('post','From Pushover: {}'.format(res['data']['errors']))
+                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
-                self.l_debug('post','res={}'.format(res))
+                LOGGER.debug('res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
-                    self.l_warning('post','Previous error can not be fixed, will not retry')
+                    LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
                 else:
-                    self.l_warning('post','Previous error is retryable...')
+                    LOGGER.warning('Previous error is retryable...')
             if (not sent):
                 self.set_error(ERROR_MESSAGE_SEND)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
-                    self.l_error('post','Giving up after {} tries'.format(cnt))
+                    LOGGER.error('Giving up after {} tries'.format(cnt))
                     retry = False
             if (not sent and retry):
                 time.sleep(RETRY_WAIT)
-        #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
+        #LOGGER.info('is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
 
     def get(self,url,params={}):
@@ -614,38 +599,38 @@ class Pushover(polyinterface.Node):
         cnt  = 0
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            self.l_warning('get','try {} #{}'.format(url,cnt))
+            LOGGER.warning('try {} #{}'.format(url,cnt))
             res = self.session.get(url,params)
-            self.l_info('get','got {}'.format(res))
+            LOGGER.info('got {}'.format(res))
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
                 self.set_error(ERROR_NONE)
             else:
                 if 'data' in res:
                     if 'errors' in res['data']:
-                        self.l_error('get','From Pushover: {}'.format(res['data']['errors']))
+                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
-                self.l_debug('get','res={}'.format(res))
+                LOGGER.debug('res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
-                    self.l_warning('get','Previous error can not be fixed, will not retry')
+                    LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
                 else:
-                    self.l_warning('get','Previous error is retryable...')
+                    LOGGER.warning('Previous error is retryable...')
             if (not sent):
                 self.set_error(ERROR_UNKNOWN)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
-                    self.l_error('post','Giving up after {} tries'.format(cnt))
+                    LOGGER.error('Giving up after {} tries'.format(cnt))
                     retry = False
             if (not sent and retry):
                 time.sleep(RETRY_WAIT)
-        #self.l_info('cmd_send','is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
+        #LOGGER.info('is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         if 'data' in res:
             return { 'status': sent, 'data': res['data'] }
         else:
             return { 'status': sent, 'data': False }
 
     def rest_send(self,params):
-        self.l_debug('rest_handler','params={}'.format(params))
+        LOGGER.debug('params={}'.format(params))
         if 'priority' in params:
             # Our priority's start at 0 pushovers starts at -2... Should have used their numbers...
             # So assume rest calls pass in pushover number, so convert to our number.

@@ -83,3 +83,7 @@ target/
 .AppleDouble
 .DS_Store
 *.sublime-*
+*.zip
+profile/*/custom.xml
+profile/*/
+profile/*/homeisy.xml

@@ -8,12 +8,16 @@
     "notice": "Your disclaimer here",
     "shortPoll": "60",
     "longPoll": "300",
-    "profile_version": "1.0.0",
+	"logLevel": "DEBUG",
+	"customParams": {
+		"acknowledge": ""
+	},
+    "profile_version": "3.0.0",
     "credits": [
         {
             "title": "notification: The NodeServer for Sending Notifications",
             "author": "Jim Searle (JimBoCA)",
-            "version": "1.0.12",
+            "version": "3.0.0",
             "date": "July 26, 2021",
             "source": "https://github.com/jimboca/udi-poly-notification",
             "license": "https://raw.githubusercontent.com/jimboca/udi-poly-notification/master/LICENSE"

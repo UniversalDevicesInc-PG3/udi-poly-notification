@@ -5,9 +5,7 @@
         <editors />
         <sts>
           <!-- The Status of the last send -->
-			    <st id="ST" editor="bool" />
-          <!-- Debug Mode -->
-          <st id="GV1" editor="DEBUGMODE" />
+			    <st id="ST" editor="cst" />
           <!-- The Message to send -->
           <st id="GV2" editor="MESSAGE" />
 		    </sts>
@@ -17,15 +15,10 @@
             <cmd id="DOF" />
           </sends>
           <accepts>
-            <!--  Log Debug Mode -->
-            <cmd id="SET_DM">
-              <p id="" editor="DEBUGMODE" init="GV1"/>
-            </cmd>
             <cmd id="SET_MESSAGE">
               <p id="" editor="MESSAGE" init="GV2"/>
             </cmd>
             <cmd id="QUERY" />
-            <cmd id="PROCESS_CONFIG" />
             <cmd id="BUILD_PROFILE" />
             <cmd id="INSTALL_PROFILE" />
           </accepts>

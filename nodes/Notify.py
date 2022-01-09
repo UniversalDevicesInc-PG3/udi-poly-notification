@@ -6,19 +6,17 @@
     - Clean out profile directory?
 
 """
-import polyinterface
+from udi_interface import Node,LOGGER
 import logging
 from node_funcs import *
 
-LOGGER = polyinterface.LOGGER
-
-class Notify(polyinterface.Node):
+class Notify(Node):
     """
     """
     def __init__(self, controller, primary, address, name, info):
         """
         """
-        #self.l_debug('init','{} {}'.format(self.address,self.name))
+        #LOGGER.debug('{} {}'.format(self.address,self.name))
         self._init_st = None;
         self.oid      = self.id
         self.info     = info
@@ -28,10 +26,11 @@ class Notify(polyinterface.Node):
         # TODO: pushoer_ should be passed in by looking up the server_node_name...
         self.service_node_type = 'pushover'
         self.id       = self.service_node_type + '_' + self.service_node_name + '_notify'
-        super(Notify, self).__init__(controller, primary, address, name)
+        controller.poly.subscribe(controller.poly.START,                  self.handler_start, address) 
+        super(Notify, self).__init__(controller.poly, primary, address, name)
 
-    def start(self):
-        self.l_info('start','')
+    def handler_start(self):
+        LOGGER.info('')
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_message_on(self.get_message_on())
@@ -45,7 +44,7 @@ class Notify(polyinterface.Node):
         # Make sure we know who our service node is
         self.service_node = self.controller.get_service_node(self.service_node_name)
         if self.service_node is False:
-            self.l_error('start',"No service node '{}' name exists".format(self.service_node_name))
+            LOGGER.error("No service node '{}' name exists".format(self.service_node_name))
             self._init_st = False
             # TODO: Set ERROR Flag
         else:
@@ -67,7 +66,7 @@ class Notify(polyinterface.Node):
 
     def write_profile(self,nls):
         pfx = 'write_profile'
-        self.l_info(pfx,"Appending to nls")
+        LOGGER.debug("Appending to nls")
         # TODO: Used passed
         nls.write("ND-{0}-NAME = Service Pushover {1} Notify\n".format(self.id,self.service_node_name))
         return True
@@ -82,33 +81,21 @@ class Notify(polyinterface.Node):
         else:
             return super(Notify, self).getDriver(driver)
 
-    def l_info(self, name, string):
-        LOGGER.info("%s:%s:%s: %s" %  (self.id,self.name,name,string))
-
-    def l_error(self, name, string):
-        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string))
-
-    def l_warning(self, name, string):
-        LOGGER.warning("%s:%s:%s: %s" % (self.id,self.name,name,string))
-
-    def l_debug(self, name, string, execInfo=False):
-        LOGGER.debug("%s:%s:%s: %s" % (self.id,self.name,name,string))
-
     def set_st(self,val):
-        self.l_info('set_st',val)
+        LOGGER.info(val)
         if val is False or val is None:
             val = 0
         elif val is True:
             val = 1
         else:
             val = int(val)
-        self.l_info('set_st','Set ST to {}'.format(val))
+        LOGGER.info('Set ST to {}'.format(val))
         self.setDriver('ST', val)
 
     def set_message_on(self,val):
-        self.l_info('set_message_on',val)
+        LOGGER.info(val)
         dv = 'GV1'
-        self.l_info('set_message_on','Set {} to {}'.format(dv,int(val)))
+        LOGGER.info('Set {} to {}'.format(dv,int(val)))
         self.setDriver(dv, val)
 
     def get_message_on(self):
@@ -118,9 +105,9 @@ class Notify(polyinterface.Node):
         return int(cval)
 
     def set_message_off(self,val):
-        self.l_info('set_message_off',val)
+        LOGGER.info(val)
         dv = 'GV2'
-        self.l_info('set_message_on','Set {} to {}'.format(dv,int(val)))
+        LOGGER.info('Set {} to {}'.format(dv,int(val)))
         self.setDriver(dv, val)
 
     def get_message_off(self):
@@ -130,28 +117,28 @@ class Notify(polyinterface.Node):
         return int(cval)
 
     def set_node(self,val):
-        self.l_info('set_node',val)
+        LOGGER.info(val)
         dv = 'GV3'
-        self.l_info('set_node','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def set_error(self,val):
-        self.l_info('set_error',val)
+        LOGGER.info(val)
         if val is False:
             val = 0
         elif val is True:
             val = 1
-        self.l_info('set_error','Set ERR to {}'.format(val))
+        LOGGER.info('Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
         self.set_st(True if val == 0 else False)
 
     def set_device(self,val):
         dv = 'GV4'
-        self.l_info('set_device',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_device','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_device(self):
@@ -162,11 +149,11 @@ class Notify(polyinterface.Node):
 
     def set_priority(self,val):
         dv = 'GV5'
-        self.l_info('set_priority',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_priority','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_priority(self):
@@ -177,11 +164,11 @@ class Notify(polyinterface.Node):
 
     def set_format(self,val):
         dv = 'GV6'
-        self.l_info('set_format',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_format','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_format(self):
@@ -192,11 +179,11 @@ class Notify(polyinterface.Node):
 
     def set_retry(self,val):
         dv = 'GV7'
-        self.l_info('set_retry',val)
+        LOGGER.info(val)
         if val is None:
             val = 30
         val = int(val)
-        self.l_info('set_retry','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_retry(self):
@@ -207,11 +194,11 @@ class Notify(polyinterface.Node):
 
     def set_expire(self,val):
         dv = 'GV8'
-        self.l_info('set_expire',val)
+        LOGGER.info(val)
         if val is None:
             val = 10800
         val = int(val)
-        self.l_info('set_expire','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_expire(self):
@@ -222,11 +209,11 @@ class Notify(polyinterface.Node):
 
     def set_sound(self,val):
         dv = 'GV9'
-        self.l_info('set_sound',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_sound','Set {} to {}'.format(dv,val))
+        LOGGER.info('Set {} to {}'.format(dv,val))
         self.setDriver(dv, val)
 
     def get_sound(self):
@@ -238,60 +225,60 @@ class Notify(polyinterface.Node):
 
     def cmd_set_message_on(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_message_on",val)
+        LOGGER.info(val)
         self.set_message_on(val)
 
     def cmd_set_message_off(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_message_off",val)
+        LOGGER.info(val)
         self.set_message_off(val)
 
     def cmd_set_device(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_device",val)
+        LOGGER.info(val)
         self.set_device(val)
 
     def cmd_set_priority(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_priority",val)
+        LOGGER.info(val)
         self.set_priority(val)
 
     def cmd_set_format(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_format",val)
+        LOGGER.info(val)
         self.set_format(val)
 
     def cmd_set_retry(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_retry",val)
+        LOGGER.info(val)
         self.set_retry(val)
 
     def cmd_set_expire(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_expire",val)
+        LOGGER.info(val)
         self.set_expire(val)
 
     def cmd_set_sound(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_sound",val)
+        LOGGER.info(val)
         self.set_sound(val)
 
     def cmd_send_on(self,command):
-        self.l_info("cmd_send_on",''.format(command))
+        LOGGER.info(''.format(command))
         self.send_msg(self.get_message_on())
 
     def cmd_send_off(self,command):
-        self.l_info("cmd_send_off",''.format(command))
+        LOGGER.info(''.format(command))
         self.send_msg(self.get_message_off())
 
     def send_msg(self,mi):
-        self.l_info("cmd_send_on","m={}".format(mi))
+        LOGGER.info("m={}".format(mi))
         if int(mi) == 0:
-            self.l_info("cmd_send_on","m={} so not sending anything".format(mi))
+            LOGGER.info("m={} so not sending anything".format(mi))
             return
         msg = get_messages()[mi]
         # md will contain title and message
-        self.l_info("cmd_send_on","mi={} msg={}".format(mi,msg))
+        LOGGER.info("mi={} msg={}".format(mi,msg))
         st = self.service_node['node'].do_send(
             {
                 #'title': ,

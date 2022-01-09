@@ -400,16 +400,16 @@ class polyglotSession():
         return { 'status': st, 'code': response.status_code, 'data': json_data }
 
     def l_info(self, name, string):
-        self.logger.info("%s:%s: %s" %  (self.parent.l_name,name,string))
+        self.logger.info("%s:%s: %s" %  (self.parent.name,name,string))
 
     def l_error(self, name, string, exc_info=False):
-        self.logger.error("%s:%s: %s" % (self.parent.l_name,name,string), exc_info=exc_info)
+        self.logger.error("%s:%s: %s" % (self.parent.name,name,string), exc_info=exc_info)
 
     def l_warning(self, name, string):
-        self.logger.warning("%s:%s: %s" % (self.parent.l_name,name,string))
+        self.logger.warning("%s:%s: %s" % (self.parent.name,name,string))
 
     def l_debug(self, name, string):
-        self.logger.debug("%s:%s: %s" % (self.parent.l_name,name,string))
+        self.logger.debug("%s:%s: %s" % (self.parent.name,name,string))
 
 
 

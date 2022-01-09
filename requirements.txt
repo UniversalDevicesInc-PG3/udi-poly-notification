@@ -1,2 +1,2 @@
-polyinterface >= 2.1.0
+udi_interface>=3.0.31
 netifaces

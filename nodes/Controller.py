@@ -2,7 +2,7 @@
   Notification Controller Node
 """
 
-import polyinterface
+from udi_interface import Node,LOGGER,Custom,LOG_HANDLER
 from nodes import *
 import logging
 from node_funcs import *
@@ -13,50 +13,114 @@ import time
 import fnmatch
 import os
 
-LOGGER = polyinterface.LOGGER
-
-class Controller(polyinterface.Controller):
+class Controller(Node):
     """
     """
-    def __init__(self, polyglot):
+    def __init__(self, poly, primary, address, name):
         """
         """
-        super(Controller, self).__init__(polyglot)
-        self.name = 'Notification Controller'
-        self.l_name = 'controller'
+        super(Controller, self).__init__(poly, primary, address, name)
         self.hb = 0
         self.messages = None
         # List of all service nodes
         self.service_nodes = list()
+        self.first_run = True
+        self.ready     = False
+        self.n_queue = []
         # We track our driver values because we need the value before it's been pushed.
+        # Is this necessary anymore in PG3?
         self.driver = {}
-        #self.poly.onConfig(self.process_config)
+        self.Notices         = Custom(poly, 'notices')
+        self.Params          = Custom(poly, 'customparams')
+        self.Data            = Custom(poly, 'customdata')
+        self.TypedParams     = Custom(poly, 'customtypedparams')
+        self.TypedData       = Custom(poly, 'customtypeddata')
+        poly.subscribe(poly.START,                  self.handler_start, address) 
+        poly.subscribe(poly.POLL,                   self.handler_poll)
+        poly.subscribe(poly.ADDNODEDONE,            self.node_queue)
+        poly.subscribe(poly.CONFIGDONE,             self.handler_config_done)
+        poly.subscribe(poly.CUSTOMPARAMS,           self.handler_params)
+        poly.subscribe(poly.CUSTOMDATA,             self.handler_data)
+        poly.subscribe(poly.CUSTOMTYPEDDATA,        self.handler_typed_data)
+        poly.subscribe(poly.LOGLEVEL,               self.handler_log_level)
+        self.handler_start_st      = None
+        self.handler_params_st     = None
+        self.handler_data_st       = None
+        self.handler_typed_data_st = None
+        self.handler_config_st     = None
+        self.init_typed()
+        poly.ready()
+        self.Notices.clear()
+        poly.addNode(self, conn_status="ST")
 
-    def start(self):
-        """
-        """
-        # This grabs the server.json data and checks profile_version is up to date
-        #serverdata = self.poly.get_server_data()
-        #LOGGER.info('Started Notification NodeServer {}'.format(serverdata['version']))
-        LOGGER.info('Started Notification NodeServer')
-        self.setDriver('ST',1)
+    '''
+    node_queue() and wait_for_node_event() create a simple way to wait
+    for a node to be created.  The nodeAdd() API call is asynchronous and
+    will return before the node is fully created. Using this, we can wait
+    until it is fully created before we try to use it.
+    '''
+    def node_queue(self, data):
+        self.n_queue.append(data['address'])
+
+    def wait_for_node_done(self):
+        while len(self.n_queue) == 0:
+            time.sleep(0.1)
+        self.n_queue.pop()
+
+    """
+    Everyone should call this instead of poly.addNode so they are added one at a time.
+    """
+    def add_node(self,node):
+        anode = self.poly.addNode(node)
+        LOGGER.debug(f'got {anode}')
+        self.wait_for_node_done()
+        if anode is None:
+            LOGGER.error('Failed to add node address')
+        return anode
+
+    def handler_start(self):
+        LOGGER.info(f"Started Notification NodeServer {self.poly.serverdata['version']}")
         self.heartbeat()
-        self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
-        # TODO: Need to monitor thread and restart if it dies
-        self.rest.start()
-        self.set_debug_level(self.getDriver('GV1'))
-        self.check_params()
-        # TODO: Do we have to call this, don't want to beuild the profile on every start.
-        self.process_config(self.polyConfig)
+        self.handler_start_st = True
 
-    def shortPoll(self):
-        pass
+    def handler_config_done(self):
+        LOGGER.debug("enter")
+        # This is supposed to only run after we have received and
+        # processed all config data, just add a check here.
+        cnt = 60
+        while ((self.handler_start_st is None
+            or self.handler_params_st is None
+            or self.handler_data_st is None
+            or self.handler_typed_data_st is None)
+            and cnt > 0
+        ):
+            LOGGER.warning(f'Waiting for all handlers to complete start={self.handler_start_st} params={self.handler_params_st} data={self.handler_data_st} typed_data={self.handler_typed_data_st} cnt={cnt}')
+            time.sleep(1)
+            cnt -= 1
+        if cnt == 0:
+            LOGGER.error('Timed out waiting for all handlers to complete')
+            self.poly.stop()
+            return
+        if self.handler_params_st:
+            self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
+            # TODO: Need to monitor thread and restart if it dies
+            self.rest.start()
+        else:
+            LOGGER.error(f'Unable to start REST Server until config params are correctd ({self.handler_params_st})')
+        #
+        # Always rebuild profile on startup?
+        #
+        if self.first_run:
+            self.write_profile()
+        self.handler_config_st = True
+        LOGGER.debug("exit")
 
-    def longPoll(self):
-        self.heartbeat()
+    def handler_poll(self, polltype):
+        if polltype == 'longPoll':
+            self.heartbeat()
 
     def heartbeat(self):
-        self.l_debug('heartbeat','hb={}'.format(self.hb))
+        LOGGER.debug('hb={}'.format(self.hb))
         if self.hb == 0:
             self.reportCmd("DON",2)
             self.hb = 1
@@ -66,16 +130,15 @@ class Controller(polyinterface.Controller):
 
     def query(self):
         #self.check_params()
-        for node in self.nodes:
-            self.nodes[node].reportDrivers()
+        for node in self.poly.nodes():
+            node.reportDrivers()
 
     def delete(self):
-        """
-        """
         self.rest.stop()
         LOGGER.info('Oh God I\'m being deleted. Nooooooooooooooooooooooooooooooooooooooooo.')
 
     def stop(self):
+        LOGGER.debug('NodeServer stopping.')
         self.rest.stop()
         LOGGER.debug('NodeServer stopped.')
 
@@ -91,13 +154,17 @@ class Controller(polyinterface.Controller):
 
     def get_service_node(self,sname):
         for item in self.service_nodes:
-            if item['name'] == sname:
-                return item
+            if item['name'] == sname or item['node'].address == sname or item['node'].name == sname:
+                return item['node']
+        l = list()
+        for item in self.service_nodes:
+            l.extend([item['name'],item['node'].address,item['node'].name])
+        LOGGER.error(f"Unknown service node {sname} must be one of: " + ", ".join(l))
         return False
 
     def get_current_message(self):
         i = self.getDriver('GV2')
-        self.l_info('get_current_message','i={}'.format(i))
+        LOGGER.info('i={}'.format(i))
         if i is None:
             i = 0
         else:
@@ -105,13 +172,8 @@ class Controller(polyinterface.Controller):
         for msg in self.messages:
             if int(msg['id']) == i:
                 return msg
-        self.l_error('get_current_message','id={} not found in: {}'.format(i,self.messages))
+        LOGGER.error('id={} not found in: {}'.format(i,self.messages))
         return { id: 0, 'title': 'Unknown', 'message': 'Undefined message {}'.format(i)}
-
-    def supports_feature(self, feature):
-        if hasattr(self.poly, 'supports_feature'):
-            return self.poly.supports_feature(feature)
-        return False
 
     def get_typed_name(self,name):
         typedConfig = self.polyConfig.get('typedCustomData')
@@ -119,31 +181,173 @@ class Controller(polyinterface.Controller):
             return None
         return typedConfig.get(name)
 
-    def process_config(self, config):
-        typedCustomData = config.get('typedCustomData')
-        if not typedCustomData:
-            return
-        save = False
-        self.removeNoticesAll()
+    def get_message_node_address(self,id):
+        return get_valid_node_address('mn_'+id)
 
-        self.messages = typedCustomData.get('messages')
-        self.l_info('process_config','messages={}'.format(self.messages))
-        if self.messages is None or len(self.messages) == 0:
-            self.l_info('process_config','No messages')
+    def get_service_node_address(self,id):
+        return get_valid_node_address('po_'+id)
+
+    def init_typed(self):
+        self.TypedParams.load(
+            [
+                {
+                    'name': 'messages',
+                    'title': 'Messages',
+                    'desc': 'Your Custom Messages',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'id',
+                            'title': "ID (Must be integer, should never change!)",
+                            'isRequired': True,
+                        },
+                        {
+                            'name': 'title',
+                            'title': 'Title (Should be short)',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'message',
+                            'title': 'Message (If empty, assume same as title)',
+                            'isRequired': False
+                        },
+                    ]
+                },
+                {
+                    'name': 'pushover',
+                    'title': 'Pushover Service Nodes',
+                    'desc': 'Config for https://pushover.net/',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'name',
+                            'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'user_key',
+                            'title': 'The User Key',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'app_key',
+                            'title': 'Application Key',
+                            'isRequired': True,
+                            'isList': False,
+                            #s'defaultValue': ['somename'],
+                        },
+                    ]
+                },
+                {
+                    'name': 'notify',
+                    'title': 'Notify Nodes',
+                    'desc': 'Notify Nodes to create',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'id',
+                            'title': "ID for node, never change, 8 characters or less",
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'name',
+                            'title': 'Name for node',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'service_node_name',
+                            'title': "Service Node Name Must match an existing Service Node Name",
+                            'isRequired': True
+                        },
+                    ]
+                },
+                {
+                    'name': 'assistant_relay',
+                    'title': 'Assistant Relay Service Nodes',
+                    'desc': 'Config for https://github.com/greghesp/assistant-relay',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'host',
+                            'title': 'Host',
+                            'defaultValue': 'this_host_ip',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'port',
+                            'title': 'Port',
+                            'isRequired': True,
+                            'isList': False,
+                            'defaultValue': '3001',
+                        },
+                        {
+                            'name': 'users',
+                            'title': 'Users',
+                            'isRequired': True,
+                            'isList': True,
+                            'defaultValue': ['someuser'],
+                        },
+                    ]
+                }
+            ],
+            True
+        )
+
+    def handler_data(self,data):
+        LOGGER.debug(f'Enter data={data}')
+        if data is None:
+            self.handler_data_st = False
         else:
-            save = True
+            self.Data.load(data)
+            self.handler_data_st = True
 
-        pushover = typedCustomData.get('pushover')
-        nodes = typedCustomData.get('notify')
+    def handler_params(self, data):
+        LOGGER.debug("Enter data={}".format(data))
+        self.Params.load(data)
+        # Assume we are good unless something bad is found
+        st = True
+        # Make sure they acknowledge
+        ack = 'acknowledge'
+        val = None
+        if ack in data:
+            val = data[ack]
+        else:
+            val = ""
+            self.Params[ack] = val
+            # Return because we will be called again since we added the param that was deleted.
+            st = False
+        if val != 'I understand and agree':
+            self.Notices[ack] = 'Before using you must follow the link to <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/ACKNOWLEDGE.md" target="_blank">acknowledge</a>'
+            st = False
+        else:
+            self.Notices.delete(ack)
+        self.handler_params_st = st
+
+    def handler_typed_data(self, data):
+        LOGGER.debug("Enter data={}".format(data))
+        self.TypedData.load(data)
+        if data is None:
+            self.handler_typed_data_st = False
+            return False
+
+        el = list()
+
+        self.messages = data.get('messages',el)
+        LOGGER.info('messages={}'.format(self.messages))
+        if len(self.messages) == 0:
+            LOGGER.info('No messages')
+
         #
         # Check the pushover configs are all good
         #
-        pnames = dict()
-        snames = list()
+        pushover = data.get('pushover',el)
+        nodes    = data.get('notify',el)
+        pnames   = dict()
+        snames   = list()
         err_list = list()
-        self.l_info('process_config:','pushover={}'.format(pushover))
-        if pushover is None or len(pushover) == 0:
-            self.l_info('process_config',"No Pushover Entries in the config: {}".format(pushover))
+        LOGGER.info('pushover={}'.format(pushover))
+        if len(pushover) == 0:
+            LOGGER.warning("No Pushover Entries in the config: {}".format(pushover))
             pushover = None
         else:
             for pd in pushover:
@@ -159,8 +363,8 @@ class Controller(polyinterface.Controller):
         #
         # Check the message nodes are all good
         #
-        if nodes is None:
-            self.l_debug('process_config','No Notify Nodes')
+        if len(nodes) == 0:
+            LOGGER.warning('No Notify Nodes')
         else:
             # First check that nodes are valid before we try to add them
             mnames = dict()
@@ -180,61 +384,51 @@ class Controller(polyinterface.Controller):
         # Any errors, print them and stop
         #
         if len(err_list) > 0:
+            cnt = 1
             for msg in err_list:
-                self.l_error('process_config',msg)
-                self.addNotice(msg)
-            self.addNotice('There are {} errors found please fix Errors and restart'.format(len(err_list)),'ecount')
+                LOGGER.error(msg)
+                self.Notices['msg'+cnt]
+                cnt += 1
+            self.Notices['typed_data'] = f'There are {ecount} errors found please fix Errors and restart.'
+            self.handler_typed_data_st = False
             return
 
         if pushover is not None:
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
-                snode = self.addNode(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
+                snode = self.add_node(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
-                self.l_info('process_config','service_nodes={}'.format(self.service_nodes))
+                LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         # TODO: Save service_nodes names in customParams
         if nodes is not None:
             save = True
-            self.l_debug('process_config','Adding Notify Nodes...')
+            LOGGER.debug('Adding Notify Nodes...')
             for node in nodes:
                 # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dict
-                self.addNode(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
+                self.add_node(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
-        if save:
-            done = False
-            while (not done):
-                try:
-                    self.write_profile()
-                    done = True
-                except RuntimeError:
-                    # Occsionally happens because self.nodes gets updated while write_profile is running...
-                    pass
-                except:
-                    # TODO: Need to set error on controller for this?
-                    self.l_error('process_config:','write_profile failed: ',exc_info=True)
-                    return
-            self.poly.installprofile()
-
-    def get_message_node_address(self,id):
-        return get_valid_node_address('mn_'+id)
-
-    def get_service_node_address(self,id):
-        return get_valid_node_address('po_'+id)
+        # When data changes build the profile, except when first starting up since
+        # that will be done by the config handler
+        if not self.first_run:
+            self.write_pofile()
+        self.handler_typed_data_st = True
 
     def write_profile(self):
         pfx = 'write_profile'
-        self.l_info(pfx,'')
+        LOGGER.info('enter')
+        # Good unless there is an error.
+        st = True
         #
         # First clean out all files we created
         #
         for dir in ['profile/editor', 'profile/nodedef']:
-            self.l_info(pfx,'Cleaning: {}'.format(dir))
+            LOGGER.debug('Cleaning: {}'.format(dir))
             for file in os.listdir(dir):
-                self.l_info(pfx,file)
+                LOGGER.debug(file)
                 path = dir+'/'+file
                 if os.path.isfile(path) and file != 'editors.xml' and file != 'nodedefs.xml':
-                    self.l_info(pfx,'Removing: {}'.format(path))
+                    LOGGER.debug('Removing: {}'.format(path))
                     os.remove(path)
         # Write the profile Data
         #
@@ -243,9 +437,9 @@ class Controller(polyinterface.Controller):
         en_us_txt = "profile/nls/en_us.txt"
         make_file_dir(en_us_txt)
         template_f = "template/nls/en_us.txt"
-        self.l_info(pfx,"Reading {}".format(template_f))
+        LOGGER.debug("Reading {}".format(template_f))
         nls_tmpl = open(template_f, "r")
-        self.l_info(pfx,"Writing {}".format(en_us_txt))
+        LOGGER.debug("Writing {}".format(en_us_txt))
         nls      = open(en_us_txt,  "w")
         nls.write("# From: {}\n".format(template_f))
         for line in nls_tmpl:
@@ -265,12 +459,13 @@ class Controller(polyinterface.Controller):
             try:
                 id = int(message['id'])
             except:
-                self.l_error(pfx,"message id={} is not an int".format(message['id']))
+                LOGGER.error("message id={} is not an int".format(message['id']))
+                st = False
                 continue
             ids.append(id)
             if 'message' not in message or message['message'] == '':
                 message['message'] = message['title']
-            self.l_info(pfx, 'message={}'.format(message))
+            LOGGER.debug('message={}'.format(message))
             nls.write("MID-{} = {}\n".format(message['id'],message['title']))
         #
         nls.write("# End: Custom Messages:\n\n")
@@ -297,34 +492,33 @@ class Controller(polyinterface.Controller):
         nls.write("# Start: Custom Service Nodes:\n")
         # This is a list of all possible devices we can select, they are provided by the service nodes
         self.devices = list()
-        for node_name in self.nodes:
-            node = self.nodes[node_name]
+        for node in self.poly.nodes():
             if node.name != self.name:
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
-                cnt = 0
-                while node.init_st() is None:
-                    self.l_info(pfx, 'Waiting for {} to initialize...'.format(node_name))
+                cnt = 60
+                while node.init_st() is None and cnt > 0:
+                    LOGGER.warning('Waiting for {} to initialize...'.format(node.name))
                     time.sleep(1)
-                    cnt += 1
-                    # Max is 10 minutes
-                    if cnt > 60:
-                        self.l_error('write_profile','{} time out waiting for initialize'.format(node_name))
+                    cnt -= 1
                 if node.init_st():
-                    self.l_info('write_profile','node={} id={}'.format(node_name,node.id))
+                    LOGGER.info('node={} id={}'.format(node.name,node.id))
                     node.write_profile(nls)
                     config_info_nr.append(node.config_info_nr())
                     config_info_rest.append(node.config_info_rest())
                 else:
-                    self.l_error(pfx, 'Node {} failed to initialize init_st={}'.format(node_name, node.init_st()))
+                    LOGGER.error( 'Node {} failed to initialize init_st={}'.format(node.name, node.init_st()))
+                    st = False
         nls.write("# Start: End Service Nodes:\n")
-        self.l_info(pfx,"Closing {}".format(en_us_txt))
+        LOGGER.debug("Closing {}".format(en_us_txt))
         nls.close()
         config_info_rest.append('</ul>')
         self.config_info = config_info_nr + config_info_rest
         s = "\n"
-        cstr = s.join(self.config_info)
-        self.poly.add_custom_config_docs(cstr,True)
+        #
+        # SEt the Custom Config Doc
+        #
+        self.poly.setCustomParamsDoc(s.join(self.config_info))
         #
         # editor/custom.xml
         #
@@ -336,236 +530,61 @@ class Controller(polyinterface.Controller):
         make_file_dir(editor_f)
         # Open the template, and read into a string for formatting.
         template_f = 'template/editor/custom.xml'
-        self.l_info(pfx,"Reading {}".format(template_f))
+        LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
             myfile.close()
         # Write the editors file with our info
-        self.l_info(pfx,"Writing {}".format(editor_f))
+        LOGGER.debug("Writing {}".format(editor_f))
         editor_h = open(editor_f, "w")
         editor_h.write(data.format(full_subset_str,subset_str,(msg_cnt-1),(svc_cnt-1)))
         editor_h.close()
+        #
+        # Send it to the ISY
+        #
+        if st:
+            self.poly.updateProfile()
+        return st
 
-        return True
-
-    def check_params(self):
-        """
-        This is an example if using custom Params for user and password and an example with a Dictionary
-        """
-        # Remove all existing notices
-        self.removeNoticesAll()
-
-        # Make sure they acknowledge
-        custom_params = self.polyConfig['customParams']
-        self.l_info('check_params', custom_params)
-        ack = 'acknowledge'
-        val = None
-        if ack in custom_params:
-            val = custom_params[ack]
+    def handler_log_level(self,level):
+        LOGGER.info(f'enter: level={level}')
+        if level['level'] < 10:
+            LOGGER.info("Setting basic config to DEBUG...")
+            LOG_HANDLER.set_basic_config(True,logging.DEBUG)
+            slevel = logging.DEBUG
         else:
-            custom_params[ack] = ""
-            self.addCustomParam(custom_params)
-        if val != 'I understand and agree':
-            self.addNotice('Before using you must follow the link to <a href="https://github.com/jimboca/udi-poly-notification/blob/master/ACKNOWLEDGE.md" target="_blank">acknowledge</a>')
-            return False
-
-        params = [
-            {
-                'name': 'messages',
-                'title': 'Messages',
-                'desc': 'Your Custom Messages',
-                'isList': True,
-                'params': [
-                    {
-                        'name': 'id',
-                        'title': "ID (Must be integer, should never change!)",
-                        'isRequired': True,
-                    },
-                    {
-                        'name': 'title',
-                        'title': 'Title (Should be short)',
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'message',
-                        'title': 'Message (If empty, assume same as title)',
-                        'isRequired': False
-                    },
-                ]
-            },
-            {
-                'name': 'pushover',
-                'title': 'Pushover Service Nodes',
-                'desc': 'Config for https://pushover.net/',
-                'isList': True,
-                'params': [
-                    {
-                        'name': 'name',
-                        'title': 'Name for reference, used as node name. Must be 8 characters or less.',
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'user_key',
-                        'title': 'The User Key',
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'app_key',
-                        'title': 'Application Key',
-                        'isRequired': True,
-                        'isList': False,
-                        #s'defaultValue': ['somename'],
-                    },
-                ]
-            },
-            {
-                'name': 'notify',
-                'title': 'Notify Nodes',
-                'desc': 'Notify Nodes to create',
-                'isList': True,
-                'params': [
-                    {
-                        'name': 'id',
-                        'title': "ID for node, never change, 8 characters or less",
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'name',
-                        'title': 'Name for node',
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'service_node_name',
-                        'title': "Service Node Name Must match an existing Service Node Name",
-                        'isRequired': True
-                    },
-                ]
-            },
-            {
-                'name': 'assistant_relay',
-                'title': 'Assistant Relay Service Nodes',
-                'desc': 'Config for https://github.com/greghesp/assistant-relay',
-                'isList': True,
-                'params': [
-                    {
-                        'name': 'host',
-                        'title': 'Host',
-                        'defaultValue': 'this_host_ip',
-                        'isRequired': True
-                    },
-                    {
-                        'name': 'port',
-                        'title': 'Port',
-                        'isRequired': True,
-                        'isList': False,
-                        'defaultValue': '3001',
-                    },
-                    {
-                        'name': 'users',
-                        'title': 'Users',
-                        'isRequired': True,
-                        'isList': True,
-                        'defaultValue': ['someuser'],
-                    },
-                ]
-            }
-        ]
-        self.poly.save_typed_params(params)
-
-        #default = "None"
-        #if 'assistant_remote_host' in self.polyConfig['customParams']:
-        #    self.ar_host = self.polyConfig['customParams']['ar_host']
-        #else:
-        #    self.ar_host = default
-        #    LOGGER.error('check_params: ar_host not defined in customParams, please add it.  Using {}'.format(self.ar_host))
-        #    st = False
-        #if 'ar_port' in self.polyConfig['customParams']:
-        #    self.ar_port = self.polyConfig['customParams']['ar_port']
-        #else:
-        #    self.ar_port = default
-        #    LOGGER.error('check_params: ar_post not defined in customParams, please add it.  Using {}'.format(self.ar_port))
-        #    st = False
-
-        # Make sure they are in the params
-        #self.addCustomParam({'ar_host': self.ar_host, 'ar_port': self.ar_port })
-
-        # Add a notice if they need to change the user/password from the default.
-        #if self.user == default_user or self.password == default_password:
-        #    # This doesn't pass a key to test the old way.
-        #    self.addNotice('Please set proper user and password in configuration page, and restart this nodeserver')
-
-
-    def set_all_logs(self,level):
-        LOGGER.setLevel(level)
-        #logging.getLogger('requests').setLevel(level)
+            LOGGER.info("Setting basic config to WARNING...")
+            LOG_HANDLER.set_basic_config(True,logging.WARNING)
+            slevel = logging.WARNING
+        #logging.getLogger('requests').setLevel(slevel)
+        #logging.getLogger('urllib3').setLevel(slevel)
+        LOGGER.info(f'exit: slevel={slevel}')
 
     def set_message(self,val):
         self.setDriver('GV2', val)
-
-    def set_debug_level(self,level):
-        self.l_info('set_debug_level',level)
-        if level is None:
-            level = 20
-        level = int(level)
-        if level == 0:
-            level = 20
-        self.l_info('set_debug_level','Set GV1 to {}'.format(level))
-        self.setDriver('GV1', level)
-        # 0=All 10=Debug are the same because 0 (NOTSET) doesn't show everything.
-        if level == 10:
-            self.set_all_logs(logging.DEBUG)
-        elif level == 20:
-            self.set_all_logs(logging.INFO)
-        elif level == 30:
-            self.set_all_logs(logging.WARNING)
-        elif level == 40:
-            self.set_all_logs(logging.ERROR)
-        elif level == 50:
-            self.set_all_logs(logging.CRITICAL)
-        else:
-            self.l_error("set_debug_level","Unknown level {}".format(level))
-
-    def cmd_process_config(self,command):
-        LOGGER.info('cmd_process_config:')
-        self.process_config(self.polyConfig)
 
     def cmd_build_profile(self,command):
         LOGGER.info('cmd_build_profile:')
         st = self.write_profile()
         if st:
-            self.poly.installprofile()
+            self.poly.updateProfile()
         return st
 
     def cmd_install_profile(self,command):
         LOGGER.info('cmd_install_profile:')
-        st = self.poly.installprofile()
+        st = self.poly.updateProfile()
         return st
-
-    def cmd_set_debug_mode(self,command):
-        val = int(command.get('value'))
-        self.l_info("cmd_set_debug_mode",val)
-        self.set_debug_level(val)
 
     def cmd_set_message(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_message",val)
+        LOGGER.info(val)
         self.set_message(val)
 
-    def l_info(self, name, string):
-        LOGGER.info("%s:%s: %s" %  (self.id,name,string))
-
-    def l_error(self, name, string, exc_info=False):
-        LOGGER.error("%s:%s:%s: %s" % (self.id,self.name,name,string), exc_info=exc_info)
-
-    def l_warning(self, name, string):
-        LOGGER.warning("%s:%s: %s" % (self.id,name,string))
-
-    def l_debug(self, name, string, exc_info=False):
-        LOGGER.debug("%s:%s: %s" % (self.id,name,string), exc_info=exc_info)
-
     def rest_ghandler(self,command,params,data=None):
+        if not self.handler_params_st:
+            LOGGER.error("Disabled until acknowledge instructions are completed.")
         mn = 'rest_ghandler'
-        self.l_info(mn,' command={} params={} data={}'.format(command,params,data))
+        LOGGER.debug('command={} params={} data={}'.format(command,params,data))
         # data has body then we only have text data, so make that the message
         if 'body' in data:
             data = {'message': data['body']}
@@ -574,36 +593,33 @@ class Controller(polyinterface.Controller):
         #
         for key, value in params.items():
             data[key] = value
-        self.l_info(mn,' data={}'.format(data))
+        LOGGER.debug('data={}'.format(data))
         if command == '/send':
             if not 'node' in data:
-                self.l_error(mn, 'node not passed in for send params: {}'.format(data))
+                LOGGER.error( 'node not passed in for send params: {}'.format(data))
                 return False
-            node = data['node']
-            if not node in self.nodes:
-                self.l_error(mn, 'unknown node "{}"'.format(node))
+            fnode = self.get_service_node(data['node'])
+            if fnode is False:
+                LOGGER.error( 'unknown service node "{}"'.format(data['node']))
                 return False
             subject = None
             if 'subject' in data:
                 data['title'] = data['subject']
-            return self.nodes[node].rest_send(data)
+            return fnode.rest_send(data)
 
-        self.l_error(mn, 'Unknown command "{}"'.format(command))
+        LOGGER.error('Unknown command "{}"'.format(command))
         return False
 
     id = 'controller'
     commands = {
         'SET_MESSAGE': cmd_set_message,
-        'SET_DM': cmd_set_debug_mode,
         #'SET_SHORTPOLL': cmd_set_short_poll,
         #'SET_LONGPOLL':  cmd_set_long_poll,
         'QUERY': query,
-        'PROCESS_CONFIG': cmd_process_config,
         'BUILD_PROFILE': cmd_build_profile,
         'INSTALL_PROFILE': cmd_install_profile,
     }
     drivers = [
-        {'driver': 'ST',  'value': 1,  'uom': 2},  # Nodeserver status
-        {'driver': 'GV1', 'value': 30, 'uom': 25}, # Debug (Log) Mode, default=30 Warning
+        {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
         {'driver': 'GV2', 'value': 0,  'uom': 25}, # Notification
     ]

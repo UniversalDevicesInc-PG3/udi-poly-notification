@@ -1,21 +1,20 @@
 """
   Notification Google Assistant Relay Node
 """
-import polyinterface
+from udi_interface import Node,LOGGER
 from ntSession import ntSession
 
-LOGGER = polyinterface.LOGGER
-
-class AssistantRelay(polyinterface.Node):
+class AssistantRelay(Node):
     """
     """
     def __init__(self, controller, primary, address, name):
         """
         """
-        super(AssistantRelay, self).__init__(controller, primary, address, name)
+        controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
+        super(AssistantRelay, self).__init__(controller.poly, primary, address, name)
         self.l_name = name
 
-    def start(self):
+    def handler_start(self):
         """
         """
         self.setDriver('ST', 1)
@@ -32,33 +31,21 @@ class AssistantRelay(polyinterface.Node):
         """
         self.reportDrivers()
 
-    def l_info(self, name, string):
-        LOGGER.info("%s:%s: %s" %  (self.id,name,string))
-
-    def l_error(self, name, string):
-        LOGGER.error("%s:%s: %s" % (self.id,name,string))
-
-    def l_warning(self, name, string):
-        LOGGER.warning("%s:%s: %s" % (self.id,name,string))
-
-    def l_debug(self, name, string):
-        LOGGER.debug("%s:%s: %s" % (self.id,name,string))
-
     def set_user(self,val):
-        self.l_info('set_user',val)
+        LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        self.l_info('set_user','Set GV1 to {}'.format(val))
+        LOGGER.info('Set GV1 to {}'.format(val))
         self.setDriver('GV1', val)
 
     def cmd_set_user(self,command):
         val = int(command.get('value'))
-        self.l_info("cmd_set_user",val)
+        LOGGER.info(val)
         self.set_user(val)
 
     def cmd_send(self,command):
-        self.l_info("cmd_send",'')
+        LOGGER.info('')
         #11curl -d '{"command":"This is Izzy, can you hear me?", "user":"jna", "broadcast":"true"}' -H "Content-Type: application/json" -X POST http://192.168.86.79:3001/assistant
         self.session.post('assistant',{"command":"Izzy is alive", "user":"jna", "broadcast":"true"})
 
