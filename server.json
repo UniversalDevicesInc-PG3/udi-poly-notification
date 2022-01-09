@@ -1,6 +1,6 @@
 {
     "name": "Notification",
-    "docs": "https://github.com/jimboca/udi-poly-notification",
+    "docs": "https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/README.md",
     "type": "python3",
     "executable": "notification-poly.py",
     "install": "install.sh",
@@ -19,8 +19,8 @@
             "author": "Jim Searle (JimBoCA)",
             "version": "3.0.0",
             "date": "July 26, 2021",
-            "source": "https://github.com/jimboca/udi-poly-notification",
-            "license": "https://raw.githubusercontent.com/jimboca/udi-poly-notification/master/LICENSE"
+            "source": "https://github.com/UniversalDevicesInc-PG3/udi-poly-notification",
+            "license": "https://raw.githubusercontent.com/UniversalDevicesInc-PG3/udi-poly-notification/master/LICENSE"
         }
     ]
 }
