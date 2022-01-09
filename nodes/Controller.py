@@ -155,7 +155,7 @@ class Controller(Node):
     def get_service_node(self,sname):
         for item in self.service_nodes:
             if item['name'] == sname or item['node'].address == sname or item['node'].name == sname:
-                return item['node']
+                return item
         l = list()
         for item in self.service_nodes:
             l.extend([item['name'],item['node'].address,item['node'].name])
@@ -605,7 +605,7 @@ class Controller(Node):
             subject = None
             if 'subject' in data:
                 data['title'] = data['subject']
-            return fnode.rest_send(data)
+            return fnode['node'].rest_send(data)
 
         LOGGER.error('Unknown command "{}"'.format(command))
         return False

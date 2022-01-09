@@ -249,6 +249,10 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
+- 3.0.1: 01/08/2022
+  - Fix crash on notify node
+- 3.0.0: 01/08/2022
+  - First PG3 release
 - 1.0.11-1.0.12: 07/26/2021:
   - Fix when sound integers are not in order
 - 1.0.10: 07/25/2021:
