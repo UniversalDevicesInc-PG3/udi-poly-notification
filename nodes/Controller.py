@@ -455,27 +455,29 @@ class Controller(Node):
         nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
         ids = list()
-        for message in self.messages:
-            try:
-                id = int(message['id'])
-            except:
-                LOGGER.error("message id={} is not an int".format(message['id']))
-                st = False
-                continue
-            ids.append(id)
-            if 'message' not in message or message['message'] == '':
-                message['message'] = message['title']
-            LOGGER.debug('message={}'.format(message))
-            nls.write("MID-{} = {}\n".format(message['id'],message['title']))
+        if self.messages is not None:
+            for message in self.messages:
+                try:
+                    id = int(message['id'])
+                except:
+                    LOGGER.error("message id={} is not an int".format(message['id']))
+                    st = False
+                    continue
+                ids.append(id)
+                if 'message' not in message or message['message'] == '':
+                    message['message'] = message['title']
+                LOGGER.debug('message={}'.format(message))
+                nls.write("MID-{} = {}\n".format(message['id'],message['title']))
         #
         nls.write("# End: Custom Messages:\n\n")
 
         nls.write("# Start: Service Nodes\n")
         svc_cnt = 0
         nls.write("NFYN--1 = Unknown\n")
-        for pd in self.service_nodes:
-            nls.write("NFYN-{} = {}\n".format(pd['index'],pd['name']))
-            svc_cnt += 1
+        if self.service_nodes is not None:
+            for pd in self.service_nodes:
+                nls.write("NFYN-{} = {}\n".format(pd['index'],pd['name']))
+                svc_cnt += 1
         nls.write("# End: Service Nodes\n\n")
         config_info_nr = [
             '<h3>Create ISY Network Resources</h3>',
