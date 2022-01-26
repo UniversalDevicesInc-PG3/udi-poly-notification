@@ -7,9 +7,29 @@ This is the Notification Poly for the [Universal Devices ISY994i](https://www.un
 (c) JimBoCA aka Jim Searle
 MIT license.
 
-## Support
+## Help
 
-This is discussed on the forum post [Polglot Notification Nodeserver](https://forum.universal-devices.com/forum/166-polyglot-notification-service-node-server/).  You can ask questions there.  If you have a bug or enhancement request filing an issue on the [Github Issue Page](https://github.com/jimboca/udi-poly-notification/issues) is preferred since it can easily get lost on the forum.
+If you have any issues are questions you can ask on [PG3 Notification Nodeserver SubForum](https://forum.universal-devices.com/forum/316-notification/) or report an issue at [PG3 Notification Nodeserver Github issues](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues).
+
+## Moving from PG2
+
+There are a few ways to move
+
+### Backup and Restore
+
+The best way to move from PG2 to PG3 is to backup on PG2 and restore on PG3, but the only option is to do all your nodeservers at once.  I don't have much information on this method, if you have questions please ask on the PG3 forum.
+
+### Delete and add
+
+If you can't or don't want backup/restore then you can delete the NS on PG2 and install on the same slot on PG2.  Just remember to capture the config information before deleting. If all configuration data is entered exactly the same then ll node addresses will stay the same so all your programs should work after doing an update and save on each one, or rebooting the ISY, especially any using the Controller node since it's ST value has changed.  But, if you have nodes in any scene then it will have to be added back.
+
+### Add then delete
+
+Another option is to install in a new slot then go edit all your programs and scenes that reference the nodes and switch to the new slots. 
+
+## Installation
+
+Install from the Polyglot store.
 
 ## Configuration
 
@@ -205,48 +225,16 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Backup Your ISY in case of problems!
    * Really, do the backup, please
 2. Go to the Polyglot Store in the UI and click on Install for the Notification Nodeserver.
-3. After installed, under Polyglot, go to Nodeservers menu and click on Add NodeServer. This will add the node server to your ISY
-4. Go to the Configuration page and read those instructions. After configuration, restart the node sever.
+4. Go to the Configuration page and read those instructions. After configuration, hit save.
 5. Restart the ISY Admin Console if you already had it open
 
 ## Requirements
-1. [Polyglot V2](https://github.com/UniversalDevicesInc/polyglot-v2) >= 2.2.6
-1. When using a RaspberryPi it should be run on Raspian Stretch
-  To check your version: ```cat /etc/os-release```
-  and the first line should look like ```PRETTY_NAME="Raspbian GNU/Linux 9 (stretch)"```
-  It is possible to upgrade from Jessie to Stretch, but I would recommend just
-  re-imaging the SD card.  Some helpful links:
-    * https://www.raspberrypi.org/blog/raspbian-stretch/
-    * https://linuxconfig.org/raspbian-gnu-linux-upgrade-from-jessie-to-raspbian-stretch-9
-1. This has only been tested with ISY 5.0.16 so it is not confirmed to work with any prior version.
-
-## Issues
-
-### Forum
-If you are having problems please post on the [Polyglot Notification Service Node Server](https://forum.universal-devices.com/forum/166-polyglot-notification-service-node-server/)
-
-### Github
-There is a list of known issues on the [Github Issues Page](https://github.com/jimboca/udi-poly-notification/issues)
-
-### Log Package
-You can also send a Log Package from the Polyglot UI in the Notifications -> Log page hit "Download Log Package", and PM that to JimBo on the forum.
+1. Polyglot V3 running on Polisy
 
 ## Upgrading
 
-### From the store
-
-1. Open the Polyglot web page, go to nodeserver store and click "Update" for "Notification".
-    * You can always answer "No" when asked to install profile.  The nodeserver will handle this for you.
-2. Go to the Notification Control Page, and click restart
-
-### The manual way
-
-1. ```cd ~/.polyglot/nodeservers/Notification```
-2. ```git pull```
-3. ```./install.sh```
-4. Open the polyglot web page, and restart the node server
-5. If you had the Admin Console open, then close and re-open.
-
+1. Open the Polyglot web page and restart the NS.
+1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
 - 3.0.3: 01/25/2022
