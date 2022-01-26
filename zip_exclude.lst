@@ -9,3 +9,4 @@ pyharmony/*
 profile/*/custom.xml
 profile/*/homeisy.xml
 profile/nls/*
+profile/*/dev.xml

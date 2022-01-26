@@ -249,6 +249,8 @@ You can also send a Log Package from the Polyglot UI in the Notifications -> Log
 
 
 ## Release Notes
+- 3.0.3: 01/25/2022
+  - Fix initialization of controller messages
 - 3.0.2: 01/23/2022
   - Fix crash on new install
 - 3.0.1: 01/08/2022

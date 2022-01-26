@@ -198,7 +198,7 @@ class Controller(Node):
                     'params': [
                         {
                             'name': 'id',
-                            'title': "ID (Must be integer, should never change!)",
+                            'title': "ID (Must be integer greater than zero and should never change!)",
                             'isRequired': True,
                         },
                         {
@@ -455,7 +455,10 @@ class Controller(Node):
         nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
         ids = list()
-        if self.messages is not None:
+        self.messages.append({'id':0, 'title':"Default"})
+        if self.messages is None:
+            LOGGER.warning("No User Messages, define some in Configuration if desired")
+        else:
             for message in self.messages:
                 try:
                     id = int(message['id'])
@@ -463,6 +466,7 @@ class Controller(Node):
                     LOGGER.error("message id={} is not an int".format(message['id']))
                     st = False
                     continue
+                LOGGER.debug(f'MESSAGE:id={id}')
                 ids.append(id)
                 if 'message' not in message or message['message'] == '':
                     message['message'] = message['title']
@@ -525,8 +529,10 @@ class Controller(Node):
         # editor/custom.xml
         #
         # The subset string for message id's
-        subset_str = get_subset_str(ids)
         full_subset_str = ",".join(map(str,ids))
+        LOGGER.debug(f"MESSAGE:full_subset_str={full_subset_str}")
+        subset_str = get_subset_str(ids)
+        LOGGER.debug(f"MESSAGE:subset_str={subset_str}")
         # Open the output editors fileme
         editor_f   = "profile/editor/custom.xml"
         make_file_dir(editor_f)
