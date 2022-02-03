@@ -237,8 +237,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
-- 3.1.0: 02/01/2022
-  - Quote URL to Pushover so spaces can be used in subject, which makes it nice to add ${sys.program.#.name} or ${sys.node.#.name}
+- 3.0.4: 02/02/2022
+  - Clean up logging in session, no real change
 - 3.0.3: 01/25/2022
   - Fix initialization of controller messages
 - 3.0.2: 01/23/2022

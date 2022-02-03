@@ -13,7 +13,7 @@ class ntSession():
         self.session = requests.Session()
 
     def post(self,path,payload,dump=True):
-        url = "http://{}:{}/{}".format(self.host,self.port,path)
+        url = "http://{}:{}/{}".format(self.host,self.port,quote_plus(path))
         if dump:
             payload = json.dumps(payload)
         LOGGER.debug("Sending: url={0} payload={1}".format(url,payload))
@@ -25,7 +25,7 @@ class ntSession():
         )
         try:
             response = self.session.post(
-                quote_plus(url),
+                url,
                 data=payload,
                 timeout=60
             )

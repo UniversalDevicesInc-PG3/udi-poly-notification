@@ -6,14 +6,15 @@
 
 from http.server import HTTPServer,BaseHTTPRequestHandler
 from urllib import parse
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl,quote_plus,urlparse
+
 import socket, threading, sys, requests, json, time
 import netifaces as ni
 
 class requestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        parsed_path = parse.urlparse(self.path)
+        parsed_path = urlparse(self.path)
         self.query = dict(parse_qsl(parsed_path.query))
         if 'debug' in self.query:
             message_parts = [
@@ -56,7 +57,8 @@ class requestHandler(BaseHTTPRequestHandler):
         self.wfile.write(message.encode('utf-8'))
 
     def do_POST(self):
-        parsed_path = parse.urlparse(self.path)
+        self.parent.logger.info("do_POST: enter")
+        parsed_path = urlparse(self.path)
         self.query = dict(parse_qsl(parsed_path.query))
         if 'debug' in self.query:
             message_parts = [
@@ -114,7 +116,7 @@ class requestHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         # Stop log messages going to stdout
-        self.parent.logger.info('wtHandler:log_message' + fmt % args)
+        self.parent.logger.info('wtHandler:log_message: ' + fmt % args)
 
 class polyglotREST():
 
@@ -208,7 +210,7 @@ class polyglotRESTServer():
         self.rest = polyglotREST(self,self.logger,self.port)
         self.st = self.rest.start()
         if self.st is False:
-            self.l_error('polyglotRESTServer:start','REST server not started {}'.format(self.st))
+            self.logger.error('REST server not started {}'.format(self.st))
             return False
         self.ip          = self.rest.ip
         self.listen_url  = self.rest.url
@@ -228,13 +230,13 @@ class polyglotRESTServer():
         """
         This is passed the incoming http get's to processes
         """
-        self.l_debug('get_handler','command={}'.format(command))
+        self.logger.debug('command={}'.format(command))
         # This is from the oauth2 redirect with our code.
         if command == "/code":
             code = 200
             message = "\nGot code {}, asking for access token\n".format(params['code'])
             self.oauth2_code = params['code']
-            self.l_info('get_handler','Got code: {}'.format(self.oauth2_code))
+            self.logger.info('Got code: {}'.format(self.oauth2_code))
             tr = self.pull_access_token()
             if tr == False:
                 code = 500
@@ -262,12 +264,12 @@ class polyglotRESTServer():
                         message = 'Command {0} failed'.format(command)
                 except:
                     message = "ghandler failed, see log"
-                    self.l_error('get_handler','failed',exc_info=True)
+                    self.logger.error('failed',exc_info=True)
                     code = 500
         if code == 200:
-            self.l_debug('get_handler','code={0} message={1}'.format(code,message))
+            self.logger.debug('code={0} message={1}'.format(code,message))
         else:
-            self.l_error('get_handler','code={0} message={1}'.format(code,message))
+            self.logger.error('code={0} message={1}'.format(code,message))
         return  { 'code': code, 'message': message }
 
     def pull_access_token(self,code=None):
@@ -282,30 +284,18 @@ class polyglotRESTServer():
         # This gives us:
         # {'token_type': 'Bearer', 'access_token': '...', 'expires_in': 9999999}
         if aret == False:
-            self.l_error('pull_access_token','Failed')
+            self.logger.error('Failed')
             self.access_token = aret
             return aret
         self.access_token = aret['access_token']
         self.token_type   = aret['token_type']
-        self.l_debug('start',"token_type={} access_token={}".format(self.token_type,self.access_token))
+        self.logger.debug("token_type={} access_token={}".format(self.token_type,self.access_token))
 
     def get_access_token(self):
         return self.access_token
 
     def get_token_type(self):
         return self.token_type
-
-    def l_info(self, name, string):
-        self.logger.info("%s: %s" %  (name,string))
-
-    def l_error(self, name, string, exc_info=False):
-        self.logger.error("%s: %s" % (name,string), exc_info=exc_info)
-
-    def l_warning(self, name, string):
-        self.logger.warning("%s: %s" % (name,string))
-
-    def l_debug(self, name, string):
-        self.logger.debug("%s: %s" % (name,string))
 
 class polyglotSession():
 
@@ -316,6 +306,7 @@ class polyglotSession():
         # Our reusable session
         self.session = requests.Session()
         # Our headers never change...?
+        self.logger.error("__init__")
         self.session.headers.update(
             {
                 "Content-Type": "application/json"
@@ -324,14 +315,14 @@ class polyglotSession():
 
     def get(self,path,params={},auth=None):
         url = "{}/{}".format(self.url,path)
-        self.l_debug('get',"Sending: url={0} payload={1}".format(url,params))
+        self.logger.debug("Sending: url={0} payload={1}".format(url,params))
         # No speical headers?
         headers = {
             "Content-Type": "application/json"
         }
         if auth is not None:
             headers['Authorization'] = auth
-        self.l_debug('get', "headers={}".format(headers))
+        self.logger.debug( "headers={}".format(headers))
         #self.session.headers.update(headers)
         try:
             response = self.session.get(
@@ -339,20 +330,20 @@ class polyglotSession():
                 params=params,
                 timeout=(61,10)
             )
-            self.l_debug('get', "url={}".format(response.url))
+            self.logger.debug( "url={}".format(response.url))
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
-            self.l_error('get',"Connection error for %s: %s" % (url, e))
+            self.logger.error("Connection error for %s: %s" % (url, e))
             return False
         return(self.response(response,'get'))
 
     def post(self,path,payload):
         url = "{}/{}".format(self.url,path)
-        self.l_debug('post',"Sending: url={0} payload={1}".format(url,payload))
+        self.logger.error("Sending: url={0} payload={1}".format(url,payload))
         try:
             payload_js = json.dumps(payload)
         except Exception as e:
-            self.l_error('post','Error converting to json: {}'.format(payload))
+            self.logger.error('Error converting to json: {}'.format(payload))
             return False
         try:
             response = self.session.post(
@@ -362,40 +353,40 @@ class polyglotSession():
             )
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
-            self.l_error('post',"Connection error for %s: %s" % (url, e))
+            self.logger.error("Connection error for %s: %s" % (url, e))
             return { 'status': False, 'status_code': None, 'code': None }
         return(self.response(response,'post'))
 
     def response(self,response,name):
         fname = 'reponse:'+name
-        self.l_debug(fname,' Got: code=%s' % (response.status_code))
-        self.l_debug(fname,'      text=%s' % (response.text))
+        self.logger.debug(' Got: code=%s' % (response.status_code))
+        self.logger.debug('      text=%s' % (response.text))
         json_data = False
         st = False
         if response.status_code == 200:
-            self.l_debug(fname,' All good!')
+            self.logger.debug(' All good!')
             st = True
         elif response.status_code == 400:
-            self.l_error(fname,"Bad request: %s: text: %s" % (response.url,response.text) )
+            self.logger.error("Bad request: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 404:
-            self.l_error(fname,"Not Found: %s: text: %s" % (response.url,response.text) )
+            self.logger.error("Not Found: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 401:
             # Authentication error
-            self.l_error(fname,"Unauthorized: %s: text: %s" % (response.url,response.text) )
+            self.logger.error("Unauthorized: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 500:
-            self.l_error(fname,"Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
+            self.logger.error("Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
         elif response.status_code == 522:
-            self.l_error(fname,"Timeout Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
+            self.logger.error("Timeout Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
         else:
-            self.l_error(fname,"Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
-            self.l_error(fname,"Check system status: https://status.ecobee.com/")
+            self.logger.error("Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
+            self.logger.error("Check system status: https://status.ecobee.com/")
         # No matter what, return the code and error
         try:
             json_data = json.loads(response.text)
         except (Exception) as err:
             # Only complain about this error if we didn't have an error above
             if st:
-                self.l_error(fname,'Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
+                self.logger.error('Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
             json_data = False
         return { 'status': st, 'code': response.status_code, 'data': json_data }
 
