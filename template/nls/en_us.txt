@@ -8,16 +8,8 @@ CMD-ctl-BUILD_PROFILE-NAME = Build Profile
 CMD-ctl-INSTALL_PROFILE-NAME = Install Profile
 
 ST-ctl-ST-NAME = NodeServer Online
-ST-ctl-GV1-NAME = Debug Mode
+ST-ctl-GV1-NAME = REST Status
 ST-ctl-GV2-NAME = Notification
-
-CMD-SET_DM-NAME = Debug Level
-CDM-0 = All
-CDM-10 = Debug
-CDM-20 = Info
-CDM-30 = Warning
-CDM-40 = Error
-CDM-50 = Critical
 
 CMD-SET_MESSAGE-NAME = Message
 
@@ -25,6 +17,12 @@ CMD-SET_MESSAGE-NAME = Message
 CST-0 = Disconnected
 CST-1 = Connected
 CST-2 = Failed
+
+# Controller REST Errors
+COE-0 = Not Running
+COE-1 = Running
+COE-2 = Failed
+COE-3 = Receive Error
 
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node

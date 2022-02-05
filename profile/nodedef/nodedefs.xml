@@ -7,6 +7,8 @@
           <!-- The Status of the last send -->
 			    <st id="ST" editor="cst" />
           <!-- The Message to send -->
+          <st id="GV1" editor="CO_ERR" />
+          <!-- The Message to send -->
           <st id="GV2" editor="MESSAGE" />
 		    </sts>
         <cmds>

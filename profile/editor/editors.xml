@@ -9,10 +9,11 @@
       <range uom="25" subset="0,1,2" nls="CST"/>
     </editor>
 
-    <!-- Log Debug Mode -->
-    <editor id="DEBUGMODE">
-      <range uom="25" subset="0,10,20,30,40,50" nls="CDM" />
+    <!-- Controller Errors -->
+    <editor id="CO_ERR">
+      <range uom="25" subset="0-1" nls="COE" />
     </editor>
+
 
     <!-- Pushover Priority -->
     <editor id="PO_PRIORITY">
@@ -34,7 +35,7 @@
       <range uom="56" subset="60-10800" />
     </editor>
 
-    <!-- Pusover Errors -->
+    <!-- Pushover Errors -->
     <editor id="PO_ERR">
       <range uom="25" subset="0-5" nls="POVE" />
     </editor>

@@ -87,24 +87,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
-### Message Retry
-  When the nodeserver sends a message and there is an error it will set the Service Node's Last Status and Error, then will continue to retry sending the message every 5 seconds forever, or until the nodeserver is restarted.  See <a href="https://github.com/jimboca/udi-poly-notification/issues/19" target="_ blank">Add more retry and timeouts to message posting</a> and comment there if you have suggestions.
-  If you are very concernted about catching the errors, you can create a program like:
-```
-If
-        'Polyglot / Notification Controller / Service Pushover homeisy' Error is not None
 
-Then
-        Send Notification to 'Text-Jim' content 'Polyglot Notification Status'
-        Send Notification to 'Email-Jim' content 'Polyglot Notification Status'
-```
-  and in that Custom Notification use something like
-```
-Subject: ${sys.program.#.name}
-Body:
-Notification: ST=${sys.node.n005_controller.ST} HB=${var.2.232}
-  ${sys.node.n005_po_homeisy.name} ERR=${sys.node.n005_po_homeisy.ERR}
-```
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
   - This device can be turned on or off in a program as well
@@ -116,7 +99,45 @@ Notify nodes are defined by user on the Configuration Page and are meant to be a
 
 When a Notify Node or Pushover Servicer Node is deleted under the Config tab, it WILL NOT be deleted from the NodeServer or the ISY. To delete a node, go under NODES on the Nodeserver.  Here you will see each of your nodes that you have ever created. A node can be deleted here by clicking on the X on the upper right of each node description. Restart the NodeServer and the nodes will be removed from both the node server and the ISY.
 
-## Heartbeat monitoring
+## Monitoring
+
+### Message Retry and Controller Status
+
+  When the nodeserver sends a message and there is an error it will set the Service Node's Last Status and Error, then will continue to retry sending the message every 5 seconds forever, or until the nodeserver is restarted.  See <a href="https://github.com/jimboca/udi-poly-notification/issues/19" target="_ blank">Add more retry and timeouts to message posting</a> and comment there if you have suggestions.
+  If you are very concernted about catching the errors, you can create a program like the one below.
+
+  There is also a Controller REST Status which indicates the status of the REST Server and will also show "Receive Error" when a badly format message is passed to the REST Server.
+
+```
+Polyglot Notify Error - [ID 033C][Parent 033B]
+
+If
+        'Polyglot / Notification Controller / Service Pushover homeisy' Error is not None
+ 
+Then
+        Send Notification to 'Text-Jim' content 'Polyglot Notification Status'
+        Send Notification to 'Email-Jim' content 'Polyglot Notification Status'
+        Resource 'Notification Status'
+ 
+Else
+   - No Actions - (To add one, press 'Action')
+ 
+Send notification whenver there is an error.
+
+```
+  and in that Custom Notification use something like
+```
+Subject: ${sys.program.#.name}
+Body:
+${sys.node.n005_controller.name} 
+  Status=${sys.node.n005_controller.ST}
+  Server Status=${sys.node.n005_controller.GV1}
+  Heartbeat=${var.2.232} 
+${sys.node.n005_po_homeisy.name} 
+  ERR=${sys.node.n005_po_homeisy.ERR}
+```
+
+### Heartbeat monitoring
 
 TODO: Add program info here
 
@@ -237,6 +258,10 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.1.1: 02/04/2022
+  - Add new 'REST Status' on Controller, see Monitoring section for more information.
+    - This was discovered as an issue if ISY sends a post that contains spaces
+- 3.1.0: Never officially released
 - 3.0.4: 02/02/2022
   - Clean up logging in session, no real change
 - 3.0.3: 01/25/2022

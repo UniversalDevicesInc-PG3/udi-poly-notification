@@ -101,17 +101,22 @@ class Controller(Node):
             LOGGER.error('Timed out waiting for all handlers to complete')
             self.poly.stop()
             return
+        self.setDriver('GV1',0)
         if self.handler_params_st:
             self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
             # TODO: Need to monitor thread and restart if it dies
             self.rest.start()
+            self.setDriver('GV1',1)
         else:
             LOGGER.error(f'Unable to start REST Server until config params are correctd ({self.handler_params_st})')
         #
         # Always rebuild profile on startup?
         #
+        LOGGER.debug(f'first_run={self.first_run}')
         if self.first_run:
             self.write_profile()
+            self.first_run = False
+
         self.handler_config_st = True
         LOGGER.debug("exit")
 
@@ -593,9 +598,18 @@ class Controller(Node):
             LOGGER.error("Disabled until acknowledge instructions are completed.")
         mn = 'rest_ghandler'
         LOGGER.debug('command={} params={} data={}'.format(command,params,data))
+
+        # Receive error?
+        if command == "receive_error":
+            LOGGER.error(params % data)
+            self.setDriver("GV1",3)
+            return True
+
+        self.setDriver("GV1",1)
         # data has body then we only have text data, so make that the message
-        if 'body' in data:
+        if not data is None and 'body' in data:
             data = {'message': data['body']}
+        
         #
         # Params override body data
         #
@@ -629,5 +643,6 @@ class Controller(Node):
     }
     drivers = [
         {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
+        {'driver': 'GV1', 'value': 0,  'uom': 25}, # Notification
         {'driver': 'GV2', 'value': 0,  'uom': 25}, # Notification
     ]

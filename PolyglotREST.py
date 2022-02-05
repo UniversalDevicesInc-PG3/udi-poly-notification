@@ -116,7 +116,13 @@ class requestHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         # Stop log messages going to stdout
-        self.parent.logger.info('wtHandler:log_message: ' + fmt % args)
+        if args[1] == "200":
+            self.parent.logger.debug(fmt % args)
+        else:
+            # TODO: Pass a receive error to the parent.
+            self.parent.logger.error(fmt % args)
+            self.parent.logger.error(f'code="{args[1]}"')
+            self.parent.get_handler("receive_error",fmt,args)
 
 class polyglotREST():
 
@@ -306,7 +312,6 @@ class polyglotSession():
         # Our reusable session
         self.session = requests.Session()
         # Our headers never change...?
-        self.logger.error("__init__")
         self.session.headers.update(
             {
                 "Content-Type": "application/json"
@@ -339,7 +344,7 @@ class polyglotSession():
 
     def post(self,path,payload):
         url = "{}/{}".format(self.url,path)
-        self.logger.error("Sending: url={0} payload={1}".format(url,payload))
+        self.logger.debug("Sending: url={0} payload={1}".format(url,payload))
         try:
             payload_js = json.dumps(payload)
         except Exception as e:
