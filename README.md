@@ -44,7 +44,7 @@ The nodeserver allows you to
 
 ## Notification Services
 
-### Pusover 
+### Pushover 
 
 Describe out to setup Pushover here... 
 
@@ -53,7 +53,7 @@ Describe out to setup Pushover here...
 There is a very simple method to setup your own Telegram Bot.  This is initially a semi-manual process to create your own bot.  I will be researching and testing better ways to do this in the future.
 
 1. Install Telegram on your computer or phone
-  * Will need to copy/paste a long key to PG3
+  1. Will need to copy/paste a long key to PG3
 1. Go to https://telegram.me/botfather
 1. Command: /newbot
 1. Answer questions:
