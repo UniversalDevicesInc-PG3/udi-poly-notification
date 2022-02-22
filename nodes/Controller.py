@@ -193,8 +193,8 @@ class Controller(Node):
     def get_service_node_address(self,id):
         return get_valid_node_address('po_'+id)
 
-    def get_service_node_address_telegram(self,id):
-        return get_valid_node_address('tg_'+id)
+    def get_service_node_address_telegramub(self,id):
+        return get_valid_node_address('tu_'+id)
 
     def init_typed(self):
         self.TypedParams.load(
@@ -299,8 +299,8 @@ class Controller(Node):
                     ]
                 },
                 {
-                    'name': 'telegram',
-                    'title': 'Telegram Service Node',
+                    'name': 'telegramub',
+                    'title': 'Telegram User Bot Service Node',
                     'desc': 'Config for https://github.com/greghesp/assistant-relay',
                     'isList': True,
                     'params': [
@@ -359,6 +359,10 @@ class Controller(Node):
             self.handler_typed_data_st = False
             return False
 
+        # If we have already been run on startup, clear any notices.
+        if self.handler_config_st is not None:
+            self.Notices.clear()
+
         el = list()
 
         self.messages = data.get('messages',el)
@@ -368,7 +372,7 @@ class Controller(Node):
 
         #
         # List of all service node names
-        snames   = list()
+        snames   = dict()
         # List of errors to print at the end in a Notice        
         err_list = list()
 
@@ -385,7 +389,10 @@ class Controller(Node):
         else:
             for pd in pushover:
                 sname = pd['name']
-                snames.append(sname) # List for checking later
+                # Save info for later
+                pd['type'] = 'pushover'
+                snames[sname] = pd
+                # Check for duplicates
                 address = self.get_service_node_address(sname)
                 if not address in pnames:
                     pnames[address] = list()
@@ -395,23 +402,27 @@ class Controller(Node):
                     err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
 
         #
-        # Check the telegram configs are all good
+        # Check the telegramub configs are all good
         #
-        telegram = data.get('telegram',el)
+        telegramub = data.get('telegramub',el)
         # Pushover node names
         tnames   = dict()
-        LOGGER.info('telegram={}'.format(telegram))
-        if len(telegram) == 0:
-            LOGGER.warning("No Telegram Entries in the config: {}".format(telegram))
-            telegram = None
+        LOGGER.info('telegramub={}'.format(telegramub))
+        if len(telegramub) == 0:
+            LOGGER.warning("No Telegram User Bot Entries in the config: {}".format(telegramub))
+            telegramub = None
         else:
-            for pd in telegram:
+            for pd in telegramub:
                 if 'name' in pd:
                     sname = pd['name']
                 else:
-                    sname = 'telegram'
-                snames.append(sname) # List for checking later
-                address = self.get_service_node_address_telegram(sname)
+                    sname = 'telegramub'
+                sname = pd['name']
+                # Save info for later
+                pd['type'] = 'telegramub'
+                snames[sname] = pd
+                # Check for duplicates...
+                address = self.get_service_node_address_telegramub(sname)
                 if not address in tnames:
                     tnames[address] = list()
                 tnames[address].append(sname)
@@ -419,15 +430,15 @@ class Controller(Node):
                 if len(tnames[address]) > 1:
                     err_list.append("Duplicate names for {} items {} from {}".format(len(tnames[address]),address,",".join(tnames[address])))
         #
-        # Check the message nodes are all good
+        # Check the message notify_nodes are all good
         #
-        nodes    = data.get('notify',el)
-        if len(nodes) == 0:
+        notify_nodes    = data.get('notify',el)
+        if len(notify_nodes) == 0:
             LOGGER.warning('No Notify Nodes')
         else:
-            # First check that nodes are valid before we try to add them
+            # First check that notify_nodes are valid before we try to add them
             mnames = dict()
-            for node in nodes:
+            for node in notify_nodes:
                 address = self.get_message_node_address(node['id'])
                 if not address in mnames:
                     mnames[address] = list()
@@ -446,9 +457,9 @@ class Controller(Node):
             cnt = 1
             for msg in err_list:
                 LOGGER.error(msg)
-                self.Notices['msg'+cnt]
+                self.Notices[f'msg{cnt}'] = msg
                 cnt += 1
-            self.Notices['typed_data'] = f'There are {ecount} errors found please fix Errors and restart.'
+            self.Notices['typed_data'] = f'There are {len(err_list)} errors found please fix Errors and restart.'
             self.handler_typed_data_st = False
             return
 
@@ -459,19 +470,20 @@ class Controller(Node):
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
-        if telegram is not None:
-            self.telegram_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
-            for pd in telegram:
-                snode = self.add_node(Telegram(self, self.address, self.get_service_node_address_telegram(pd['name']), get_valid_node_name('Service Telegram '+pd['name']), self.telegram_session, pd))
+        if telegramub is not None:
+            self.telegramub_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
+            for pd in telegramub:
+                snode = self.add_node(TelegramUB(self, self.address, self.get_service_node_address_telegramub(pd['name']), get_valid_node_name('Service TelegramUB '+pd['name']), self.telegramub_session, pd))
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         # TODO: Save service_nodes names in customParams
-        if nodes is not None:
+        if notify_nodes is not None:
             save = True
-            LOGGER.debug('Adding Notify Nodes...')
-            for node in nodes:
+            LOGGER.debug('Adding Notify notify_nodes...')
+            for node in notify_nodes:
                 # TODO: make sure node.service_node_name is valid, and pass service node type (pushover) to addNode, or put in node dict
+                node['service_type'] = snames[node['service_node_name']]['type']
                 self.add_node(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
         # When data changes build the profile, except when first starting up since

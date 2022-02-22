@@ -23,7 +23,7 @@ RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
 
-class Telegram(Node):
+class TelegramUB(Node):
     """
     """
     def __init__(self, controller, primary, address, name, session, info):
@@ -37,11 +37,11 @@ class Telegram(Node):
         self.info     = info
         self.iname    = info['name']
         self.oid      = self.id
-        self.id       = 'telegram'
+        self.id       = 'telegramub_' + self.iname
         self.http_api_key  = self.info['http_api_key']
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
-        super(Telegram, self).__init__(controller.poly, primary, address, name)
+        super(TelegramUB, self).__init__(controller.poly, primary, address, name)
 
     def handler_start(self):
         """
@@ -79,7 +79,7 @@ class Telegram(Node):
         else:
             LOGGER.error(f"Bad Status returned in: {res}")
         if self.chat_id is None:
-            self.controller.Notices['telegram'] = "Failed to authorize Telegram, see ERROR in log"
+            self.controller.Notices['telegramub'] = "Failed to authorize Telegram User Bot, see ERROR in log"
         return res
 
 
@@ -141,14 +141,12 @@ class Telegram(Node):
         return ''.join(info)
 
     def write_profile(self,nls):
-        return
-        pfx = 'write_profile'
         LOGGER.debug('')
         #
         # nodedefs
         #
         # Open the template, and read into a string for formatting.
-        template_f = 'template/nodedef/Telegram.xml'
+        template_f = 'template/nodedef/telegramub.xml'
         LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
@@ -164,27 +162,13 @@ class Telegram(Node):
         #
         # nls
         #
-        nls.write("\n# Entries for Telegram {} {}\n".format(self.id,self.name))
+        nls.write("\n# Entries for Telegram User Bot {} {}\n".format(self.id,self.name))
         nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
-        idx = 0
-        subst = []
-        for item in self.devices_list:
-            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,item))
-            # Don't include REMOVED's in list
-            if not item.startswith(REM_PREFIX):
-                subst.append(str(idx))
-            idx += 1
-        sound_subst = []
-        for item in self.sounds_list:
-            nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
-            # Don't include REMOVED's in list
-            if not item[1].startswith(REM_PREFIX):
-                sound_subst.append(str(item[2]))
         #
         # editor
         #
         # Open the template, and read into a string for formatting.
-        template_f = 'template/editor/Telegram.xml'
+        template_f = 'template/editor/telegramub.xml'
         LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
@@ -196,7 +180,7 @@ class Telegram(Node):
         editor_h = open(output_f, "w")
         # TODO: We could create a better subst with - and , but do we need to?
         # TODO: Test calling get_subset_str in node_funcs.py
-        editor_h.write(data.format(self.iname,",".join(subst),",".join(sound_subst)))
+        editor_h.write(data.format(self.iname))
         editor_h.close()
 
     def set_st(self,val):
@@ -231,9 +215,19 @@ class Telegram(Node):
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
-        if not 'text' in params:
+        if 'message' in params:
+            params['text'] = params['message']
+            del params['message']
+        elif not 'text' in params:
             params['text'] = "NOT_SPECIFIED"
         params['chat_id'] = self.chat_id
+        # Telegram doesn't support any of these...
+        del params['device']
+        del params['priority']
+        del params['format']
+        del params['retry']
+        del params['expire']
+        del params['sound']
         #
         # Send the message in a thread with retries
         #

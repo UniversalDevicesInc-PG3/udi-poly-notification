@@ -57,16 +57,16 @@ There is a very simple method to setup your own Telegram Bot.  This is initially
 1. Go to https://telegram.me/botfather
 1. Command: /newbot
 1. Answer questions:
-  * Bot Name: Any name you want
-  * User Name: Any username you want. 
+  1. Bot Name: Any name you want
+  1. User Name: Any username you want. 
 1. Copy and save the "HTTP API" that it gives you 
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
 
 
 1. PG3 UI
-1. Go to Notificaiton Nodeserver Configuration
-1. Click "Add Telegram Service Node"
+1. Go to Notification Nodeserver Configuration
+1. Click "Add Telegram User Bot Service Node"
 1. Set the name
 1. Paste the HTTP API Key from above
 1. Click Save Changes
@@ -288,6 +288,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.2.1: 02/22/2022
+  - Initial production release of Telegram User Bot
 - 3.2.0: 02/21/2022 BETA
   - Initial add of Telegram for testing
 - 3.1.1: 02/04/2022

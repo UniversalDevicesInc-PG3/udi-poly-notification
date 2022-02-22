@@ -2,6 +2,6 @@
 
 from .Notify import Notify
 from .Pushover import Pushover
-from .Telegram import Telegram
+from .TelegramUB import TelegramUB
 from .AssistantRelay import AssistantRelay
 from .Controller import Controller

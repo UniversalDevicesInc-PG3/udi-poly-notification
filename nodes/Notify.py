@@ -18,14 +18,14 @@ class Notify(Node):
         """
         #LOGGER.debug('{} {}'.format(self.address,self.name))
         self.controller = controller
-        self._init_st = None;
+        self._init_st = None
         self.oid      = self.id
         self.info     = info
         self.iname    = info['name']
         self.iid      = info['id']
         self.service_node_name = self.info['service_node_name']
         # TODO: pushoer_ should be passed in by looking up the server_node_name...
-        self.service_node_type = 'pushover'
+        self.service_node_type = self.info['service_type']
         self.id       = self.service_node_type + '_' + self.service_node_name + '_notify'
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address) 
         super(Notify, self).__init__(controller.poly, primary, address, name)
@@ -66,10 +66,9 @@ class Notify(Node):
         return self._init_st;
 
     def write_profile(self,nls):
-        pfx = 'write_profile'
         LOGGER.debug("Appending to nls")
         # TODO: Used passed
-        nls.write("ND-{0}-NAME = Service Pushover {1} Notify\n".format(self.id,self.service_node_name))
+        nls.write(f"ND-{self.id}-NAME = Service {self.service_node_type} {self.service_node_name} Notify\n")
         return True
 
     def setDriver(self,driver,value):

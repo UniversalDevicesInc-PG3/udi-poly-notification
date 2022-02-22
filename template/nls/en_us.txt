@@ -25,11 +25,11 @@ COE-2 = Failed
 COE-3 = Receive Error
 
 # Telegram Node
-ND-telegram-NAME = Telegram Node
-CMD-telegram-SEND-NAME = Send
+ND-tgub-NAME = tgub Node
+CMD-tgub-SEND-NAME = Send
 
-ST-telegram-ST-NAME = Last Status
-ST-telegram-ERR-NAME = Error
+ST-tgub-ST-NAME = Last Status
+ST-tgub-ERR-NAME = Error
 
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node
@@ -82,7 +82,7 @@ ASRU-0 = jim
 ASRU-1 = jna
 
 #
-# Notify Node
+# Pushover Notify Node
 #
 ND-notify-NAME = Notify
 ST-povnfy-GV1-NAME = Device On Message
@@ -111,4 +111,17 @@ NFYP-2 = Normal
 NFYP-3 = High
 NFYP-4 = Emergency
 
-# End Notify Node
+# End Pushover Notify Node
+
+#
+# Telegram Notify Node
+#
+ND-notify-NAME = Notify
+ST-tgubnfy-GV1-NAME = Device On Message
+ST-tgubnfy-GV2-NAME = Device Off Message
+ST-tgubnfy-GV3-NAME = Service Node
+CMD-tgubnfy-SET_MESSAGE_DON-NAME = Set Device On Message
+CMD-tgubnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
+CMD-tgubnfy-SET_NODE-NAME = Set Service Node
+
+# End Telegram Node

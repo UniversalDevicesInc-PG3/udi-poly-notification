@@ -47,19 +47,4 @@
         </cmds>
     </nodeDef>
 
-  <!-- Pushover Node -->
-  <nodeDef id="telegram" nls="telegram">
-    <editors />
-    <sts>
-      <st id="ST"  editor="bool" />
-      <st id="ERR" editor="PO_ERR" />
-    </sts>
-    <cmds>
-      <sends />
-      <accepts>
-        <cmd id="SEND" />
-      </accepts>
-    </cmds>
-  </nodeDef>
-
 </nodeDefs>
