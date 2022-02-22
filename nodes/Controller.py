@@ -80,6 +80,7 @@ class Controller(Node):
 
     def handler_start(self):
         LOGGER.info(f"Started Notification NodeServer {self.poly.serverdata['version']}")
+        self.poly.updateProfile()
         self.heartbeat()
         self.handler_start_st = True
 
@@ -192,6 +193,9 @@ class Controller(Node):
     def get_service_node_address(self,id):
         return get_valid_node_address('po_'+id)
 
+    def get_service_node_address_telegram(self,id):
+        return get_valid_node_address('tg_'+id)
+
     def init_typed(self):
         self.TypedParams.load(
             [
@@ -268,7 +272,7 @@ class Controller(Node):
                 },
                 {
                     'name': 'assistant_relay',
-                    'title': 'Assistant Relay Service Nodes',
+                    'title': 'Assistant Relay Service Node',
                     'desc': 'Config for https://github.com/greghesp/assistant-relay',
                     'isList': True,
                     'params': [
@@ -292,6 +296,26 @@ class Controller(Node):
                             'isList': True,
                             'defaultValue': ['someuser'],
                         },
+                    ]
+                },
+                {
+                    'name': 'telegram',
+                    'title': 'Telegram Service Node',
+                    'desc': 'Config for https://github.com/greghesp/assistant-relay',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'name',
+                            'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'http_api_key',
+                            'title': 'HTTP API Key',
+                            'defaultValue': 'your_http_api_key',
+                            'isRequired': True
+                        },
+
                     ]
                 }
             ],
@@ -343,13 +367,17 @@ class Controller(Node):
             LOGGER.info('No messages')
 
         #
+        # List of all service node names
+        snames   = list()
+        # List of errors to print at the end in a Notice        
+        err_list = list()
+
+        #
         # Check the pushover configs are all good
         #
         pushover = data.get('pushover',el)
-        nodes    = data.get('notify',el)
+        # Pushover node names
         pnames   = dict()
-        snames   = list()
-        err_list = list()
         LOGGER.info('pushover={}'.format(pushover))
         if len(pushover) == 0:
             LOGGER.warning("No Pushover Entries in the config: {}".format(pushover))
@@ -365,9 +393,35 @@ class Controller(Node):
             for address in pnames:
                 if len(pnames[address]) > 1:
                     err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
+
+        #
+        # Check the telegram configs are all good
+        #
+        telegram = data.get('telegram',el)
+        # Pushover node names
+        tnames   = dict()
+        LOGGER.info('telegram={}'.format(telegram))
+        if len(telegram) == 0:
+            LOGGER.warning("No Telegram Entries in the config: {}".format(telegram))
+            telegram = None
+        else:
+            for pd in telegram:
+                if 'name' in pd:
+                    sname = pd['name']
+                else:
+                    sname = 'telegram'
+                snames.append(sname) # List for checking later
+                address = self.get_service_node_address_telegram(sname)
+                if not address in tnames:
+                    tnames[address] = list()
+                tnames[address].append(sname)
+            for address in tnames:
+                if len(tnames[address]) > 1:
+                    err_list.append("Duplicate names for {} items {} from {}".format(len(tnames[address]),address,",".join(tnames[address])))
         #
         # Check the message nodes are all good
         #
+        nodes    = data.get('notify',el)
         if len(nodes) == 0:
             LOGGER.warning('No Notify Nodes')
         else:
@@ -402,6 +456,13 @@ class Controller(Node):
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
                 snode = self.add_node(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
+                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+
+        if telegram is not None:
+            self.telegram_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
+            for pd in telegram:
+                snode = self.add_node(Telegram(self, self.address, self.get_service_node_address_telegram(pd['name']), get_valid_node_name('Service Telegram '+pd['name']), self.telegram_session, pd))
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
@@ -509,7 +570,7 @@ class Controller(Node):
                 # we can get here before the node is ready.
                 cnt = 60
                 while node.init_st() is None and cnt > 0:
-                    LOGGER.warning('Waiting for {} to initialize...'.format(node.name))
+                    LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
                     time.sleep(1)
                     cnt -= 1
                 if node.init_st():

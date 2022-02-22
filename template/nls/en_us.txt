@@ -24,6 +24,13 @@ COE-1 = Running
 COE-2 = Failed
 COE-3 = Receive Error
 
+# Telegram Node
+ND-telegram-NAME = Telegram Node
+CMD-telegram-SEND-NAME = Send
+
+ST-telegram-ST-NAME = Last Status
+ST-telegram-ERR-NAME = Error
+
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node
 CMD-pov-SEND-NAME = Send

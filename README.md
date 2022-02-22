@@ -42,6 +42,36 @@ The nodeserver allows you to
 2. NOTIFY NODES: Create a node that can be added to a scene to send canned messages when the scene is controlled
 3. LARGE MESSAGES WITH SYSTEM VARIABLES: Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 
+## Notification Services
+
+### Pusover 
+
+Describe out to setup Pushover here... 
+
+### Telegram
+
+There is a very simple method to setup your own Telegram Bot.  This is initially a semi-manual process to create your own bot.  I will be researching and testing better ways to do this in the future.
+
+1. Install Telegram on your computer or phone
+  * Will need to copy/paste a long key to PG3
+1. Go to https://telegram.me/botfather
+1. Command: /newbot
+1. Answer questions:
+  * Bot Name: Any name you want
+  * User Name: Any username you want. 
+1. Copy and save the "HTTP API" that it gives you 
+1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
+1. The "Start" will be shown, click that
+
+
+1. PG3 UI
+1. Go to Notificaiton Nodeserver Configuration
+1. Click "Add Telegram Service Node"
+1. Set the name
+1. Paste the HTTP API Key from above
+1. Click Save Changes
+
+
 ## Nodes
 
 There are 3 types of nodes
@@ -258,6 +288,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.2.0: 02/21/2022 BETA
+  - Initial add of Telegram for testing
 - 3.1.1: 02/04/2022
   - Add new 'REST Status' on Controller, see Monitoring section for more information.
     - This was discovered as an issue if ISY sends a post that contains spaces
