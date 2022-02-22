@@ -64,7 +64,7 @@ First create your User Bot
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
 
-The tell the Notificaiton Nodserver about it.
+The tell the Notification Nodserver about it.
 1. PG3 UI
 1. Go to Notification Nodeserver Configuration
 1. Click "Add Telegram User Bot Service Node"
