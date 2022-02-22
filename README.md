@@ -52,18 +52,19 @@ Describe out to setup Pushover here...
 
 There is a very simple method to setup your own Telegram Bot.  This is initially a semi-manual process to create your own bot.  I will be researching and testing better ways to do this in the future.
 
+First create your User Bot
 1. Install Telegram on your computer or phone
-  1. Will need to copy/paste a long key to PG3
+    1. Will need to copy/paste a long key to PG3
 1. Go to https://telegram.me/botfather
 1. Command: /newbot
 1. Answer questions:
-  1. Bot Name: Any name you want
-  1. User Name: Any username you want. 
+    1. Bot Name: Any name you want
+    1. User Name: Any username you want. 
 1. Copy and save the "HTTP API" that it gives you 
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
 
-
+The tell the Notificaiton Nodserver about it.
 1. PG3 UI
 1. Go to Notification Nodeserver Configuration
 1. Click "Add Telegram User Bot Service Node"
