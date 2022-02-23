@@ -60,7 +60,9 @@ First create your User Bot
 1. Answer questions:
     1. Bot Name: Any name you want
     1. User Name: Any username you want. 
-1. Copy and save the "HTTP API" that it gives you 
+1. botfather prints a line saying: Use this token to access the HTTP API:
+    1. Copy and save that, you will need it for the configuring the nodeserver 
+    1. Also save a permenant record of it somewhere, along with the link in the next step
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
 
