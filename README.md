@@ -296,6 +296,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.2.3: 02/23/2022
+  - Added Telegram info to PG3 Configurtion page.
 - 3.2.2: 02/22/2022
   - Now required to enter userid in config, could possibly support multiple in the future.
   - Clear validate error on success

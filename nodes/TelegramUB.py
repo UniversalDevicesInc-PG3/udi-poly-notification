@@ -105,41 +105,9 @@ class TelegramUB(Node):
         return str
 
     def config_info_nr(self):
-        return ''
         info = [
-            '<li>Example settings for NR<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
+            '<li>Example Network Resource for Telegram User Bot<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
             '</ul>',
-            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the Telegram node will be used'
-            '<table>',
-            '<tr><th>Name<th>Value<th>Description',
-        ]
-        i = 0
-        t = 'device'
-        for item in self.devices_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
-            i += 1
-            t = '&nbsp;'
-        t = 'sound'
-        for item in self.sounds_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,item[2],item[1]))
-            t = '&nbsp;'
-        info = info + [
-            '<tr><td>monospace<td>1<td>use Monospace Font',
-            '<tr><td>&nbsp;<td>0<td>Normal Font',
-
-            '<tr><td>priority<td>-2<td>Lowest',
-            '<tr><td>&nbsp;<td>-1<td>Low',
-            '<tr><td>&nbsp;<td>0<td>Normal',
-            '<tr><td>&nbsp;<td>1<td>High',
-            '<tr><td>&nbsp;<td>2<td>Emergency',
-
-            '<tr><td>html<td>1<td>Enable html',
-            '<tr><td>&nbsp;<td>0<td>No html',
-
-            '<tr><td>retry<td>n<td>Set Emergency retry to n',
-            '<tr><td>expire<td>n<td>Set Emergency exipre to n',
-
-            '</table>'
         ]
         return ''.join(info)
 

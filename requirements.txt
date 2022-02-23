@@ -1,3 +1,2 @@
 udi_interface>=3.0.31
 netifaces
-python-telegram-bot
