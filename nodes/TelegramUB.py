@@ -39,6 +39,12 @@ class TelegramUB(Node):
         self.oid      = self.id
         self.id       = 'telegramub_' + self.iname
         self.http_api_key  = self.info['http_api_key']
+        # Initial releases didn't have this
+        if 'users' in self.info:
+            self.users         = self.info['users']
+        else:
+            self.users         = list()
+        self.user_id       = None
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(TelegramUB, self).__init__(controller.poly, primary, address, name)
@@ -64,22 +70,19 @@ class TelegramUB(Node):
         LOGGER.debug('Authorizing Telegram app {}'.format(self.http_api_key))
         res = self.session.get(f"bot{self.http_api_key}/getUpdates")
         LOGGER.debug('got: {}'.format(res))
-        self.chat_id = None
+        self.user_id = None
         if 'status' in res and res['status']:
-            data = res['data']
-            if data['ok']:
-                for msg in data['result']:
-                    LOGGER.debug(f'check message: {msg}')
-                    if 'chat' in msg['message']:
-                        self.chat_id = msg['message']['chat']['id']
-                    else:
-                        LOGGER.error(f'no chat in message: {msg}')
+            # Send a message to the user that we started up
+            if len(self.users) == 0:
+                self.controller.Notices['telegramub'] = f"Please configure {self.iname} user"
             else:
-                LOGGER.error(f"Bad data ok in: {res}")
+                self.user_id = self.users[0]
+                # TODO: Need to wait for confirmation that send actually completed, or do this one non-threaded?
+                send_st = self.do_send({ 'text': f'{self.name} has started up'})
+                self.controller.Notices.delete('telegramub')
         else:
-            LOGGER.error(f"Bad Status returned in: {res}")
-        if self.chat_id is None:
             self.controller.Notices['telegramub'] = "Failed to authorize Telegram User Bot, see ERROR in log"
+
         return res
 
 
@@ -220,14 +223,15 @@ class TelegramUB(Node):
             del params['message']
         elif not 'text' in params:
             params['text'] = "NOT_SPECIFIED"
-        params['chat_id'] = self.chat_id
+        if self.user_id is None:
+            LOGGER.error(f"user {self.user_id} not defined for {self.iname}")
+            self.set_error(ERROR_USER_AUTH)
+            return False
+        params['chat_id'] = self.user_id
         # Telegram doesn't support any of these...
-        del params['device']
-        del params['priority']
-        del params['format']
-        del params['retry']
-        del params['expire']
-        del params['sound']
+        for key in ('device','priority','format','retry','expire','sound'):
+            if key in params:
+                del params[key]
         #
         # Send the message in a thread with retries
         #

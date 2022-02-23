@@ -315,7 +315,13 @@ class Controller(Node):
                             'defaultValue': 'your_http_api_key',
                             'isRequired': True
                         },
-
+                        {
+                            'name': 'users',
+                            'title': 'Users',
+                            'isRequired': True,
+                            'isList': True,
+                            'defaultValue': ['someuserid'],
+                        },
                     ]
                 }
             ],

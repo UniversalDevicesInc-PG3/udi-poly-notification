@@ -65,6 +65,10 @@ First create your User Bot
     1. Also save a permenant record of it somewhere, along with the link in the next step
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
+1. Go to: [@RawDataBot](https://t.me/RawDataBot)
+    1. Click Start
+    1. This will give your user id listed under message -> from -> id
+    1. Copy that to use in Nodeserver configuration
 
 The tell the Notification Nodserver about it.
 1. PG3 UI
@@ -72,6 +76,7 @@ The tell the Notification Nodserver about it.
 1. Click "Add Telegram User Bot Service Node"
 1. Set the name
 1. Paste the HTTP API Key from above
+1. Paste your userid into the users (currently only one user is supported)
 1. Click Save Changes
 
 
@@ -291,6 +296,10 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.2.2: 02/22/2022
+  - Now required to enter userid in config, could possibly support multiple in the future.
+  - Clear validate error on success
+  - Fix crash in Telgram send broken in last release
 - 3.2.1: 02/22/2022
   - Initial production release of Telegram User Bot
 - 3.2.0: 02/21/2022 BETA
