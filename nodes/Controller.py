@@ -22,6 +22,7 @@ class Controller(Node):
         super(Controller, self).__init__(poly, primary, address, name)
         self.hb = 0
         self.messages = None
+        self.rest = None
         # List of all service nodes
         self.service_nodes = list()
         self.first_run = True
@@ -140,12 +141,14 @@ class Controller(Node):
             node.reportDrivers()
 
     def delete(self):
-        self.rest.stop()
+        if self.rest is not None:
+            self.rest.stop()
         LOGGER.info('Oh God I\'m being deleted. Nooooooooooooooooooooooooooooooooooooooooo.')
 
-    def stop(self):
+    def handler_stop(self):
         LOGGER.debug('NodeServer stopping.')
-        self.rest.stop()
+        if self.rest is not None:
+            self.rest.stop()
         LOGGER.debug('NodeServer stopped.')
         self.poly.stop()
 
@@ -540,8 +543,9 @@ class Controller(Node):
         nls.write("# End: Internal Messages:\n\n")
         nls.write("# Start: Custom Messages:\n")
         ids = list()
-        self.messages.append({'id':0, 'title':"Default"})
         if self.messages is None:
+            self.messages = list()
+            self.messages.append({'id':0, 'title':"Default"})
             LOGGER.warning("No User Messages, define some in Configuration if desired")
         else:
             for message in self.messages:
