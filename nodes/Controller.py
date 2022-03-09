@@ -43,8 +43,8 @@ class Controller(Node):
         poly.subscribe(poly.CUSTOMDATA,             self.handler_data)
         poly.subscribe(poly.CUSTOMTYPEDDATA,        self.handler_typed_data)
         poly.subscribe(poly.LOGLEVEL,               self.handler_log_level)
+        poly.subscribe(poly.STOP,                   self.handler_stop)
         self.handler_start_st      = None
-        self.handler_params_st     = None
         self.handler_data_st       = None
         self.handler_typed_data_st = None
         self.handler_config_st     = None
@@ -147,6 +147,7 @@ class Controller(Node):
         LOGGER.debug('NodeServer stopping.')
         self.rest.stop()
         LOGGER.debug('NodeServer stopped.')
+        self.poly.stop()
 
     def setDriver(self,driver,value):
         self.driver[driver] = value

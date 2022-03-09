@@ -17,7 +17,7 @@
         {
             "title": "notification: The NodeServer for Sending Notifications",
             "author": "Jim Searle (JimBoCA)",
-            "version": "3.2.3",
+            "version": "3.2.4",
             "date": "July 26, 2021",
             "source": "https://github.com/UniversalDevicesInc-PG3/udi-poly-notification",
             "license": "https://raw.githubusercontent.com/UniversalDevicesInc-PG3/udi-poly-notification/master/LICENSE"
