@@ -199,7 +199,7 @@ This is an example of the Controller node showing the Short Custom Content.  You
 
 This shows the Pushover Node with the "Send Sys Short" at the bottom.
 
-![Pushover Node](pics/Program_NotifyTestSysShort.png)
+![Pushover Node](pics/Pushover_node.png)
 
 A simple example of a very useful custom content sends the program name with node name and status:
 
