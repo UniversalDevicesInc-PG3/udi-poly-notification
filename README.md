@@ -41,6 +41,8 @@ The nodeserver allows you to
 1. MESSAGES: Create short messages under Config and send them to a Notification Service easily thru an ISY program
 2. NOTIFY NODES: Create a node that can be added to a scene to send canned messages when the scene is controlled
 3. LARGE MESSAGES WITH SYSTEM VARIABLES: Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
+4. New in 3.3.0 [Short Custom Content](#short-custom-content)
+
 
 ## Notification Services
 
@@ -83,6 +85,7 @@ The tell the Notification Nodserver about it.
 ## Nodes
 
 There are 3 types of nodes
+
 ### Notification Controller
 This is the main node which contains the Status of the nodeserver and provides access to your short messages that you setup in Config.
   - Status
@@ -94,7 +97,7 @@ This is the main node which contains the Status of the nodeserver and provides a
   - Message
         -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
   - Short Custom Content
-    - [See Section Below](#short-custom-contect)
+    - [See Section Below](#short-custom-content)
 
 ### Service Nodes
 These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page
