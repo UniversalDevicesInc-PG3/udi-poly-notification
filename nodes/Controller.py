@@ -23,6 +23,7 @@ class Controller(Node):
         self.hb = 0
         self.messages = None
         self.rest = None
+        self._sys_short_msg = None
         # List of all service nodes
         self.service_nodes = list()
         self.first_run = True
@@ -660,6 +661,13 @@ class Controller(Node):
     def set_message(self,val):
         self.setDriver('GV2', val)
 
+    def set_sys_short(self,val):
+        #self.setDriver('GV3', val)
+        self._sys_short_msg = val
+        
+    def get_sys_short(self):
+        return self._sys_short_msg if self._sys_short_msg is not None else "NOT_DEFINED"
+        
     def cmd_build_profile(self,command):
         LOGGER.info('cmd_build_profile:')
         st = self.write_profile()
@@ -676,6 +684,10 @@ class Controller(Node):
         val = int(command.get('value'))
         LOGGER.info(val)
         self.set_message(val)
+
+    def cmd_set_sys_short(self,command):
+        LOGGER.debug(f'command={command}')
+        self.set_sys_short(command.get('value'))
 
     def rest_ghandler(self,command,params,data=None):
         if not self.handler_params_st:
@@ -719,6 +731,7 @@ class Controller(Node):
     id = 'controller'
     commands = {
         'SET_MESSAGE': cmd_set_message,
+        'SET_SYS_SHORT': cmd_set_sys_short,
         #'SET_SHORTPOLL': cmd_set_short_poll,
         #'SET_LONGPOLL':  cmd_set_long_poll,
         'QUERY': query,
@@ -727,6 +740,7 @@ class Controller(Node):
     }
     drivers = [
         {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
-        {'driver': 'GV1', 'value': 0,  'uom': 25}, # Notification
-        {'driver': 'GV2', 'value': 0,  'uom': 25}, # Notification
+        {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
+        {'driver': 'GV2', 'value': 0,  'uom': 25}, # Message
+        {'driver': 'GV3', 'value': 0,  'uom': 146}, # Custom Content
     ]

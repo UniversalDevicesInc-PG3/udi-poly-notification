@@ -492,12 +492,16 @@ class Pushover(Node):
         LOGGER.info(val)
         self.set_sound(val)
 
-    def cmd_send(self,command):
+    def cmd_send_message(self,command):
         LOGGER.info('')
         # Default create message params
         md = self.controller.get_current_message()
         # md will contain title and message
         return self.do_send({ 'title': md['title'], 'message': md['message']})
+
+    def cmd_send_sys_short(self,command):
+        LOGGER.info('')
+        return self.do_send({ 'message': self.controller.get_sys_short()})
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
@@ -657,5 +661,6 @@ class Pushover(Node):
                 'SET_RETRY': cmd_set_retry,
                 'SET_EXPIRE': cmd_set_expire,
                 'SET_SOUND': cmd_set_sound,
-                'SEND': cmd_send
+                'SEND_MESSAGE': cmd_send_message,
+                'SEND_SYS_SHORT': cmd_send_sys_short,
                 }

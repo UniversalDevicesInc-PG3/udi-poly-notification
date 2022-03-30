@@ -9,9 +9,11 @@ CMD-ctl-INSTALL_PROFILE-NAME = Install Profile
 
 ST-ctl-ST-NAME = NodeServer Online
 ST-ctl-GV1-NAME = REST Status
-ST-ctl-GV2-NAME = Notification
+ST-ctl-GV2-NAME = Message
+ST-ctl-GV3-NAME = Short Custom Content
 
 CMD-SET_MESSAGE-NAME = Message
+CMD-SET_SYS_SHORT-NAME = Short Custom Content
 
 # Controller Status
 CST-0 = Disconnected
@@ -26,14 +28,16 @@ COE-3 = Receive Error
 
 # Telegram Node
 ND-tgub-NAME = tgub Node
-CMD-tgub-SEND-NAME = Send
+CMD-tgub-SEND_MESSAGE-NAME = Send Message
+CMD-tgub-SEND_SYS_SHORT-NAME = Send Sys Short
 
 ST-tgub-ST-NAME = Last Status
 ST-tgub-ERR-NAME = Error
 
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node
-CMD-pov-SEND-NAME = Send
+CMD-pov-SEND_MESSAGE-NAME = Send Message
+CMD-pov-SEND_SYS_SHORT-NAME = Send Sys Short
 
 ST-pov-ST-NAME = Last Status
 ST-pov-ERR-NAME = Error

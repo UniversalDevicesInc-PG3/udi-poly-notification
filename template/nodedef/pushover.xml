@@ -34,7 +34,8 @@
         <cmd id="SET_EXPIRE">
           <p id="" editor="PO_EXPIRE" init="GV5"/>
         </cmd>
-        <cmd id="SEND" />
+        <cmd id="SEND_MESSAGE" />
+        <cmd id="SEND_SYS_SHORT" />
       </accepts>
     </cmds>
   </nodeDef>

@@ -10,7 +10,8 @@
     <cmds>
       <sends />
       <accepts>
-        <cmd id="SEND" />
+        <cmd id="SEND_MESSAGE" />
+        <cmd id="SEND_SYS_SHORT" />
       </accepts>
     </cmds>
   </nodeDef>

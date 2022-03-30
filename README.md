@@ -93,6 +93,9 @@ This is the main node which contains the Status of the nodeserver and provides a
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
   - Message
         -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
+  - Short Custom Content
+    - [See Section Below](#short-custom-contect)
+
 ### Service Nodes
 These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page
   - These are the nodes you can add to a program to configure and send any of your short message previously defined in Config which show in the Notification Controller node above.
@@ -180,6 +183,33 @@ ${sys.node.n005_po_homeisy.name}
 TODO: Add program info here
 
 ## Sending messages
+
+### Short Custom Content
+
+This is a new feature available only for ISY On Polisy staring with version 5.4.2 which will list the "Customized Content" entries you have defined under Configuration -> Emails/Notifications -> Customizations.  This is a much easier way to send simple messsages instead of using Network Resources. This is currently limited to 80 characters.  Eventually we may have Long Custom Content but for now this is a huge improvement for creating simple messages which allows executing from a program and including system variables included program and node that initiated the the message.  This only allows sending the message, not the subject (title) for the Pushover message.
+
+#### Example
+
+This is an example of the Controller node showing the Short Custom Content.  You can change it here, then select 'Send Sys Short' on the Pushover node to test, but the real power is running from a program.
+
+[Controller Node](pics/Controller.png)
+
+This shows the Pushover Node with the "Send Sys Short" at the bottom.
+
+[Pushover Node](pics/Program_NotifyTestSysShort.png)
+
+A simple example of a very useful custom content sends the program name with node name and status:
+
+[Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
+
+Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.
+
+[Program Notify Test Sys Short](pics/Program_NotifyTestSysShort.png)
+
+Which gives you a notificaiton that looks like this
+
+[Pushover Notify Test Sys Short])[pics/Pushover_NotifyTestSysShort.png]
+
 
 ###  Short Messages defined by user
 
@@ -296,6 +326,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.3.0: 03/29/2022
+  - Add Sys Short Messsages
 - 3.2.4: 03/08/2022
   - Stop calls poly.stop
 - 3.2.3: 02/23/2022
