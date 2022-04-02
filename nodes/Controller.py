@@ -500,7 +500,7 @@ class Controller(Node):
         # When data changes build the profile, except when first starting up since
         # that will be done by the config handler
         if not self.first_run:
-            self.write_pofile()
+            self.write_profile()
         self.handler_typed_data_st = True
 
     def write_profile(self):
