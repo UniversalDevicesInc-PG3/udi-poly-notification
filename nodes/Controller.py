@@ -174,17 +174,19 @@ class Controller(Node):
         return False
 
     def get_current_message(self):
-        i = self.getDriver('GV2')
-        LOGGER.info('i={}'.format(i))
-        if i is None:
-            i = 0
+        return(self.get_message_by_id(self.getDriver('GV2')))
+
+    def get_message_by_id(self,id):
+        LOGGER.info(f'id={id}')
+        if id is None:
+            id = 0
         else:
-            i = int(i)
+            id = int(id)
         for msg in self.messages:
-            if int(msg['id']) == i:
+            if int(msg['id']) == id:
                 return msg
-        LOGGER.error('id={} not found in: {}'.format(i,self.messages))
-        return { id: 0, 'title': 'Unknown', 'message': 'Undefined message {}'.format(i)}
+        LOGGER.error('id={} not found in: {}'.format(id,self.messages))
+        return { id: 0, 'title': 'Unknown', 'message': 'Undefined message {}'.format(id)}
 
     def get_typed_name(self,name):
         typedConfig = self.polyConfig.get('typedCustomData')

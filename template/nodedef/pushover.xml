@@ -11,6 +11,7 @@
       <st id="GV6" editor="PO_S_{1}" />
       <st id="GV4" editor="PO_RETRY" />
       <st id="GV5" editor="PO_EXPIRE" />
+      <st id="GV7" editor="MESSAGE" />
     </sts>
     <cmds>
       <sends />
@@ -34,7 +35,24 @@
         <cmd id="SET_EXPIRE">
           <p id="" editor="PO_EXPIRE" init="GV5"/>
         </cmd>
-        <cmd id="SEND_MESSAGE" />
+        <cmd id="SET_MESSAGE">
+          <p id="" editor="MESSAGE" init="GV7"/>
+        </cmd>
+        <cmd id="SET_SYS_SHORT">
+          <p id="" editor="_sys_notify_short"/>
+        </cmd>
+        <cmd id="GV10">
+          <p id="Device" editor="PO_D_{1}" init="GV1" optional="T"/>
+          <p id="Priority" editor="PO_PRIORITY" init="GV2" optional="T"/>
+          <p id="Format" editor="PO_FORMAT" init="GV3" optional="T"/>
+          <p id="Sound" editor="PO_S_{1}" init="GV6" optional="T"/>
+          <p id="Retry" editor="PO_RETRY" init="GV4" optional="T"/>
+          <p id="Expire" editor="PO_EXPIRE" init="GV5" optional="T"/>
+          <p id="Content" editor="_sys_notify_short" optional="T"/>
+        </cmd>
+        <cmd id="SEND_MY_MESSAGE" />
+        <cmd id="SEND_MY_SYS_SHORT" />
+        <cmd id="SEND" />
         <cmd id="SEND_SYS_SHORT" />
       </accepts>
     </cmds>

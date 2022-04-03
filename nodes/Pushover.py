@@ -45,6 +45,7 @@ class Pushover(Node):
         self.id       = 'pushover_' + self.iname
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
+        self._sys_short = None
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(Pushover, self).__init__(controller.poly, primary, address, name)
@@ -424,6 +425,27 @@ class Pushover(Node):
         LOGGER.info('Set GV6 to {}'.format(val))
         self.setDriver('GV6', val)
 
+    def get_message(self):
+        cval = self.getDriver('GV7')
+        if cval is None:
+            return 0
+        return int(self.getDriver('GV7'))
+
+    def set_message(self,val):
+        LOGGER.info(val)
+        if val is None:
+            val = 0
+        val = int(val)
+        LOGGER.info('Set GV7 to {}'.format(val))
+        self.setDriver('GV7', val)
+
+    def get_sys_short(self):
+        return self._sys_short
+
+    def set_sys_short(self,val):
+        LOGGER.info(val)
+        self._sys_short = val
+
     # Returns pushover priority numbers which start at -2 and our priority nubmers that start at zero
     def get_pushover_priority(self,val=None):
         LOGGER.info('val={}'.format(val))
@@ -492,6 +514,16 @@ class Pushover(Node):
         LOGGER.info(val)
         self.set_sound(val)
 
+    def cmd_set_message(self,command):
+        val = int(command.get('value'))
+        LOGGER.info(val)
+        self.set_message(val)
+
+    def cmd_set_sys_short(self,command):
+        val = int(command.get('value'))
+        LOGGER.info(val)
+        self.set_sys_short(val)
+
     def cmd_send_message(self,command):
         LOGGER.info('')
         # Default create message params
@@ -502,6 +534,36 @@ class Pushover(Node):
     def cmd_send_sys_short(self,command):
         LOGGER.info('')
         return self.do_send({ 'message': self.controller.get_sys_short()})
+
+    def cmd_send_my_message(self,command):
+        LOGGER.info('')
+        # Default create message params
+        md = self.controller.get_message_by_id(self.get_message())
+        # md will contain title and message
+        return self.do_send({ 'title': md['title'], 'message': md['message']})
+
+    def cmd_send_my_sys_short(self,command):
+        LOGGER.info('')
+        return self.do_send({ 'message': self.get_sys_short})
+
+    # command={'address': 'po_dev', 'cmd': 'GV10', 'query': {'Device.uom25': '2', 'Priority.uom25': '2', 'Format.uom25': '0', 
+    #          'Sound.uom25': '0', 'Retry.uom56': '30', 'Expire.uom56': '10800', 'Content.uom145': 'Temp: 54.6°F\nHumidity: 81%'}}
+    def cmd_send_sys_short_with_params(self,command):
+        LOGGER.debug(f'command={command}')
+        query = command.get('query')
+        self.set_device(query.get('Device.uom25'))
+        self.set_priority(query.get('Priority.uom25'))
+        self.set_format(query.get('Format.uom25'))
+        self.set_sound(query.get('Sound.uom25'))
+        self.set_retry(query.get('Retry.uom56'))
+        self.set_expire(query.get('Expire.uom56'))
+        #Can't do this since it changes the current sys short message which has no driver?
+        #self.set_sys_short(query.get('Content.uom145'))
+        msg = query.get('Content.uom145')
+        if msg is None:
+            LOGGER.warning(f"No sys short message passed in?")
+            msg = "No Message Defined"
+        return self.do_send({ 'message': msg})
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
@@ -652,6 +714,7 @@ class Pushover(Node):
         {'driver': 'GV4', 'value': 30, 'uom': 56},
         {'driver': 'GV5', 'value': 10800, 'uom': 56},
         {'driver': 'GV6', 'value': 0, 'uom': 25},
+        {'driver': 'GV7', 'value': 0, 'uom': 25},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
@@ -661,6 +724,11 @@ class Pushover(Node):
                 'SET_RETRY': cmd_set_retry,
                 'SET_EXPIRE': cmd_set_expire,
                 'SET_SOUND': cmd_set_sound,
-                'SEND_MESSAGE': cmd_send_message,
+                'SET_MESSAGE': cmd_set_message,
+                'SET_SYS_SHORT': cmd_set_sys_short,
+                'SEND': cmd_send_message,
                 'SEND_SYS_SHORT': cmd_send_sys_short,
+                'SEND_MY_MESSAGE': cmd_send_my_message,
+                'SEND_MY_SYS_SHORT': cmd_send_my_sys_short,
+                'GV10': cmd_send_sys_short_with_params,
                 }
