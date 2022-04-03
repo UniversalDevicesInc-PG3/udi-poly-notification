@@ -205,7 +205,7 @@ A simple example of a very useful custom content sends the program name with nod
 
 ![Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
 
-Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.
+Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.  (Ignore the NLSG:UD_UOM_146_NAME, that's a ISY bug that Chris will fix in the next release)
 
 ![Program Notify Test Sys Short](pics/Program_NotifyTestSysShort.png)
 
