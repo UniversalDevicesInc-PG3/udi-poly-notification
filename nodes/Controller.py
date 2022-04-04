@@ -430,7 +430,6 @@ class Controller(Node):
                     sname = pd['name']
                 else:
                     sname = 'telegramub'
-                sname = pd['name']
                 # Save info for later
                 pd['type'] = 'telegramub'
                 snames[sname] = pd
