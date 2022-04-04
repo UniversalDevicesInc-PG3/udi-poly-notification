@@ -345,6 +345,8 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.3.3: 04/04/2022
+  - Force latest udi_interface
 - 3.3.2: 04/03/2022
   - Don't crash if telegram node is defined, but not given a name.
 - 3.3.1: 04/03/2022
