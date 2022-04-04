@@ -131,6 +131,22 @@ These are the Services such as Pushover that are called when a Send is issued.  
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how often (in seconds) the Pushover servers will send the same notification to the user.
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
+        - Message
+          - The user messages configured in the PG3 UI, these will eventually be removed in favor of Sys Short Custom Content
+        - Short Custom Content
+          - A custom content defined in Admin Console Configuration -> Emails/Notifications -> Customizations
+          - The final parsed value must be 80 characters or less
+          - Can use any [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables) 
+      - Commands
+        - Send Message (old from controller)
+          - Sends the Message selected on the controller node.  This is the old way and will eventually be removed
+        - Send Sys Short (old from controller)
+          - Sends the Sys Short message selected on the controller.  This is the old way and will eventually be removed
+        - Send Message
+          - Send the message selected on this node
+        - Send Sys Short
+          - Send the Sys Short message selected on this node
+
 
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
