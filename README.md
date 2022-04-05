@@ -212,25 +212,37 @@ This is a new feature available only for ISY On Polisy staring with version 5.4.
 
 #### Example
 
+##### Controller Node
+
 This is an example of the Controller node showing the Short Custom Content.  You can change it here, then select 'Send Sys Short' on the Pushover node to test, but the real power is running from a program.
 
 ![Controller Node](pics/Controller.png)
+
+##### Pushover Node
 
 This shows the Pushover Node with the "Send Sys Short" at the bottom.
 
 ![Pushover Node](pics/Pushover_node.png)
 
+##### Custom Content Example
+
 A simple example of a very useful custom content sends the program name with node name and status:
 
 ![Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
+
+##### Send Sys Short
 
 Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.  (Ignore the NLSG:UD_UOM_146_NAME, that's a ISY bug that Chris will fix in the next release)
 
 ![Program Notify Test Sys Short](pics/Program_NotifyTestSysShort.png)
 
+##### Pushover Result
+
 Which gives you a notificaiton that looks like this
 
 ![Pushover Notify Test Sys Short](pics/Pushover_NotifyTestSysShort.png)
+
+##### Send Sys Short With Params
 
 You can also pass all params on one line with the program entry as like this:
 
