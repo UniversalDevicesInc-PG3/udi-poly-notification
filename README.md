@@ -145,7 +145,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
         - Send Message
           - Send the message selected on this node
         - Send Sys Short
-          - Send the Sys Short message selected on this node
+          - Send the Sys Short message selected on this node [See Section Below](#short-custom-content)
 
 
 ### Notify Nodes
@@ -205,7 +205,10 @@ TODO: Add program info here
 
 ### Short Custom Content
 
-This is a new feature available only for ISY On Polisy staring with version 5.4.2 which will list the "Customized Content" entries you have defined under Configuration -> Emails/Notifications -> Customizations.  This is a much easier way to send simple messsages instead of using Network Resources. This is currently limited to 80 characters.  Eventually we may have Long Custom Content but for now this is a huge improvement for creating simple messages which allows executing from a program and including system variables included program and node that initiated the the message.  This only allows sending the message, not the subject (title) for the Pushover message.
+This is a new feature available only for ISY On Polisy staring with version 5.4.2 which will list the "Customized Content" entries you have defined under Configuration -> Emails/Notifications -> Customizations.  This is a much easier way to send simple messsages instead of using Network Resources.   Eventually we may have Long Custom Content but for now this is a huge improvement for creating simple messages which allows executing from a program and including system variables included program and node that initiated the the message.  This only allows sending the message, not the subject (title) for the Pushover message.
+
+- The subject can contain one or two lines, if left blank then it will send the body.
+- This is currently limited to 80 characters.
 
 #### Example
 
@@ -229,6 +232,9 @@ Which gives you a notificaiton that looks like this
 
 ![Pushover Notify Test Sys Short](pics/Pushover_NotifyTestSysShort.png)
 
+You can also pass all params on one line with the program entry as like this:
+
+![Pushover Notify Node Server Connection](pics/Pushover_NotifyNodeServerConnection.png)
 
 ###  Short Messages defined by user
 
@@ -324,9 +330,6 @@ You can test the REST interface from a command line by running curl:
 curl -d '{"node":"po_develop", "message":"The Message", "subject":"The Subject"}' -H "Content-Type: application/json" -X POST http://192.168.86.77:8199/send
 curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
-# Customized Content
-
-I've been begging Michel and Chris to allow sending ISY "Customized Content" to a nodeserver.  This would make things much simpler. Chris has said this is on the list, so hopefully will happen soon. Even better if ISY added Pushover as a service inside the Emails/Notifications page :)
 
 ## Installation
 
@@ -342,7 +345,7 @@ I've been begging Michel and Chris to allow sending ISY "Customized Content" to 
 ## Upgrading
 
 1. Open the Polyglot web page and restart the NS.
-1. Currently all upgrades happen on restart, but eventually on patch updates will be automatic, major and minore updates will require user intervention.
+1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
 - 3.3.3: 04/04/2022
