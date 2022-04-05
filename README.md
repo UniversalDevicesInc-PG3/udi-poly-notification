@@ -248,6 +248,10 @@ You can also pass all params on one line with the program entry as like this:
 
 ![Pushover Notify Node Server Connection](pics/Pushover_NotifyNodeServerConnection.png)
 
+Which sends this content
+
+![Custom Content Program Name, Node, and Status](pics/CustomizedContent_ProgramName-NodeST.png)
+
 ###  Short Messages defined by user
 
 The short messages that you added in Config are simple to send from a program. The first step is to add a Message in the config page, saving, and restarting the NodeServer. Then restart the admin console and then create a program. In the program you will set the message to be sent by adding the Notification Controller node and selecting the message. Then you will add the Service node, such as Pushover and select items such as: the Device to send it to, the priority, etc. Below is an example of sending a message 'Good Morning' that I have set up, to my phone with a Normal priority.
