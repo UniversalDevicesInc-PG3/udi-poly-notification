@@ -175,6 +175,9 @@ def get_profile_info(logger):
     return { 'version': pv }
 
 def get_subset_str(subset):
+    if len(subset) == 0:
+        # No data, just use zero
+        return '0'
     subset_str = ""
     subset.sort()
     while len(subset) > 0:
