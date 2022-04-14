@@ -528,7 +528,7 @@ class Pushover(Node):
         self.set_message(val)
 
     def cmd_set_sys_short(self,command):
-        val = int(command.get('value'))
+        val = command.get('value')
         LOGGER.info(val)
         self.set_sys_short(val)
 
