@@ -20,6 +20,7 @@ ERROR_APP_AUTH   = 2
 ERROR_USER_AUTH  = 3
 ERROR_MESSAGE_CREATE = 4
 ERROR_MESSAGE_SEND   = 5
+ERROR_PARAM          = 6
 
 REM_PREFIX = "REMOVED-"
 
@@ -322,7 +323,7 @@ class Pushover(Node):
         else:
             if not is_int(dev):
                 LOGGER.error('Passed in {} is not an integer'.format(dev))
-                return 0
+                return False
             dev = int(dev)
         dev_name = None
         try:
@@ -331,7 +332,8 @@ class Pushover(Node):
                 dev_name = self.devices_list[dev]
         except:
             LOGGER.error('Bad device index {}'.format(dev),exc_info=True)
-            return 0
+            self.set_error(ERROR_PARAM)
+            return False
         return dev_name
 
     def set_st(self,val):
@@ -574,6 +576,9 @@ class Pushover(Node):
             if is_int(params['device']):
                 # It's an index, so getthe name
                 params['device'] = self.get_device_name_by_index(params['device'])
+                if params['device'] is False:
+                    # Bad param, can't send
+                    return
         else:
             params['device'] = self.get_device_name_by_index()
         if 'priority' in params:

@@ -37,7 +37,7 @@
 
     <!-- Pushover Errors -->
     <editor id="PO_ERR">
-      <range uom="25" subset="0-5" nls="POVE" />
+      <range uom="25" subset="0-6" nls="POVE" />
     </editor>
 
     <!-- Assistant Relay User -->
