@@ -599,6 +599,8 @@ class Controller(Node):
                     time.sleep(1)
                     cnt -= 1
                 if node.init_st():
+                    if cnt < 60:
+                        LOGGER.warning(f'{node.name} is initialized...')
                     LOGGER.info('node={} id={}'.format(node.name,node.id))
                     node.write_profile(nls)
                     config_info_nr.append(node.config_info_nr())

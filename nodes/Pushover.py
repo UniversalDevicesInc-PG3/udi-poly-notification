@@ -206,7 +206,7 @@ class Pushover(Node):
         return str
 
     def config_info_nr(self):
-        if self.rest is None:
+        if self.controller.rest is None:
             rest_ip = "None"
             rest_port = "None"
         else:
@@ -648,7 +648,7 @@ class Pushover(Node):
         LOGGER.debug('params={}'.format(params))
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            LOGGER.debug('try #{}'.format(cnt))
+            LOGGER.info('try #{}'.format(cnt))
             res = self.session.post("1/messages.json",params)
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
@@ -681,7 +681,7 @@ class Pushover(Node):
         cnt  = 0
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
-            LOGGER.warning('try {} #{}'.format(url,cnt))
+            LOGGER.info('try {} #{}'.format(url,cnt))
             res = self.session.get(url,params)
             LOGGER.info('got {}'.format(res))
             if res['status'] is True and res['data']['status'] == 1:

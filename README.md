@@ -364,6 +364,12 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.3.4: 04/14/2022
+  - Fix [Editor missing subset](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/36)
+  - Fix [Remove optional from Command Parameters](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/39)
+  - Fix [Crash when bad device index is passed in](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/35)
+  - Fix [Crash in handler_typed_data calling write_profile](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/34)
+  - Force udi_interface 3.0.40
 - 3.3.3: 04/04/2022
   - Force latest udi_interface
 - 3.3.2: 04/03/2022
