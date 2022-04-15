@@ -282,12 +282,17 @@ class Pushover(Node):
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
+        # Make sure it has at lease one
+        if len(subst) == 0:
+            subst.append('0')
+
         sound_subst = []
         for item in self.sounds_list:
             nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
             # Don't include REMOVED's in list
             if not item[1].startswith(REM_PREFIX):
                 sound_subst.append(str(item[2]))
+        
         #
         # editor
         #
