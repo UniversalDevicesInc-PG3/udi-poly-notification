@@ -46,6 +46,10 @@ The nodeserver allows you to
 
 ## Notification Services
 
+### ISY Portal
+
+Put link to setting up ISY Portal notifications here...
+
 ### Pushover 
 
 Describe out to setup Pushover here... 
@@ -100,7 +104,8 @@ This is the main node which contains the Status of the nodeserver and provides a
     - [See Section Below](#short-custom-content)
 
 ### Service Nodes
-These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page
+These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page.  This includes all available drivers, but not all are available with all services.  Neeed to document which apply to which nodes...
+
   - These are the nodes you can add to a program to configure and send any of your short message previously defined in Config which show in the Notification Controller node above.
     - Pushover Service Node
       - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
@@ -364,6 +369,10 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.4.1: 06/28/2020
+  - Fix to all setting REST Server port to another port, or nothing which means to not start the REST Server.
+- 3.4.0: 06/27/2022
+  - Initial support of ISY Portal notifications used by UD Mobile.
 - 3.3.4: 04/14/2022
   - Fix [Editor missing subset](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/36)
   - Fix [Remove optional from Command Parameters](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/39)

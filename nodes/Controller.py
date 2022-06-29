@@ -23,6 +23,7 @@ class Controller(Node):
         self.hb = 0
         self.messages = None
         self.rest = None
+        self.rest_port = None
         self._sys_short_msg = None
         # List of all service nodes
         self.service_nodes = list()
@@ -63,6 +64,9 @@ class Controller(Node):
     '''
     def node_queue(self, data):
         self.n_queue.append(data['address'])
+        if (data['address'] == self.address):
+            LOGGER.debug("Controller add done")
+            self.add_node_done()
 
     def wait_for_node_done(self):
         while len(self.n_queue) == 0:
@@ -77,7 +81,7 @@ class Controller(Node):
         LOGGER.debug(f'got {anode}')
         self.wait_for_node_done()
         if anode is None:
-            LOGGER.error('Failed to add node address')
+            LOGGER.error(f'Failed to add node {node}')
         return anode
 
     def handler_start(self):
@@ -88,41 +92,33 @@ class Controller(Node):
 
     def handler_config_done(self):
         LOGGER.debug("enter")
-        # This is supposed to only run after we have received and
-        # processed all config data, just add a check here.
+        self.handler_config_st = True
+        LOGGER.debug("exit")
+
+    def add_node_done(self):
+        LOGGER.debug("enter")
         cnt = 60
-        while ((self.handler_start_st is None
+        while (cnt > 0 and (
+            self.handler_start_st is None
             or self.handler_params_st is None
             or self.handler_data_st is None
-            or self.handler_typed_data_st is None)
-            and cnt > 0
-        ):
+            or self.handler_typed_data_st is None)):
             LOGGER.warning(f'Waiting for all handlers to complete start={self.handler_start_st} params={self.handler_params_st} data={self.handler_data_st} typed_data={self.handler_typed_data_st} cnt={cnt}')
             time.sleep(1)
             cnt -= 1
         if cnt == 0:
             LOGGER.error('Timed out waiting for all handlers to complete')
+            LOGGER.error('Exiting...')
             self.poly.stop()
-            return
-        self.setDriver('GV1',0)
-        if self.handler_params_st:
-            self.rest = polyglotRESTServer('8199',LOGGER,ghandler=self.rest_ghandler)
-            # TODO: Need to monitor thread and restart if it dies
-            self.rest.start()
-            self.setDriver('GV1',1)
         else:
-            LOGGER.error(f'Unable to start REST Server until config params are correctd ({self.handler_params_st})')
-        #
-        # Always rebuild profile on startup?
-        #
-        LOGGER.debug(f'first_run={self.first_run}')
-        if self.first_run:
-            self.write_profile()
+            if cnt < 60:
+                LOGGER.warning(f'Done waiting, all looks good')
+            self.start_rest_server()
             self.first_run = False
-
-        self.handler_config_st = True
+            self.write_profile()
+            self.setDriver('GV1',0)
         LOGGER.debug("exit")
-
+    
     def handler_poll(self, polltype):
         if polltype == 'longPoll':
             self.heartbeat()
@@ -200,12 +196,23 @@ class Controller(Node):
     def get_service_node_address(self,id):
         return get_valid_node_address('po_'+id)
 
+    def get_service_node_address_isyportal(self,id):
+        return get_valid_node_address('ip_'+id)
+
     def get_service_node_address_telegramub(self,id):
         return get_valid_node_address('tu_'+id)
 
     def init_typed(self):
+        LOGGER.debug('enter')
         self.TypedParams.load(
             [
+                #{   
+                #    'name': 'rest_port', 
+                #    'title': 'REST Server Port',
+                #    'isRequired': False, 
+                #    'type': 'NUMBER',
+                #    'defaultValue': 8199
+                #},
                 {
                     'name': 'messages',
                     'title': 'Messages',
@@ -248,6 +255,26 @@ class Controller(Node):
                         {
                             'name': 'app_key',
                             'title': 'Application Key',
+                            'isRequired': True,
+                            'isList': False,
+                            #s'defaultValue': ['somename'],
+                        },
+                    ]
+                },
+                {
+                    'name': 'isyportal',
+                    'title': 'ISYPortal Service Nodes',
+                    'desc': 'Config for UD Portal Notifications',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'name',
+                            'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'api_key',
+                            'title': 'Portal API Key',
                             'isRequired': True,
                             'isList': False,
                             #s'defaultValue': ['somename'],
@@ -334,6 +361,7 @@ class Controller(Node):
             ],
             True
         )
+        LOGGER.debug('exit')
 
     def handler_data(self,data):
         LOGGER.debug(f'Enter data={data}')
@@ -343,9 +371,29 @@ class Controller(Node):
             self.Data.load(data)
             self.handler_data_st = True
 
+    def start_rest_server(self):
+        if self.handler_params_st is True:
+            if self.rest is None:
+                if self.rest_port is None or self.rest_port == "":
+                    LOGGER.warning(f"Not starting REST Server, rest_port={self.rest_port}")
+                else:
+                    LOGGER.info("Starting REST Server...")
+                    self.rest = polyglotRESTServer(self.rest_port,LOGGER,ghandler=self.rest_ghandler)
+                    # TODO: Need to monitor thread and restart if it dies
+                    self.rest.start()
+                    self.setDriver('GV1',1)
+            else:
+                LOGGER.info(f"REST Sever already running ({self.rest})")
+        else:
+            LOGGER.error(f'Unable to start REST Server until config params are correctd ({st})')
+
     def handler_params(self, data):
         LOGGER.debug("Enter data={}".format(data))
         self.Params.load(data)
+        if not 'rest_port' in data:
+            self.Params['rest_port'] = '8199'
+            return
+        self.rest_port = data['rest_port']
         # Assume we are good unless something bad is found
         st = True
         # Make sure they acknowledge
@@ -364,6 +412,10 @@ class Controller(Node):
         else:
             self.Notices.delete(ack)
         self.handler_params_st = st
+        # Dont' start on first run cause we need handler_typed_data to be completed
+        # add_node_done will do it on first start 
+        if not self.first_run:
+            self.start_rest_server()
 
     def handler_typed_data(self, data):
         LOGGER.debug("Enter data={}".format(data))
@@ -377,6 +429,9 @@ class Controller(Node):
             self.Notices.clear()
 
         el = list()
+
+        #We are not getting this returned in data??? Report to Bob.
+        #self.rest_port = data.get('rest_port',None)
 
         self.messages = data.get('messages',el)
         LOGGER.info('messages={}'.format(self.messages))
@@ -415,10 +470,35 @@ class Controller(Node):
                     err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
 
         #
+        # Check the isyportal configs are all good
+        #
+        isyportal = data.get('isyportal',el)
+        # ISYPortal node names
+        unames   = dict()
+        LOGGER.info('isyportal={}'.format(isyportal))
+        if len(isyportal) == 0:
+            LOGGER.warning("No ISYPortal Entries in the config: {}".format(isyportal))
+            isyportal = None
+        else:
+            for pd in isyportal:
+                sname = pd['name']
+                # Save info for later
+                pd['type'] = 'isyportal'
+                snames[sname] = pd
+                # Check for duplicates
+                address = self.get_service_node_address(sname)
+                if not address in unames:
+                    unames[address] = list()
+                unames[address].append(sname)
+            for address in unames:
+                if len(unames[address]) > 1:
+                    err_list.append("Duplicate isyportal names for {} items {} from {}".format(len(unames[address]),address,",".join(unames[address])))
+
+        #
         # Check the telegramub configs are all good
         #
         telegramub = data.get('telegramub',el)
-        # Pushover node names
+        # Telegram node names
         tnames   = dict()
         LOGGER.info('telegramub={}'.format(telegramub))
         if len(telegramub) == 0:
@@ -482,6 +562,17 @@ class Controller(Node):
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
+        if isyportal is not None:
+            # https://wiki.universal-devices.com/index.php?title=UD_Mobile#Notifications_Tab
+            # Protocol: https | POST | Host = my.isy.io | Port = 443 | Path = /api/push/notification/send | Mode = Raw Text
+            # Header: Add x-api-key with the value as your API Key copied from UD Mobile. 
+            # Body: title=message_title&body=message_body where message_title and message_body are replaced by your desired title and body values.
+            self.isyportal_session = polyglotSession(self,"https://my.isy.io",LOGGER)
+            for pd in isyportal:
+                snode = self.add_node(ISYPortal(self, self.address, self.get_service_node_address_isyportal(pd['name']), get_valid_node_name('Service ISYPortal '+pd['name']), self.isyportal_session, pd))
+                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+
         if telegramub is not None:
             self.telegramub_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
             for pd in telegramub:
@@ -498,11 +589,12 @@ class Controller(Node):
                 node['service_type'] = snames[node['service_node_name']]['type']
                 self.add_node(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
+        self.handler_typed_data_st = True
+
         # When data changes build the profile, except when first starting up since
         # that will be done by the config handler
         if not self.first_run:
             self.write_profile()
-        self.handler_typed_data_st = True
 
     def write_profile(self):
         pfx = 'write_profile'
@@ -608,6 +700,10 @@ class Controller(Node):
                 else:
                     LOGGER.error( 'Node {} failed to initialize init_st={}'.format(node.name, node.init_st()))
                     st = False
+        LOGGER.debug(f'st={st}')
+        if st is False:
+            LOGGER.error('Not all nodes initialized, can not write profile')
+            return
         nls.write("# Start: End Service Nodes:\n")
         LOGGER.debug("Closing {}".format(en_us_txt))
         nls.close()

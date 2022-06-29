@@ -12,4 +12,6 @@ profile/nls/*
 profile/*/dev.xml
 profile/*/tgub.xml
 profile/*/telegram.xml
+profile/*/isyp.xml
 pics/*
+mysettings.txt

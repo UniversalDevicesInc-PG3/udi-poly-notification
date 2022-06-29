@@ -1,18 +1,16 @@
 """
-  Notification Pushover Node
+  Notification ISYPortal Node
 
   TODO:
-    - Make sure pushover name is get_valid_node_name, and Length
-    - Clean out profile directory?
-    - Make list of sounds
-    - Allow groups of devices in configuration
+    - 
 """
+from email import message
+from socket import MsgFlag
 from udi_interface import Node,LOGGER
-from threading import Thread,Event
+from threading import Thread
 import time
-import logging
-import collections
-from node_funcs import make_file_dir,is_int,get_default_sound_index
+from node_funcs import make_file_dir,is_int
+from constants import SOUNDS_LIST
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
@@ -29,7 +27,7 @@ RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
 
-class Pushover(Node):
+class ISYPortal(Node):
     """
     """
     def __init__(self, controller, primary, address, name, session, info):
@@ -43,13 +41,15 @@ class Pushover(Node):
         self.info     = info
         self.iname    = info['name']
         self.oid      = self.id
-        self.id       = 'pushover_' + self.iname
-        self.app_key  = self.info['app_key']
-        self.user_key = self.info['user_key']
+        self.id       = 'isyportal_' + self.iname
+        if 'api_key' in self.info:
+            self.api_key  = self.info['api_key']
+        else:
+            self.api_key = None
         self._sys_short = None
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
-        super(Pushover, self).__init__(controller.poly, primary, address, name)
+        super(ISYPortal, self).__init__(controller.poly, primary, address, name)
 
     def handler_start(self):
         """
@@ -58,17 +58,12 @@ class Pushover(Node):
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
-        self.set_priority(self.get_priority())
-        self.set_format(self.get_format())
-        self.set_retry(self.get_retry())
-        self.set_expire(self.get_expire())
-        self.set_sound(self.get_sound())
         # TODO: This should be stored at the node level, but PG2 didn't allow
         # that so eventually it should be moved to the node?
-        self.devices_list = self.controller.Data.get('devices_list',[])
-        self.sounds_list  = self.controller.Data.get('sounds_list',[])
-        LOGGER.info("devices_list={}".format(self.devices_list))
-        LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
+        self.devices_list = self.controller.Data.get('devices_list_isyp',[])
+        self.sounds_list  = SOUNDS_LIST
+        LOGGER.info("devices_list_isyp={}".format(self.devices_list))
+        LOGGER.debug('Authorizing ISYPortal api {}'.format(self.api_key))
         vstat = self.validate()
         if vstat['status'] is False:
             self.authorized = False
@@ -76,106 +71,52 @@ class Pushover(Node):
             self.authorized = True if vstat['status'] == 1 else False
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
-            LOGGER.info("got devices={}".format(vstat['data']['devices']))
-            self.build_device_list(vstat['data']['devices'])
-            self.build_sound_list()
-            self.controller.Data['devices_list'] = self.devices_list
-            self.controller.Data['sounds_list']  = self.sounds_list
+            LOGGER.info("got isyportal devices={}".format(vstat['data']['data']))
+            self.build_device_list(vstat['data']['data'])
+            self.controller.Data['devices_list_isyp'] = self.devices_list
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
             self.set_error(ERROR_APP_AUTH)
             self._init_st = False
 
-    def validate(self):
-        res = self.session.post("1/users/validate.json",
-            {
-                'user':  self.user_key,
-                'token': self.app_key,
-            })
+    def api_get(self,command):
+        res = self.session.get(f"api/push/{command}",api_key=self.api_key)
         LOGGER.debug('got: {}'.format(res))
         return res
 
+    def api_post(self,command,params):
+        res = self.session.post(f"api/push/{command}",params,api_key=self.api_key,content="urlencode")
+        LOGGER.debug('got: {}'.format(res))
+        return res
 
-    # Add items in second list to first if they don't exist
-    #  self.controler.add_to_list(self.devices_list,vstat['devices'])
+    def validate(self):
+        return self.api_get("tokens")
+
     def build_device_list(self,vlist):
         if len(self.devices_list) == 0:
             self.devices_list.append('all')
         self.devices_list[0] = 'all'
         # Add new items
-        for item in vlist:
+        dlist = list()
+        for idict in vlist:
+            item = idict['name']
+            dlist.append(item)
             # If it's not in the saved list, append it
             if self.devices_list.count(item) == 0:
                 self.devices_list.append(item)
         # Make sure items are in the passed in list, otherwise prefix it
         # in devices_list
         for item in self.devices_list:
-            if item != 'all' and not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
-                self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
-        LOGGER.info("devices_list={}".format(self.devices_list))
+            if item != 'all':
+                # Add removed prefix to items no longer in the list.
+                if not item.startswith(REM_PREFIX) and dlist.count(item) == 0:
+                    self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
+                # Get rid of removed prefix if the device is back
+                if item.startswith(REM_PREFIX) and dlist.count(item) > 0:
+                    self.devices_list[self.devices_list.index(item)] = item
 
-    # Build the list of sounds, make sure the order of the list never changes.
-    # sounds_list is a list of 2 element lists with shortname, longname
-    # It has to be a list to keep the order the same, and be able to store
-    # in Polyglot params
-    def build_sound_list(self):
-        res = self.get("1/sounds.json")
-        LOGGER.debug('got: {}'.format(res))
-        # Always build a new list
-        sounds_list  = []
-        custom_index = 100 # First index for a custom sound
-        if res['status']:
-            #
-            # Build list with default sounds
-            #
-            for skey in res['data']['sounds']:
-                # Is it a default?
-                idx = get_default_sound_index(skey)
-                if idx >= 0:
-                    sounds_list.append([skey, res['data']['sounds'][skey], idx])
-            LOGGER.debug('sounds={}'.format(sounds_list))
-            #
-            # Add any custom sounds
-            #
-            # hash for quick lookup of name to index of existing sounds_list
-            es = {}
-            for item in self.sounds_list:
-                es[item[0]] = item
-                if len(item) == 3:
-                    # New style, if already have custom ones saved remember the max index
-                    if item[2] > custom_index:
-                        custom_index = item[2]
-            # Add to our list if not exists.
-            for skey in res['data']['sounds']:
-                # Add to list if we have it, otherwise append
-                if skey in es:
-                    # and not a default
-                    if get_default_sound_index(skey) == -1:
-                        item = es[skey]
-                        if len(item) == 2:
-                            # Old style, add index
-                            custom_index += 1
-                            sounds_list.append([item[0],item[1],custom_index])
-                        else:
-                            sounds_list.append(item)
-                else:
-                    custom_index += 1
-                    sounds_list.append([skey, res['data']['sounds'][skey], custom_index])
-            LOGGER.debug('sounds={}'.format(sounds_list))
-            # Make sure items are in the existing list, otherwise prefix it in devices_list
-            for item in self.sounds_list:
-                if not item[0] in res['data']['sounds']:
-                    name = item[0] if item[0].startswith(REM_PREFIX) else REM_PREFIX + item[0]
-                    if len(item) == 2:
-                        # Old style without index
-                        custom_index += 1
-                        sounds_list.append([item[0],name,custom_index])
-                    else:
-                        sounds_list.append([item[0],name,item[2]])
-            self.sounds_list = sorted(sounds_list, key=lambda sound: sound[2])
-            LOGGER.debug('sounds={}'.format(self.sounds_list))
-        return res
+        LOGGER.info("devices_list={}".format(self.devices_list))
 
 
     """
@@ -193,13 +134,13 @@ class Pushover(Node):
 
     def setDriver(self,driver,value):
         self.driver[driver] = value
-        super(Pushover, self).setDriver(driver,value)
+        super(ISYPortal, self).setDriver(driver,value)
 
     def getDriver(self,driver):
         if driver in self.driver:
             return self.driver[driver]
         else:
-            return super(Pushover, self).getDriver(driver)
+            return super(ISYPortal, self).getDriver(driver)
 
     def config_info_rest(self):
         if self.controller.rest is None:
@@ -217,9 +158,9 @@ class Pushover(Node):
             rest_ip = self.controller.rest.ip
             rest_port = self.controller.rest.listen_port
         info = [
-            '<li>Example Network Resource settings for Pushover<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
+            '<li>Example Network Resource settings for ISYPortal<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
             '</ul>',
-            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the pushover node will be used'
+            '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the ISYPortal node will be used'
             '<table>',
             '<tr><th>Name<th>Value<th>Description',
         ]
@@ -230,24 +171,12 @@ class Pushover(Node):
             i += 1
             t = '&nbsp;'
         t = 'sound'
+        i = 0
         for item in self.sounds_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,item[2],item[1]))
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item['name']))
+            i += 1
             t = '&nbsp;'
         info = info + [
-            '<tr><td>monospace<td>1<td>use Monospace Font',
-            '<tr><td>&nbsp;<td>0<td>Normal Font',
-
-            '<tr><td>priority<td>-2<td>Lowest',
-            '<tr><td>&nbsp;<td>-1<td>Low',
-            '<tr><td>&nbsp;<td>0<td>Normal',
-            '<tr><td>&nbsp;<td>1<td>High',
-            '<tr><td>&nbsp;<td>2<td>Emergency',
-
-            '<tr><td>html<td>1<td>Enable html',
-            '<tr><td>&nbsp;<td>0<td>No html',
-
-            '<tr><td>retry<td>n<td>Set Emergency retry to n',
-            '<tr><td>expire<td>n<td>Set Emergency exipre to n',
 
             '</table>'
         ]
@@ -260,7 +189,7 @@ class Pushover(Node):
         # nodedefs
         #
         # Open the template, and read into a string for formatting.
-        template_f = 'template/nodedef/pushover.xml'
+        template_f = 'template/nodedef/isyportal.xml'
         LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
@@ -276,32 +205,34 @@ class Pushover(Node):
         #
         # nls
         #
-        nls.write("\n# Entries for Pushover {} {}\n".format(self.id,self.name))
+        nls.write("\n# Entries for ISYPortal {} {}\n".format(self.id,self.name))
         nls.write("ND-{0}-NAME = {1}\n".format(self.id,self.name))
         idx = 0
         subst = []
         for item in self.devices_list:
-            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,item))
+            nls.write("IPD_{}-{} = {}\n".format(self.iname,idx,item))
             # Don't include REMOVED's in list
             if not item.startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
-        # Make sure it has at lease one
+        # Make sure it has at least one
         if len(subst) == 0:
             subst.append('0')
 
         sound_subst = []
+        idx = 0
         for item in self.sounds_list:
-            nls.write("POS_{}-{} = {}\n".format(self.iname,item[2],item[1]))
+            nls.write("IPS_{}-{} = {}\n".format(self.iname,idx,item['name']))
             # Don't include REMOVED's in list
-            if not item[1].startswith(REM_PREFIX):
-                sound_subst.append(str(item[2]))
+            if not item['name'].startswith(REM_PREFIX):
+                sound_subst.append(str(idx))
+            idx += 1
         
         #
         # editor
         #
         # Open the template, and read into a string for formatting.
-        template_f = 'template/editor/pushover.xml'
+        template_f = 'template/editor/isyportal.xml'
         LOGGER.debug("Reading {}".format(template_f))
         with open (template_f, "r") as myfile:
             data=myfile.read()
@@ -372,7 +303,13 @@ class Pushover(Node):
         self.setDriver('ERR', val)
         self.set_st(True if val == 0 else False)
 
-    def set_priority(self,val):
+    def get_sound(self):
+        cval = self.getDriver('GV2')
+        if cval is None:
+            return 0
+        return int(self.getDriver('GV2'))
+
+    def set_sound(self,val):
         LOGGER.info(val)
         if val is None:
             val = 0
@@ -380,81 +317,19 @@ class Pushover(Node):
         LOGGER.info('Set GV2 to {}'.format(val))
         self.setDriver('GV2', val)
 
-    def get_priority(self):
-        cval = self.getDriver('GV2')
-        if cval is None:
-            return 0
-        return int(self.getDriver('GV2'))
-
-    def set_format(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 0
-        val = int(val)
-        LOGGER.info('Set GV3 to {}'.format(val))
-        self.setDriver('GV3', val)
-
-    def get_format(self):
+    def get_message(self):
         cval = self.getDriver('GV3')
         if cval is None:
             return 0
         return int(self.getDriver('GV3'))
-
-    def set_retry(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 30
-        val = int(val)
-        LOGGER.info('Set GV4 to {}'.format(val))
-        self.setDriver('GV4', val)
-
-    def get_retry(self):
-        cval = self.getDriver('GV4')
-        if cval is None:
-            return 30
-        return int(self.getDriver('GV4'))
-
-    def set_expire(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 10800
-        val = int(val)
-        LOGGER.info('Set GV5 to {}'.format(val))
-        self.setDriver('GV5', val)
-
-    def get_expire(self):
-        cval = self.getDriver('GV5')
-        if cval is None:
-            return 10800
-        return int(self.getDriver('GV5'))
-
-    def get_sound(self):
-        cval = self.getDriver('GV6')
-        if cval is None:
-            return 0
-        return int(self.getDriver('GV6'))
-
-    def set_sound(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 0
-        val = int(val)
-        LOGGER.info('Set GV6 to {}'.format(val))
-        self.setDriver('GV6', val)
-
-    def get_message(self):
-        cval = self.getDriver('GV7')
-        if cval is None:
-            return 0
-        return int(self.getDriver('GV7'))
 
     def set_message(self,val):
         LOGGER.info(val)
         if val is None:
             val = 0
         val = int(val)
-        LOGGER.info('Set GV7 to {}'.format(val))
-        self.setDriver('GV7', val)
+        LOGGER.info('Set GV3 to {}'.format(val))
+        self.setDriver('GV3', val)
 
     def get_sys_short(self):
         return self._sys_short
@@ -463,8 +338,8 @@ class Pushover(Node):
         LOGGER.info(val)
         self._sys_short = val
 
-    # Returns pushover priority numbers which start at -2 and our priority nubmers that start at zero
-    def get_pushover_priority(self,val=None):
+    # Returns ISYPortal priority numbers which start at -2 and our priority nubmers that start at zero
+    def get_ISYPortal_priority(self,val=None):
         LOGGER.info('val={}'.format(val))
         if val is None:
             val = int(self.get_priority())
@@ -474,30 +349,29 @@ class Pushover(Node):
         LOGGER.info('val={}'.format(val))
         return val
 
-    # Returns pushover sound name from our index number
-    def get_pushover_sound(self,val=None):
+    # Returns ISYPortal sound name from our index number
+    def get_ISYPortal_sound(self,val=None):
         LOGGER.info('val={}'.format(val))
         if val is None:
             val = int(self.get_sound())
         else:
             val = int(val)
-        rval = 0
-        for item in self.sounds_list:
-            if item[2] == val:
-                rval = item[0]
+        rval = self.sounds_list[val]['fname']
         LOGGER.info('{}'.format(rval))
         return rval
 
-    # Returns pushover sound name by name, return default if not found
-    def get_pushover_sound_by_name(self,name):
+    # Returns ISYPortal sound name by name, return default if not found
+    def get_ISYPortal_sound_by_name(self,name):
         LOGGER.info('name={}'.format(name))
         rval = False
+        i = 0
         for item in self.sounds_list:
-            if name == item[0]:
-                rval = name
+            if name == item['name']:
+                rval = item['fname']
+            i += 1
         if rval is False:
             LOGGER.error("No sound name found matching '{}".format(name))
-            rval = 'pushover'
+            rval = self.sounds_list[0]['fname']
         LOGGER.info('{}'.format(rval))
         return rval
 
@@ -505,26 +379,6 @@ class Pushover(Node):
         val = int(command.get('value'))
         LOGGER.info(val)
         self.set_device(val)
-
-    def cmd_set_priority(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_priority(val)
-
-    def cmd_set_format(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_format(val)
-
-    def cmd_set_retry(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_retry(val)
-
-    def cmd_set_expire(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_expire(val)
 
     def cmd_set_sound(self,command):
         val = int(command.get('value'))
@@ -569,11 +423,7 @@ class Pushover(Node):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
         self.set_device(query.get('Device.uom25'))
-        self.set_priority(query.get('Priority.uom25'))
-        self.set_format(query.get('Format.uom25'))
         self.set_sound(query.get('Sound.uom25'))
-        self.set_retry(query.get('Retry.uom56'))
-        self.set_expire(query.get('Expire.uom56'))
         #Can't do this since it changes the current sys short message which has no driver?
         #self.set_sys_short(query.get('Content.uom145'))
         msg = query.get('Content.uom145')
@@ -585,57 +435,53 @@ class Pushover(Node):
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
         # These may all eventually be passed in or pulled from drivers.
-        if not 'message' in params:
-            params['message'] = "NOT_SPECIFIED"
+        if 'message' in params:
+            if not 'title' in params and not 'body' in params:
+                # Title is first line, body is the rest
+                sp = params['message'].split("\n",1)
+                params['title'] = sp[0]
+                if len(sp) > 1:
+                    params['body'] = sp[1]
+            elif 'title' in params and 'body' in params:
+                LOGGER.error("title, body, and message all passed in?  Not sure what to do with message={message}")
+                return False
+            elif 'title' in params:
+                params['body'] = params['message']
+            else:
+                params['title'] = params['message']
+            del params['message']
+        # No body, which is required, so just make it a space :(
+        if not 'body' in params:
+            params['body'] = ' '
+        device = 'default'
         if 'device' in params:
             if is_int(params['device']):
-                # It's an index, so getthe name
-                params['device'] = self.get_device_name_by_index(params['device'])
-                if params['device'] is False:
+                # It's an index, so get the name
+                device = self.get_device_name_by_index(params['device'])
+                if device is False:
                     # Bad param, can't send
                     return
+            del params['device']
         else:
-            params['device'] = self.get_device_name_by_index()
-        if 'priority' in params:
-            params['priority'] = self.get_pushover_priority(params['priority'])
-        else:
-            params['priority'] = self.get_pushover_priority()
+            device = self.get_device_name_by_index()
+        if not (device == 'default' or device is None):
+            params['device'] = device
+        sound = None
         if 'sound' in params:
             if is_int(params['sound']):
-                params['sound'] = self.get_pushover_sound(params['sound'])
+                sound = self.get_ISYPortal_sound(params['sound'])
             else:
-                params['sound'] = self.get_pushover_sound_by_name(params['sound'])
+                sound = self.get_ISYPortal_sound_by_name(params['sound'])
+            del params['sound']
         else:
-            params['sound'] = self.get_pushover_sound()
-        if params['priority'] == 2:
-            if not 'retry' in params:
-                params['retry'] = self.get_retry()
-            if not 'expire' in params:
-                params['expire'] = self.get_expire()
-        if 'format' in params:
-            if params['format'] == 1:
-                params['html'] = 1
-            elif params['format'] == 2:
-                params['monospace'] = 1
-            del params['format']
-        elif not ('html' in params or 'monospace' in params):
-            p = self.get_format()
-            if p == 1:
-                params['html'] = 1
-            elif p == 2:
-                params['monospace'] = 1
-        params['user'] = self.user_key
-        params['token'] = self.app_key
-        #timestamp=None
-        #url=None
-        #url_title=None
-        #callback=None
-        #sound=None
+            sound = self.get_ISYPortal_sound()
+        if not (sound == 'default' or sound is None):
+            params['sound'] = sound
         #
         # Send the message in a thread with retries
         #
         # Just keep serving until we are killed
-        self.thread = Thread(target=self.post,args=(params,))
+        self.thread = Thread(target=self.send,args=(params,))
         self.thread.daemon = True
         LOGGER.debug('Starting Thread')
         st = self.thread.start()
@@ -643,7 +489,7 @@ class Pushover(Node):
         # Always have to return true case we don't know..
         return True
 
-    def post(self,params):
+    def send(self,params):
         sent = False
         retry = True
         cnt  = 0
@@ -653,21 +499,24 @@ class Pushover(Node):
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
             LOGGER.info('try #{}'.format(cnt))
-            res = self.session.post("1/messages.json",params)
-            if res['status'] is True and res['data']['status'] == 1:
+            res = self.api_post("notification/send",params)
+            failed_count = False
+            if 'data' in res and 'failedCount' in res['data']:
+                failed_count = res['data']['failedCount'] 
+            if res['status'] is True and failed_count == 0:
                 sent = True
                 self.set_error(ERROR_NONE)
+                LOGGER.info(f"Message Sent: {params}")
             else:
-                if 'data' in res:
-                    if 'errors' in res['data']:
-                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
-                LOGGER.debug('res={}'.format(res))
+                LOGGER.debug(f"issue status={res['status']} failed_count={failed_count} res={res}")
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
                 else:
                     LOGGER.warning('Previous error is retryable...')
+                    if 'data' in res and 'failedCount' in res['data'] and res['data']['failedCount'] > 0:
+                        LOGGER.error("From ISYPortal: Failed to send to {res['data']['failedCount']} devices, will send again")
             if (not sent):
                 self.set_error(ERROR_MESSAGE_SEND)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
@@ -694,7 +543,7 @@ class Pushover(Node):
             else:
                 if 'data' in res:
                     if 'errors' in res['data']:
-                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
+                        LOGGER.error('From ISYPortal: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
                 LOGGER.debug('res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
@@ -718,31 +567,23 @@ class Pushover(Node):
     def rest_send(self,params):
         LOGGER.debug('params={}'.format(params))
         if 'priority' in params:
-            # Our priority's start at 0 pushovers starts at -2... Should have used their numbers...
-            # So assume rest calls pass in pushover number, so convert to our number.
+            # Our priority's start at 0 ISYPortals starts at -2... Should have used their numbers...
+            # So assume rest calls pass in ISYPortal number, so convert to our number.
             params['priority'] = int(params['priority']) + 2
         return self.do_send(params)
 
     _init_st = None
-    id = 'pushover'
+    id = 'isyportal'
     drivers = [
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
         {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 2, 'uom': 25},
+        {'driver': 'GV2', 'value': 0, 'uom': 25},
         {'driver': 'GV3', 'value': 0, 'uom': 25},
-        {'driver': 'GV4', 'value': 30, 'uom': 56},
-        {'driver': 'GV5', 'value': 10800, 'uom': 56},
-        {'driver': 'GV6', 'value': 0, 'uom': 25},
-        {'driver': 'GV7', 'value': 0, 'uom': 25},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff
                 'SET_DEVICE': cmd_set_device,
-                'SET_PRIORITY': cmd_set_priority,
-                'SET_FORMAT': cmd_set_format,
-                'SET_RETRY': cmd_set_retry,
-                'SET_EXPIRE': cmd_set_expire,
                 'SET_SOUND': cmd_set_sound,
                 'SET_MESSAGE': cmd_set_message,
                 'SET_SYS_SHORT': cmd_set_sys_short,

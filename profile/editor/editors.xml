@@ -50,5 +50,10 @@
       <range uom="25" subset="0-4" nls="NFYP" />
     </editor>
 
+    <!-- ISY Portal Errors -->
+    <editor id="IP_ERR">
+      <range uom="25" subset="0-6" nls="IPE" />
+    </editor>
+
 
 </editors>

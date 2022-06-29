@@ -6,7 +6,7 @@
 
 from http.server import HTTPServer,BaseHTTPRequestHandler
 from urllib import parse
-from urllib.parse import parse_qsl,quote_plus,urlparse
+from urllib.parse import parse_qsl,quote_plus,urlparse,urlencode
 
 import socket, threading, sys, requests, json, time
 import netifaces as ni
@@ -318,7 +318,8 @@ class polyglotSession():
             }
         )
 
-    def get(self,path,params={},auth=None):
+    # TODO: auth and api_key should be passed as a header list
+    def get(self,path,params={},auth=None,api_key=None):
         url = "{}/{}".format(self.url,path)
         self.logger.debug("Sending: url={0} payload={1}".format(url,params))
         # No speical headers?
@@ -327,8 +328,10 @@ class polyglotSession():
         }
         if auth is not None:
             headers['Authorization'] = auth
+        if api_key is not None:
+            headers['x-api-key'] = api_key
         self.logger.debug( "headers={}".format(headers))
-        #self.session.headers.update(headers)
+        self.session.headers.update(headers)
         try:
             response = self.session.get(
                 url,
@@ -342,18 +345,34 @@ class polyglotSession():
             return False
         return(self.response(response,'get'))
 
-    def post(self,path,payload):
+    def post(self,path,payload,api_key=None,content="json"):
+        self.logger.debug(f'start: path={path} payload={payload} api_key={api_key} content={content}')
+        # No speical headers?
+        headers = {
+        }
+        if api_key is not None:
+            headers['x-api-key'] = api_key
         url = "{}/{}".format(self.url,path)
-        self.logger.debug("Sending: url={0} payload={1}".format(url,payload))
-        try:
-            payload_js = json.dumps(payload)
-        except Exception as e:
-            self.logger.error('Error converting to json: {}'.format(payload))
-            return False
+        if content == "json":
+            headers['Content-Type'] = 'application/json'
+            try:
+                payload_out = json.dumps(payload)
+            except Exception as e:
+                self.logger.error('Error converting to json: {}'.format(payload))
+                return False
+        elif content == "urlencode":
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
+            payload_out = urlencode(payload)
+        else:
+            LOGGER.error("Unknown content={content}, must be json or urlencode")
+            return { 'status': False, 'status_code': None, 'code': None }
+        self.logger.debug("Sending: url={0} payload={1}".format(url,payload_out))
+        self.logger.debug( "headers={}".format(headers))
+        self.session.headers.update(headers)
         try:
             response = self.session.post(
                 url,
-                data=payload_js,
+                data=payload_out,
                 timeout=(61,10)
             )
         # This is supposed to catch all request excpetions.
@@ -378,6 +397,9 @@ class polyglotSession():
         elif response.status_code == 401:
             # Authentication error
             self.logger.error("Unauthorized: %s: text: %s" % (response.url,response.text) )
+        elif response.status_code == 403:
+            # Forbidden, ISY Portal returns this for bad api key
+            self.logger.error("Forbidden: %s: text: %s" % (response.url,response.text) )
         elif response.status_code == 500:
             self.logger.error("Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
         elif response.status_code == 522:
@@ -385,7 +407,6 @@ class polyglotSession():
         else:
             self.logger.error("Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
             self.logger.error("Check system status: https://status.ecobee.com/")
-        # No matter what, return the code and error
         try:
             json_data = json.loads(response.text)
         except (Exception) as err:

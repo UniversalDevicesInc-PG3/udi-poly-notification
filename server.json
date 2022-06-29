@@ -12,12 +12,12 @@
 	"customParams": {
 		"acknowledge": ""
 	},
-    "profile_version": "3.3.4",
+    "profile_version": "3.4.0",
     "credits": [
         {
             "title": "notification: The NodeServer for Sending Notifications",
             "author": "Jim Searle (JimBoCA)",
-            "version": "3.3.4",
+            "version": "3.4.1",
             "date": "July 26, 2021",
             "source": "https://github.com/UniversalDevicesInc-PG3/udi-poly-notification",
             "license": "https://raw.githubusercontent.com/UniversalDevicesInc-PG3/udi-poly-notification/master/LICENSE"

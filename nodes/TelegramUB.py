@@ -101,12 +101,22 @@ class TelegramUB(Node):
         self.reportDrivers()
 
     def config_info_rest(self):
-        str = '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json"}}\' -X POST {1}/send'.format(self.address,self.controller.rest.listen_url)
+        if self.controller.rest is None:
+            listen_url = None
+        else:
+            listen_url = self.controller.rest.listen_url
+        str = '<li>curl -d \'{{"node":"{0}", "message":"The Message", "subject":"The Subject" -H "Content-Type: application/json"}}\' -X POST {1}/send'.format(self.address,listen_url)
         return str
 
     def config_info_nr(self):
+        if self.controller.rest is None:
+            rest_ip = "None"
+            rest_port = "None"
+        else:
+            rest_ip = self.controller.rest.ip
+            rest_port = self.controller.rest.listen_port
         info = [
-            '<li>Example Network Resource for Telegram User Bot<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(self.controller.rest.ip,self.controller.rest.listen_port,self.address),
+            '<li>Example Network Resource for Telegram User Bot<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
             '</ul>',
         ]
         return ''.join(info)

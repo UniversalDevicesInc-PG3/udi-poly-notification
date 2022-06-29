@@ -1,0 +1,73 @@
+<nodeDefs>
+  <!-- Pushover Node -->
+  <nodeDef id="{0}" nls="ip">
+    <editors />
+    <sts>
+      <st id="ST"  editor="bool" />
+      <st id="ERR" editor="IP_ERR" />
+      <st id="GV1" editor="IP_D_{1}" />
+      <st id="GV2" editor="IP_S_{1}" />
+      <st id="GV3" editor="MESSAGE" />
+    </sts>
+    <cmds>
+      <sends />
+      <accepts>
+        <!--  Log Debug Mode -->
+        <cmd id="SET_DEVICE">
+          <p id="" editor="IP_D_{1}" init="GV1"/>
+        </cmd>
+        <cmd id="SET_SOUND">
+          <p id="" editor="IP_S_{1}" init="GV2"/>
+        </cmd>
+        <cmd id="SET_MESSAGE">
+          <p id="" editor="MESSAGE" init="GV3"/>
+        </cmd>
+        <cmd id="SET_SYS_SHORT">
+          <p id="" editor="_sys_notify_short"/>
+        </cmd>
+        <cmd id="GV10">
+          <p id="Device" editor="IP_D_{1}" init="GV1" optional="T"/>
+          <p id="Sound" editor="IP_S_{1}" init="GV2" optional="T"/>
+          <p id="Content" editor="_sys_notify_short"/>
+        </cmd>
+        <cmd id="SEND_MY_MESSAGE" />
+        <cmd id="SEND_MY_SYS_SHORT" />
+        <cmd id="SEND" />
+        <cmd id="SEND_SYS_SHORT" />
+      </accepts>
+    </cmds>
+  </nodeDef>
+
+  <!--- Poushover Notify Node -->
+  <nodeDef id="{0}_notify" nls="ipnfy">
+      <editors />
+      <sts>
+          <st id="ST"  editor="bool" />
+          <st id="GV1" editor="NMESSAGE" />
+          <st id="GV2" editor="NMESSAGE" />
+          <st id="GV3" editor="NFY_NODE" />
+          <st id="GV4" editor="IP_D_{1}" />
+          <st id="GV9" editor="IP_S_{1}" />
+      </sts>
+      <cmds>
+          <sends />
+          <accepts>
+            <cmd id="SET_MESSAGE_DON">
+              <p id="" editor="NMESSAGE" init="GV1"/>
+            </cmd>
+            <cmd id="SET_MESSAGE_DOF">
+              <p id="" editor="NMESSAGE" init="GV2"/>
+            </cmd>
+            <cmd id="SET_DEVICE">
+              <p id="" editor="IP_D_{1}" init="GV4"/>
+            </cmd>
+            <cmd id="SET_SOUND">
+              <p id="" editor="IP_S_{1}" init="GV9"/>
+            </cmd>
+            <cmd id="DON" />
+            <cmd id="DOF" />
+          </accepts>
+      </cmds>
+  </nodeDef>
+
+</nodeDefs>
