@@ -370,6 +370,7 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 ## Release Notes
 - 3.4.3: 06/29/2022
+  - Clean up Configuration page for ISY Portal
   - Fix error on initial install startup
   - Clean up REST server start and error reporting
   - Should be ready for production release if no issues are found
