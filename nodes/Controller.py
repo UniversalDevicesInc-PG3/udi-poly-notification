@@ -116,7 +116,6 @@ class Controller(Node):
             self.start_rest_server()
             self.first_run = False
             self.write_profile()
-            self.setDriver('GV1',0)
         LOGGER.debug("exit")
     
     def handler_poll(self, polltype):
@@ -372,20 +371,27 @@ class Controller(Node):
             self.handler_data_st = True
 
     def start_rest_server(self):
+        self.Notices.delete('rest')
+        msg = False
         if self.handler_params_st is True:
             if self.rest is None:
                 if self.rest_port is None or self.rest_port == "":
-                    LOGGER.warning(f"Not starting REST Server, rest_port={self.rest_port}")
+                    msg = f"Not starting REST Server, rest_port={self.rest_port}"
                 else:
                     LOGGER.info("Starting REST Server...")
                     self.rest = polyglotRESTServer(self.rest_port,LOGGER,ghandler=self.rest_ghandler)
-                    # TODO: Need to monitor thread and restart if it dies
-                    self.rest.start()
-                    self.setDriver('GV1',1)
+                    # TODO: Need to monitor thread and restart if it dies?
+                    if (self.rest.start() is True):
+                        self.setDriver('GV1',1)
+                    else:
+                        self.setDriver('GV1',0)
+                        msg = f"REST Server not started for rest_port={self.rest_port}, check log for error"
             else:
-                LOGGER.info(f"REST Sever already running ({self.rest})")
+                msg = f"REST Sever already running ({self.rest})"
         else:
-            LOGGER.error(f'Unable to start REST Server until config params are correctd ({st})')
+            msg = f'Unable to start REST Server until config params are corrected ({self.handler_params_st})'
+        if msg is not False:
+            self.Notices['rest'] = msg;
 
     def handler_params(self, data):
         LOGGER.debug("Enter data={}".format(data))
@@ -668,7 +674,7 @@ class Controller(Node):
         nls.write("# End: Service Nodes\n\n")
         config_info_nr = [
             '<h3>Create ISY Network Resources</h3>',
-            '<p>For messages that contain a larger body use ISY Network Resources. More information available at <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#rest-interface" target="_ blank">README - REST Interfae</a>'
+            '<p>For messages that contain a larger body use ISY Network Resources. More information available at <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#rest-interface" target="_ blank">README - REST Interface</a>'
             '<ul>'
         ]
         config_info_rest = [

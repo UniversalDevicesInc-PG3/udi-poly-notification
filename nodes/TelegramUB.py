@@ -116,8 +116,7 @@ class TelegramUB(Node):
             rest_ip = self.controller.rest.ip
             rest_port = self.controller.rest.listen_port
         info = [
-            '<li>Example Network Resource for Telegram User Bot<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
-            '</ul>',
+            '<h4>Example Network Resource for Telegram User Bot</h4><ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
         ]
         return ''.join(info)
 

@@ -132,6 +132,7 @@ class polyglotREST():
         self.logger  = logger
         self.ip      = None
         self.port    = int(port)
+        self.server = False
 
     def start(self):
         # TODO: This will fail if we don't have internet access...
@@ -146,14 +147,23 @@ class polyglotREST():
         eh = requestHandler
         eh.parent = self
         done = False
-        # TODO: Add timeout, only check for socket in use?s
-        while not done:
+        cnt = 60
+        while not done and cnt > 0:
             try:
                 self.server = HTTPServer(self.address, requestHandler)
                 done = True
+            except OSError as err:
+                cnt -= 1
+                if cnt > 0:
+                    self.logger.error(f'polyglotREST:start: failed for port {self.port}: {type(err)} {err}, will try again in 5 seconds and give up in {cnt*5} seconds')
+                    time.sleep(5)
             except Exception as err:
-                self.logger.error('polyglotREST:start: failed for port {}: {}, will try again in 5 seconds'.format(self.port,err))
-                time.sleep(5)
+                    self.logger.error(f'polyglotREST:start: failed for port {self.port}: {type(err)} {err}, will not retry for this error')
+                    cnt = 0
+        if done is False:
+            self.logger.error(f'Failed to start rest server.')
+            self.server = False
+            return False
         self.url     = 'http://{0}:{1}'.format(self.server.server_address[0],self.server.server_address[1])
         self.listen_port = self.server.server_address[1]
         self.logger.info("polyglotREST: Running on: {0}".format(self.url))
@@ -196,8 +206,9 @@ class polyglotREST():
 
     def stop(self):
         self.logger.info("polyglotREST:stop: Shutdoing down and closing")
-        self.server.shutdown()
-        self.server.server_close()
+        if self.server is not False:
+            self.server.shutdown()
+            self.server.server_close()
 
 class polyglotRESTServer():
 
@@ -216,7 +227,6 @@ class polyglotRESTServer():
         self.rest = polyglotREST(self,self.logger,self.port)
         self.st = self.rest.start()
         if self.st is False:
-            self.logger.error('REST server not started {}'.format(self.st))
             return False
         self.ip          = self.rest.ip
         self.listen_url  = self.rest.url

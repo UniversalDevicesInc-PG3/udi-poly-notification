@@ -158,8 +158,7 @@ class ISYPortal(Node):
             rest_ip = self.controller.rest.ip
             rest_port = self.controller.rest.listen_port
         info = [
-            '<li>Example Network Resource settings for ISYPortal<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&monospace=1&device=1&priority=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
-            '</ul>',
+            '<h4>Example Network Resource settings for ISYPortal</h4><ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&device=1&sound=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
             '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the ISYPortal node will be used'
             '<table>',
             '<tr><th>Name<th>Value<th>Description',

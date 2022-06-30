@@ -369,6 +369,10 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.4.3: 06/29/2022
+  - Fix error on initial install startup
+  - Clean up REST server start and error reporting
+  - Should be ready for production release if no issues are found
 - 3.4.2: 06/28/2022
   - Fix issues with configurable rest server port
 - 3.4.1: 06/28/2020
