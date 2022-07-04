@@ -414,7 +414,7 @@ class ISYPortal(Node):
 
     def cmd_send_my_sys_short(self,command):
         LOGGER.info('')
-        return self.do_send({ 'message': self.get_sys_short})
+        return self.do_send({ 'message': self.get_sys_short()})
 
     # command={'address': 'po_dev', 'cmd': 'GV10', 'query': {'Device.uom25': '2', 'Priority.uom25': '2', 'Format.uom25': '0', 
     #          'Sound.uom25': '0', 'Retry.uom56': '30', 'Expire.uom56': '10800', 'Content.uom145': 'Temp: 54.6°F\nHumidity: 81%'}}
