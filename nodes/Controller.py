@@ -691,7 +691,7 @@ class Controller(Node):
             if node.name != self.name:
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
-                cnt = 60
+                cnt = 3600
                 while node.init_st() is None and cnt > 0:
                     LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
                     time.sleep(1)
