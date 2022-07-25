@@ -97,7 +97,7 @@ class Controller(Node):
 
     def add_node_done(self):
         LOGGER.debug("enter")
-        cnt = 60
+        cnt = 3600
         while (cnt > 0 and (
             self.handler_start_st is None
             or self.handler_params_st is None
