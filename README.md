@@ -48,7 +48,12 @@ The nodeserver allows you to
 
 ### ISY Portal
 
-Put link to setting up ISY Portal notifications here...
+To setup an ISY Portal notification service node go to the node server configuration page and press "Add ISYPortal Serivce Nodes"
+1. Set Name to your desired name which will be used for the node name and referenced in network resources
+2. Set your Portal API Key.  See: https://wiki.universal-devices.com/index.php?title=UD_Mobile#Notifications_Tab
+3. Press 'Save Changes".
+
+This will create a new node based on the name in #1 above.  Open the Admin Console, If you already had it open, then close and re-open it.
 
 ### Pushover 
 
