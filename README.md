@@ -235,11 +235,11 @@ A simple example of a very useful custom content sends the program name with nod
 
 ![Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
 
-##### Send Sys Short
+##### Send Sys Short With Params
 
-Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.  (Ignore the NLSG:UD_UOM_146_NAME, that's a ISY bug that Chris will fix in the next release)
+Which can be shared by many programs like this example which sends a notification when my doggy door opens.  It's only meant as an example.  This allows setting all params with a single call.
 
-![Program Notify Test Sys Short](pics/Program_NotifyTestSysShort.png)
+![Program Notify Test Sys Short](pics/Program_SendSysShortWithParams.png)
 
 ##### Pushover Result
 
@@ -369,8 +369,6 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
-- 3.4.6: 07/24/2022
-  - Fix: [Increase startup timeout](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/41)
 - 3.4.4: 07/04/2022
   - First production release of ISYPortal notifications
   - Fix bug in 'Send Sys Short' for ISYPortal and Pushover
