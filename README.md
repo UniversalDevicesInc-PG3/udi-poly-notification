@@ -2,7 +2,7 @@
 
 # udi-poly-notification
 
-This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V2](https://github.com/Einstein42/udi-polyglotv2) to support sending many types of notifications, first on the list is Pushover.
+This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V3](https://github.com/UniversalDevicesInc/pg3) to support sending many types of notifications, first on the list is Pushover.
 
 (c) JimBoCA aka Jim Searle
 MIT license.
@@ -48,7 +48,12 @@ The nodeserver allows you to
 
 ### ISY Portal
 
-Put link to setting up ISY Portal notifications here...
+To setup an ISY Portal notification service node go to the node server configuration page and press "Add ISYPortal Serivce Nodes"
+1. Set Name to your desired name which will be used for the node name and referenced in network resources
+2. Set your Portal API Key.  See: https://wiki.universal-devices.com/index.php?title=UD_Mobile#Notifications_Tab
+3. Press 'Save Changes".
+
+This will create a new node based on the name in #1 above.  Open the Admin Console, If you already had it open, then close and re-open it.
 
 ### Pushover 
 
