@@ -185,11 +185,37 @@ ND-notify-NAME = Notify
 ST-ipnfy-GV1-NAME = Device On Message
 ST-ipnfy-GV2-NAME = Device Off Message
 ST-ipnfy-GV3-NAME = Service Node
-ST-ipnfy-GV4-NAME = ISY Portal Device
-ST-ipnfy-GV9-NAME = ISY Portal Sound
+ST-ipnfy-GV4-NAME = UD Mobile Device
+ST-ipnfy-GV9-NAME = UD Mobile Sound
 CMD-ipnfy-SET_MESSAGE_DON-NAME = Set Device On Message
 CMD-ipnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
 CMD-ipnfy-SET_NODE-NAME = Set Service Node
-CMD-ipnfy-SET_DEVICE-NAME = Set ISY Portal Device
-CMD-ipnfy-SET_SOUND-NAME = Set ISY Portal Sound
+CMD-ipnfy-SET_DEVICE-NAME = Set UD Mobile Device
+CMD-ipnfy-SET_SOUND-NAME = Set UD Mobile Sound
+
+# ------------------------------------------------------------------
+# UD Mobile Node
+#
+ND-udmobile-NAME = UD Mobile
+
+ST-udm-ST-NAME = Last Status
+ST-udm-ERR-NAME = Error
+ST-udm-GV1-NAME = Device
+ST-udm-GV2-NAME = Sound
+ST-udm-GV3-NAME = User Message
+
+CMD-udm-GV10-NAME = Send Message
+PGM-CMD-udm-GV10-FMT = /Device/${c}/${c} To ${vo}/ /Sound// Sound=${vo}/
+CMDP-Group-NAME = Group
+CMDP-Priority-NAME = Priority
+CMDP-Sound-NAME = Sound
+CMDP-Content-NAME = Content
+
+IPE-0 = None
+IPE-1 = Illegal Value
+IPE-2 = App Auth
+IPE-3 = User Auth
+IPE-4 = Create Message
+IPE-5 = Send Message
+IPE-6 = Bad Parameter
 

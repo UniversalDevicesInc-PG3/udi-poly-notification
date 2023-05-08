@@ -1,0 +1,13 @@
+<editors>
+
+    <!-- UD Mobile Group -->
+    <editor id="IP_D_{0}">
+      <range uom="25" subset="{1}" nls="IPD_{0}" />
+    </editor>
+
+    <!-- UD Mobile Sound -->
+    <editor id="IP_S_{0}">
+      <range uom="25" subset="{2}" nls="IPS_{0}" />
+    </editor>
+
+</editors>

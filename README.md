@@ -2,7 +2,7 @@
 
 # udi-poly-notification
 
-This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V3](https://github.com/UniversalDevicesInc/pg3) to support sending many types of notifications, first on the list is Pushover.
+This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V2](https://github.com/Einstein42/udi-polyglotv2) to support sending many types of notifications, first on the list is Pushover.
 
 (c) JimBoCA aka Jim Searle
 MIT license.
@@ -48,12 +48,7 @@ The nodeserver allows you to
 
 ### ISY Portal
 
-To setup an ISY Portal notification service node go to the node server configuration page and press "Add ISYPortal Serivce Nodes"
-1. Set Name to your desired name which will be used for the node name and referenced in network resources
-2. Set your Portal API Key.  See: https://wiki.universal-devices.com/index.php?title=UD_Mobile#Notifications_Tab
-3. Press 'Save Changes".
-
-This will create a new node based on the name in #1 above.  Open the Admin Console, If you already had it open, then close and re-open it.
+Put link to setting up ISY Portal notifications here...
 
 ### Pushover 
 
@@ -240,7 +235,7 @@ A simple example of a very useful custom content sends the program name with nod
 
 ![Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
 
-##### Send Sys Short With Params
+##### Send Sys Short
 
 Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.  (Ignore the NLSG:UD_UOM_146_NAME, that's a ISY bug that Chris will fix in the next release)
 
@@ -374,6 +369,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.5.0: 05/08/2023
+  - Added UD Mobile node
 - 3.4.4: 07/04/2022
   - First production release of ISYPortal notifications
   - Fix bug in 'Send Sys Short' for ISYPortal and Pushover

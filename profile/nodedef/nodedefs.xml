@@ -50,4 +50,26 @@
         </cmds>
     </nodeDef>
 
+  <!-- UD Mobile Node -->
+  <nodeDef id="udmobile" nls="udm">
+    <editors />
+    <sts>
+      <st id="ST"  editor="bool" />
+      <st id="ERR" editor="IP_ERR" />
+      <st id="GV1" editor="IP_D_udmobile" />
+      <st id="GV2" editor="IP_S_udmobile" />
+      <st id="GV3" editor="MESSAGE" />
+    </sts>
+    <cmds>
+      <sends />
+      <accepts>
+        <cmd id="GV10">
+          <p id="Group" editor="IP_D_udmobile" init="GV1" optional="T"/>
+          <p id="Sound" editor="IP_S_udmobile" init="GV2" optional="T"/>
+          <p id="Content" editor="_sys_notify_short"/>
+        </cmd>
+      </accepts>
+    </cmds>
+  </nodeDef>
+
 </nodeDefs>

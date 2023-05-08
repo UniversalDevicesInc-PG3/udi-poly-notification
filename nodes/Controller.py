@@ -97,7 +97,7 @@ class Controller(Node):
 
     def add_node_done(self):
         LOGGER.debug("enter")
-        cnt = 3600
+        cnt = 60
         while (cnt > 0 and (
             self.handler_start_st is None
             or self.handler_params_st is None
@@ -399,7 +399,11 @@ class Controller(Node):
         if not 'rest_port' in data:
             self.Params['rest_port'] = '8199'
             return
+        if not 'portal_api_key' in data:
+            self.Params['portal_api_key'] = 'PleaseDefine'
+            return
         self.rest_port = data['rest_port']
+        self.portal_api_key = data['portal_api_key']
         # Assume we are good unless something bad is found
         st = True
         # Make sure they acknowledge
@@ -586,6 +590,12 @@ class Controller(Node):
                 self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
+        # Always start the UDMobile node
+        self.udmobile_session = polyglotSession(self,"https://my.isy.io",LOGGER)
+        snode = self.add_node(UDMobile(self, self.address, 'udmobile', get_valid_node_name('UD Mobile'), self.udmobile_session, self.portal_api_key))
+        self.service_nodes.append({ 'name': snode.name, 'node': snode, 'index': len(self.service_nodes)})
+        LOGGER.info('service_nodes={}'.format(self.service_nodes))
+
         # TODO: Save service_nodes names in customParams
         if notify_nodes is not None:
             save = True
@@ -691,7 +701,7 @@ class Controller(Node):
             if node.name != self.name:
                 # We have to wait until the node is done initializing since
                 # we can get here before the node is ready.
-                cnt = 3600
+                cnt = 60
                 while node.init_st() is None and cnt > 0:
                     LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
                     time.sleep(1)

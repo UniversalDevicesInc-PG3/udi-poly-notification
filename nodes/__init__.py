@@ -5,4 +5,5 @@ from .Pushover import Pushover
 from .ISYPortal import ISYPortal
 from .TelegramUB import TelegramUB
 from .AssistantRelay import AssistantRelay
+from .UDMobile import UDMobile
 from .Controller import Controller
