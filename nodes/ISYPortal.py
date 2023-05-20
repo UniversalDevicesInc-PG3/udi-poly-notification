@@ -58,9 +58,7 @@ class ISYPortal(Node):
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
-        # TODO: This should be stored at the node level, but PG2 didn't allow
-        # that so eventually it should be moved to the node?
-        self.devices_list = self.controller.Data.get('devices_list_isyp',[])
+        self.devices_list = self.controller.get_data('devices_list_isyp',[])
         self.sounds_list  = SOUNDS_LIST
         LOGGER.info("devices_list_isyp={}".format(self.devices_list))
         LOGGER.debug('Authorizing ISYPortal api {}'.format(self.api_key))
@@ -79,7 +77,7 @@ class ISYPortal(Node):
         else:
             self.set_error(ERROR_APP_AUTH)
             self._init_st = False
-
+        
     def api_get(self,command):
         res = self.session.get(f"api/push/{command}",api_key=self.api_key)
         LOGGER.debug('got: {}'.format(res))
@@ -115,7 +113,6 @@ class ISYPortal(Node):
                 # Get rid of removed prefix if the device is back
                 if item.startswith(REM_PREFIX) and dlist.count(item) > 0:
                     self.devices_list[self.devices_list.index(item)] = item
-
         LOGGER.info("devices_list={}".format(self.devices_list))
 
 

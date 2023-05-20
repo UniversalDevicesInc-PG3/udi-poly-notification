@@ -370,6 +370,12 @@ class Controller(Node):
             self.Data.load(data)
             self.handler_data_st = True
 
+    def get_data(self,param,default):
+        if param in self.Data:
+            return self.Data[param]
+        else:
+            return default
+    
     def start_rest_server(self):
         self.Notices.delete('rest')
         msg = False

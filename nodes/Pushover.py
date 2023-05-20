@@ -65,8 +65,8 @@ class Pushover(Node):
         self.set_sound(self.get_sound())
         # TODO: This should be stored at the node level, but PG2 didn't allow
         # that so eventually it should be moved to the node?
-        self.devices_list = self.controller.Data.get('devices_list',[])
-        self.sounds_list  = self.controller.Data.get('sounds_list',[])
+        self.devices_list = self.controller.get_data('devices_list',[])
+        self.sounds_list  = self.controller.get_data('sounds_list',[])
         LOGGER.info("devices_list={}".format(self.devices_list))
         LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()

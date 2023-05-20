@@ -6,7 +6,7 @@
 """
 from email import message
 from socket import MsgFlag
-from udi_interface import Node,LOGGER
+from udi_interface import Node,LOGGER,Custom
 from threading import Thread
 import time
 from node_funcs import make_file_dir,is_int
@@ -22,6 +22,7 @@ ERROR_MESSAGE_SEND   = 5
 ERROR_PARAM          = 6
 
 REM_PREFIX = "REMOVED-"
+GROUP_LIST = 'group_list_udmobile'
 
 # How many tries to get or post, -1 is forever
 RETRY_MAX = -1
@@ -41,6 +42,7 @@ class UDMobile(Node):
         self.session  = session
         self.api_key  = api_key
         self._sys_short = None
+        self.handler_data_st = None
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(UDMobile, self).__init__(controller.poly, primary, address, name)
@@ -52,11 +54,10 @@ class UDMobile(Node):
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_group(self.get_group())
-        # TODO: This should be stored at the node level, but PG2 didn't allow
-        # that so eventually it should be moved to the node?
-        self.groups_list = self.controller.Data.get('group_list_udm',[])
+        self.groups_list = self.controller.get_data(GROUP_LIST,[])
         self.sounds_list  = SOUNDS_LIST
-        LOGGER.info("group_list_udm={}".format(self.groups_list))
+        LOGGER.debug("controller.data={}".format(self.controller.Data))
+        LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing UDMobile api {}'.format(self.api_key))
         vstat = self.validate()
         if vstat['status'] is False:
@@ -87,37 +88,44 @@ class UDMobile(Node):
         return self.api_get("tokens")
 
     def get_groups(self):
-        return self.api_get("groups")
+        data = self.api_get("groups")
+        LOGGER.debug("got groups: {}".format(data))
+        return data
 
     def set_groups(self):
         data = self.get_groups()
         LOGGER.info("got UDMobile groups={}".format(data['data']['data']))
         self.build_group_list(data['data']['data'])
-        self.controller.Data['group_list_udm'] = self.groups_list
+        self.controller.Data[GROUP_LIST] = self.groups_list
+
+    def group_id2name(self,id):
+        for item in self.groups_list:
+            if item['id'] == id:
+                return item['name']
+        return None
 
     def build_group_list(self,vlist):
-        # Add new items
+        # Add new items to the group list
         dlist = list()
-        for idict in vlist:
-            LOGGER.debug('group={}'.format(idict))
-            item = idict['name']
-            dlist.append(item)
+        for item in vlist:
+            LOGGER.debug('group={}'.format(item))
+            dlist.append(item['id'])
             # If it's not in the saved list, append it
-            if self.groups_list.count(item) == 0:
-                self.groups_list.append(item)
-        # Make sure items are in the passed in list, otherwise prefix it
-        # in groups_list
+            if self.group_id2name(item['id']) is None:
+                self.groups_list.append({'id': item['id'], 'name': item['name']})
+        # Make sure items are in the passed in list, otherwise prefix it in groups_list
+        groups_list = list()
         for item in self.groups_list:
-            if item != 'all':
-                # Add removed prefix to items no longer in the list.
-                if not item.startswith(REM_PREFIX) and dlist.count(item) == 0:
-                    self.groups_list[self.groups_list.index(item)] = REM_PREFIX + item
-                # Get rid of removed prefix if the group is back
-                if item.startswith(REM_PREFIX) and dlist.count(item) > 0:
-                    self.groups_list[self.groups_list.index(item)] = item
-
+            # Add removed prefix to items no longer in the list.
+            if not item['name'].startswith(REM_PREFIX) and dlist.count(item['name']) == 0:
+                groups_list.append({'id': item['id'], 'name': REM_PREFIX + item['name']})
+            # Get rid of removed prefix if the group is back
+            elif item['name'].startswith(REM_PREFIX):
+                groups_list.append({'id': item['id'], 'name': item['name'][len(REM_PREFIX):] })
+            else:
+                groups_list.append(item)
+        self.groups_list = groups_list
         LOGGER.info("groups_list={}".format(self.groups_list))
-
 
     """
     This lets the controller know when we are initialized, or if we had
@@ -166,7 +174,7 @@ class UDMobile(Node):
         i = 0
         t = 'group'
         for item in self.groups_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item['name']))
             i += 1
             t = '&nbsp;'
         t = 'sound'
@@ -192,9 +200,9 @@ class UDMobile(Node):
         idx = 0
         subst = []
         for item in self.groups_list:
-            nls.write("IPD_{}-{} = {}\n".format(self.id,idx,item))
+            nls.write("IPD_{}-{} = {}\n".format(self.id,idx,item['name']))
             # Don't include REMOVED's in list
-            if not item.startswith(REM_PREFIX):
+            if not item['name'].startswith(REM_PREFIX):
                 subst.append(str(idx))
             idx += 1
         # Make sure it has at least one
@@ -255,9 +263,7 @@ class UDMobile(Node):
             dev = int(dev)
         dev_name = None
         try:
-            # 0 is all, so return none, otherwise look up the name
-            if dev > 0:
-                dev_name = self.groups_list[dev]
+            dev_name = self.groups_list[dev]['name']
         except:
             LOGGER.error('Bad group index {}'.format(dev),exc_info=True)
             self.set_error(ERROR_PARAM,f'Unknown group name or index {dev}')
