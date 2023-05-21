@@ -48,7 +48,9 @@ The nodeserver allows you to
 
 ### ISY Portal
 
-Put link to setting up ISY Portal notifications here...
+The ISY Portal Servie allows sending notifications to the Portal which are handled by the UD Mobile app.
+
+Originally this service allowed sending to "devices" configured in the Portal, but as of version 3.5.2 the preference is to use groups.  To send messages to just one device, create a group with that device in it.  This allows you to change device names, or add a new phone to a group and remove the old phone.  Users who already have programs configured which reference devices can continue to use that, but should switch to groups at some point.
 
 ### Pushover 
 
@@ -154,7 +156,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
 
 ### UD Mobile
 
-The UD Mobile node is simliar to the [ISY Portal](#isy-portal) service except it only has the ability to send a system short message (long messages coming soon).  You must enter your Portal API Key in the node server configuration portal_api_key setting, which you can find in UD Mobile Notification Settings.  More infomation will follow as this feature becomes available in the UD Mobile app.
+The UD Mobile node is simliar to the [ISY Portal](#isy-portal) service except it only has the ability to send a system short message (long messages coming soon).  This node is always added by default as of 3.5.0. You must enter your Portal API Key in the node server configuration portal_api_key setting, which you can find in UD Mobile Notification Settings.  More infomation will follow as this feature becomes available in the UD Mobile app.
 
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
@@ -372,6 +374,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.5.2: 05/21/2022
+  - Add group selection to [ISY Portal](#isy-portal) and list devices as deprecated.
 - 3.5.1: 05/20/2023
   - Added [UD Mobile](#ud-mobile) node.
 - 3.4.4: 07/04/2022
