@@ -152,6 +152,9 @@ These are the Services such as Pushover that are called when a Send is issued.  
         - Send Sys Short
           - Send the Sys Short message selected on this node [See Section Below](#short-custom-content)
 
+### UD Mobile
+
+The UD Mobile node is simliar to the [ISY Portal](#isy-portal) service except it only has the ability to send a system short message (long messages coming soon).  You must enter your Portal API Key in the node server configuration portal_api_key setting, which you can find in UD Mobile Notification Settings.  More infomation will follow as this feature becomes available in the UD Mobile app.
 
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
@@ -370,7 +373,7 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 ## Release Notes
 - 3.5.1: 05/20/2023
-  - Added UD Mobile node
+  - Added [UD Mobile](#ud-mobile) node.
 - 3.4.4: 07/04/2022
   - First production release of ISYPortal notifications
   - Fix bug in 'Send Sys Short' for ISYPortal and Pushover
