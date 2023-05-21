@@ -151,7 +151,7 @@ ND-isyportal-NAME = ISY Portal Default Node
 
 ST-ip-ST-NAME = Last Status
 ST-ip-ERR-NAME = Error
-ST-ip-GV1-NAME = Device
+ST-ip-GV1-NAME = Device Group
 ST-ip-GV2-NAME = Sound
 ST-ip-GV3-NAME = User Message
 
@@ -162,7 +162,7 @@ CMD-ip-SEND_MY_SYS_SHORT-NAME = Send Sys Short
 
 CMD-ip-GV10-NAME = Send Sys Short With Params
 PGM-CMD-GV10-FMT = /Device/${c}/${c} To ${vo}/ /Priority// Priority=${vo}/ /Format// Format=${vo}/ /Sound// Sound=${vo}/ /Retry// Retry=${vo}/ /Expire// Expire=${vo}/
-CMDP-Device-NAME = Device
+CMDP-Device-NAME = Device Group
 CMDP-Priority-NAME = Priority
 CMDP-Format-NAME = Format
 CMDP-Sound-NAME = Sound
@@ -185,12 +185,12 @@ ND-notify-NAME = Notify
 ST-ipnfy-GV1-NAME = Device On Message
 ST-ipnfy-GV2-NAME = Device Off Message
 ST-ipnfy-GV3-NAME = Service Node
-ST-ipnfy-GV4-NAME = UD Mobile Device
+ST-ipnfy-GV4-NAME = UD Mobile Device Group
 ST-ipnfy-GV9-NAME = UD Mobile Sound
 CMD-ipnfy-SET_MESSAGE_DON-NAME = Set Device On Message
 CMD-ipnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
 CMD-ipnfy-SET_NODE-NAME = Set Service Node
-CMD-ipnfy-SET_DEVICE-NAME = Set UD Mobile Device
+CMD-ipnfy-SET_DEVICE-NAME = Set UD Mobile Device Group
 CMD-ipnfy-SET_SOUND-NAME = Set UD Mobile Sound
 
 # ------------------------------------------------------------------
@@ -200,12 +200,13 @@ ND-udmobile-NAME = UD Mobile
 
 ST-udm-ST-NAME = Last Status
 ST-udm-ERR-NAME = Error
-ST-udm-GV1-NAME = Device
+ST-udm-GV1-NAME = Device Group
 ST-udm-GV2-NAME = Sound
 ST-udm-GV3-NAME = User Message
 
 CMD-udm-GV10-NAME = Send Message
 PGM-CMD-udm-GV10-FMT = /Device/${c}/${c} To ${vo}/ /Sound// Sound=${vo}/
+CMDP-Device-NAME = Device Group
 CMDP-Group-NAME = Group
 CMDP-Priority-NAME = Priority
 CMDP-Sound-NAME = Sound
