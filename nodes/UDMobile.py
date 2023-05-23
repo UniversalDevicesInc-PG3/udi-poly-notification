@@ -20,6 +20,7 @@ ERROR_USER_AUTH  = 3
 ERROR_MESSAGE_CREATE = 4
 ERROR_MESSAGE_SEND   = 5
 ERROR_PARAM          = 6
+ERROR_MAX            = 7
 
 REM_PREFIX = "REMOVED-"
 GROUP_LIST = 'group_list_udmobile'
@@ -43,6 +44,7 @@ class UDMobile(Node):
         self.api_key  = api_key
         self._sys_short = None
         self.handler_data_st = None
+        self.msg_cnt  = 0
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(UDMobile, self).__init__(controller.poly, primary, address, name)
@@ -51,9 +53,6 @@ class UDMobile(Node):
         """
         """
         LOGGER.info('')
-        # We track our driver values because we need the value before it's been pushed.
-        self.driver = {}
-        self.set_group(self.get_group())
         self.groups_list = self.controller.get_data(GROUP_LIST,[])
         self.sounds_list  = SOUNDS_LIST
         LOGGER.debug("controller.data={}".format(self.controller.Data))
@@ -66,9 +65,12 @@ class UDMobile(Node):
             self.authorized = True if vstat['status'] == 1 else False
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
-            self.set_groups()
             self.set_error(ERROR_NONE)
             self._init_st = True
+            msg = f'Notification Node Server {self.controller.edition} Edition Startup.'
+            if self.controller.edition == 'Free':
+                msg += ' Please upgrade to Standard version to get all features'
+            self.do_send({ 'message': msg, 'system': True})
         else:
             self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
             # We always set to true sicne on first startup the api key will not exist.
@@ -139,16 +141,6 @@ class UDMobile(Node):
 
     def query(self):
         self.reportDrivers()
-
-    def setDriver(self,driver,value):
-        self.driver[driver] = value
-        super(UDMobile, self).setDriver(driver,value)
-
-    def getDriver(self,driver):
-        if driver in self.driver:
-            return self.driver[driver]
-        else:
-            return super(UDMobile, self).getDriver(driver)
 
     def config_info_rest(self):
         if self.controller.rest is None:
@@ -237,38 +229,20 @@ class UDMobile(Node):
         editor_h.write(data.format(self.address,",".join(subst),",".join(sound_subst)))
         editor_h.close()
 
-    def set_group(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 0
-        val = int(val)
-        LOGGER.info('Set GV1 to {}'.format(val))
-        self.setDriver('GV1', val)
-
-    def get_group(self):
-        cval = self.getDriver('GV1')
-        if cval is None:
-            return 0
-        return int(cval)
-
-    def get_group_name_by_index(self,dev=None):
-        LOGGER.debug('dev={}'.format(dev))
-        if dev is None:
-            dev = self.get_group()
-            LOGGER.debug('dev={}'.format(dev))
-        else:
-            if not is_int(dev):
-                LOGGER.error('Passed in {} is not an integer'.format(dev))
-                return False
-            dev = int(dev)
-        dev_name = None
-        try:
-            dev_name = self.groups_list[dev]['name']
-        except:
-            LOGGER.error('Bad group index {}'.format(dev),exc_info=True)
-            self.set_error(ERROR_PARAM,f'Unknown group name or index {dev}')
+    def get_group_name_by_index(self,gidx=None):
+        LOGGER.debug('gidx={}'.format(gidx))
+        if not is_int(gidx):
+            LOGGER.error('Passed in {} is not an integer'.format(gidx))
             return False
-        return dev_name
+        gidx = int(gidx)
+        try:
+            gname = self.groups_list[gidx]['name']
+        except:
+            LOGGER.error('Bad group index {}'.format(gidx),exc_info=True)
+            self.set_error(ERROR_PARAM,f'Unknown group name or index {gidx}')
+            return False
+        LOGGER.debug('gidx={} name={}'.format(gidx,gname))
+        return gname
 
     def set_st(self,val):
         LOGGER.info(val)
@@ -298,41 +272,6 @@ class UDMobile(Node):
     def err_notice(self,name,err_str):
             self.controller.poly.Notices[name] = f"ERROR: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')} See log for: {err_str}"
 
-    def get_sound(self):
-        cval = self.getDriver('GV2')
-        if cval is None:
-            return 0
-        return int(self.getDriver('GV2'))
-
-    def set_sound(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 0
-        val = int(val)
-        LOGGER.info('Set GV2 to {}'.format(val))
-        self.setDriver('GV2', val)
-
-    def get_message(self):
-        cval = self.getDriver('GV3')
-        if cval is None:
-            return 0
-        return int(self.getDriver('GV3'))
-
-    def set_message(self,val):
-        LOGGER.info(val)
-        if val is None:
-            val = 0
-        val = int(val)
-        LOGGER.info('Set GV3 to {}'.format(val))
-        self.setDriver('GV3', val)
-
-    def get_sys_short(self):
-        return self._sys_short
-
-    def set_sys_short(self,val):
-        LOGGER.info(val)
-        self._sys_short = val
-
     # Returns UDMobile sound name from our index number
     def get_UDMobile_sound(self,val=None):
         LOGGER.info('val={}'.format(val))
@@ -359,65 +298,33 @@ class UDMobile(Node):
         LOGGER.info('{}'.format(rval))
         return rval
 
-    def cmd_set_group(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_group(val)
-
-    def cmd_set_sound(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_sound(val)
-
-    def cmd_set_message(self,command):
-        val = int(command.get('value'))
-        LOGGER.info(val)
-        self.set_message(val)
-
-    def cmd_set_sys_short(self,command):
-        val = command.get('value')
-        LOGGER.info(val)
-        self.set_sys_short(val)
-
+    # command={'address': 'udmobile', 'cmd': 'GV10', 'query': {'Group.uom25': '2', 'Sound.uom25': '1', 'Content.uom145': 'Simple Title\nSimple Body\nBody line 2'}}
     def cmd_send_message(self,command):
-        LOGGER.info('')
-        # Default create message params
-        md = self.controller.get_current_message()
-        # md will contain title and message
-        return self.do_send({ 'title': md['title'], 'message': md['message']})
-
-    def cmd_send_sys_short(self,command):
-        LOGGER.info('')
-        return self.do_send({ 'message': self.controller.get_sys_short()})
-
-    def cmd_send_my_message(self,command):
-        LOGGER.info('')
-        # Default create message params
-        md = self.controller.get_message_by_id(self.get_message())
-        # md will contain title and message
-        return self.do_send({ 'title': md['title'], 'message': md['message']})
-
-    def cmd_send_my_sys_short(self,command):
-        LOGGER.info('')
-        return self.do_send({ 'message': self.get_sys_short()})
-
-    # command={'address': 'po_dev', 'cmd': 'GV10', 'query': {'group.uom25': '2', 'Priority.uom25': '2', 'Format.uom25': '0', 
-    #          'Sound.uom25': '0', 'Retry.uom56': '30', 'Expire.uom56': '10800', 'Content.uom145': 'Temp: 54.6°F\nHumidity: 81%'}}
-    def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
+        params = dict()
         query = command.get('query')
-        self.set_group(query.get('group.uom25'))
-        self.set_sound(query.get('Sound.uom25'))
-        #Can't do this since it changes the current sys short message which has no driver?
-        #self.set_sys_short(query.get('Content.uom145'))
+        val = query.get('Group.uom25')
+        if val is None:
+            LOGGER.warning(f"No Group passed in for command: {command}")
+        else:
+            params['group'] = val
+        val = query.get('Sound.uom25')
+        if val is None:
+            LOGGER.warning(f"No Sound passed in for command: {command}")
+        else:
+            params['sound'] = val
         msg = query.get('Content.uom145')
         if msg is None:
             LOGGER.warning(f"No sys short message passed in?")
             msg = "No Message Defined"
-        return self.do_send({ 'message': msg})
+        params['message'] = msg
+        return self.do_send(params)
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
+        system = False
+        if 'system' in params:
+            system = params['system']
         # These may all eventually be passed in or pulled from drivers.
         if 'message' in params:
             if not 'title' in params and not 'body' in params:
@@ -437,7 +344,6 @@ class UDMobile(Node):
         # No body, which is required, so just make it a space :(
         if not 'body' in params:
             params['body'] = ' '
-        group = 'default'
         if 'group' in params:
             if is_int(params['group']):
                 # It's an index, so get the name
@@ -446,30 +352,31 @@ class UDMobile(Node):
                     # Bad param, can't send
                     return
             del params['group']
-        else:
-            group = self.get_group_name_by_index()
-        if not (group == 'default' or group is None):
-            params['group'] = group
-        sound = None
+            params['groupid'] = group
         if 'sound' in params:
             if is_int(params['sound']):
                 sound = self.get_UDMobile_sound(params['sound'])
             else:
                 sound = self.get_UDMobile_sound_by_name(params['sound'])
-            del params['sound']
-        else:
-            sound = self.get_UDMobile_sound()
-        if not (sound == 'default' or sound is None):
-            params['sound'] = sound
+            if sound is None:
+                del params['sound']
+            else:
+               params['sound'] = sound
+        if not system and self.controller.edition == 'Free' and self.msg_cnt >= 8:
+            self.set_error(ERROR_MAX,f'Reached max daily message count, please upgrde to Standard Edition {params}')
+            params['title'] = 'Reached max daily message count, please upgrde to Standard Edition'
+            params['body'] = ' '
         #
         # Send the message in a thread with retries
         #
         # Just keep serving until we are killed
         self.thread = Thread(target=self.send,args=(params,))
         self.thread.daemon = True
-        LOGGER.debug('Starting Thread')
+        LOGGER.debug(f'Starting Thread {self.msg_cnt}')
         st = self.thread.start()
         LOGGER.debug('Thread start st={}'.format(st))
+        if not system:
+            self.msg_cnt += 1
         # Always have to return true case we don't know..
         return True
 
@@ -561,19 +468,7 @@ class UDMobile(Node):
     drivers = [
         {'driver': 'ST',  'value': 0, 'uom': 2},
         {'driver': 'ERR', 'value': 0, 'uom': 25},
-        {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 0, 'uom': 25},
-        {'driver': 'GV3', 'value': 0, 'uom': 25},
     ]
     commands = {
-                #'DON': setOn, 'DOF': setOff
-                'SET_GROUP': cmd_set_group,
-                'SET_SOUND': cmd_set_sound,
-                'SET_MESSAGE': cmd_set_message,
-                'SET_SYS_SHORT': cmd_set_sys_short,
-                'SEND': cmd_send_message,
-                'SEND_SYS_SHORT': cmd_send_sys_short,
-                'SEND_MY_MESSAGE': cmd_send_my_message,
-                'SEND_MY_SYS_SHORT': cmd_send_my_sys_short,
-                'GV10': cmd_send_sys_short_with_params,
+                'GV10': cmd_send_message,
                 }

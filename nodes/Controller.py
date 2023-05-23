@@ -86,6 +86,8 @@ class Controller(Node):
 
     def handler_start(self):
         LOGGER.info(f"Started Notification NodeServer {self.poly.serverdata['version']}")
+        LOGGER.warning(f'init={self.poly.pg3init}')
+        self.edition = self.poly.pg3init['edition']
         self.poly.updateProfile()
         self.heartbeat()
         self.handler_start_st = True

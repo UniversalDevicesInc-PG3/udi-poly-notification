@@ -205,8 +205,7 @@ ST-udm-GV2-NAME = Sound
 ST-udm-GV3-NAME = User Message
 
 CMD-udm-GV10-NAME = Send Message
-PGM-CMD-udm-GV10-FMT = /Device/${c}/${c} To ${vo}/ /Sound// Sound=${vo}/
-CMDP-Device-NAME = Device Group
+PGM-CMD-udm-GV10-FMT = /Group/${c}/${c} To ${vo}/ /Sound// Sound=${vo}/
 CMDP-Group-NAME = Group
 CMDP-Priority-NAME = Priority
 CMDP-Sound-NAME = Sound

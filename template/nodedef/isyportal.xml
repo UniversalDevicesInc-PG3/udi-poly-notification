@@ -1,5 +1,5 @@
 <nodeDefs>
-  <!-- Pushover Node -->
+  <!-- ISY Portal Node -->
   <nodeDef id="{0}" nls="ip">
     <editors />
     <sts>

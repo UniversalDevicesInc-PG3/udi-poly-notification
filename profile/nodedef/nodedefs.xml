@@ -56,9 +56,6 @@
     <sts>
       <st id="ST"  editor="bool" />
       <st id="ERR" editor="IP_ERR" />
-      <st id="GV1" editor="IP_D_udmobile" />
-      <st id="GV2" editor="IP_S_udmobile" />
-      <st id="GV3" editor="MESSAGE" />
     </sts>
     <cmds>
       <sends />
