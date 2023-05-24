@@ -2,7 +2,7 @@
 
 # udi-poly-notification
 
-This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V2](https://github.com/Einstein42/udi-polyglotv2) to support sending many types of notifications, first on the list is Pushover.
+This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with  [Polyglot V2](https://github.com/Einstein42/udi-polyglotv2) to support sending many types of notifications for Pushover, Telegram, ISY Portal.
 
 (c) JimBoCA aka Jim Searle
 MIT license.
@@ -29,7 +29,11 @@ Another option is to install in a new slot then go edit all your programs and sc
 
 ## Installation
 
-Install from the Polyglot store.
+Install from the Polyglot store.  
+
+### Editions
+
+There are 2 Editions available.  Free only supports the UDMobile node which will soon be available directly in the UDMobile app.  It is also limited to 8 messages per day.
 
 ## Configuration
 
@@ -375,7 +379,7 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 ## Release Notes
 - 3.5.4: 05/23/2023
-  - Support "Free" Limited version to be used in future release of UD Mobile App.
+  - Support "Free" Limited version see [Editions](#editions)
 - 3.5.3: 05/23/2023
   - Many fixes for [UD Mobile](#ud-mobile) node.
 - 3.5.2: 05/21/2023
