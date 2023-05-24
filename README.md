@@ -374,6 +374,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.5.4: 05/23/2023
+  - Support "Free" Limited version to be used in future release of UD Mobile App.
 - 3.5.3: 05/23/2023
   - Many fixes for [UD Mobile](#ud-mobile) node.
 - 3.5.2: 05/21/2023

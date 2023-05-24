@@ -67,7 +67,7 @@ class UDMobile(Node):
         if self.authorized:
             self.set_error(ERROR_NONE)
             self._init_st = True
-            msg = f'Notification Node Server {self.controller.edition} Edition Startup.'
+            msg = f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.'
             if self.controller.edition == 'Free':
                 msg += ' Please upgrade to Standard version to get all features'
             self.do_send({ 'message': msg, 'system': True})

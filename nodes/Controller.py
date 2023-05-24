@@ -25,6 +25,10 @@ class Controller(Node):
         self.rest = None
         self.rest_port = None
         self._sys_short_msg = None
+        LOGGER.warning(f'init={self.poly.pg3init}')
+        self.edition = self.poly.pg3init['edition']
+        self.uuid    = self.poly.pg3init['uuid']
+        self.nodename = os.uname().nodename
         # List of all service nodes
         self.service_nodes = list()
         self.first_run = True
@@ -86,8 +90,6 @@ class Controller(Node):
 
     def handler_start(self):
         LOGGER.info(f"Started Notification NodeServer {self.poly.serverdata['version']}")
-        LOGGER.warning(f'init={self.poly.pg3init}')
-        self.edition = self.poly.pg3init['edition']
         self.poly.updateProfile()
         self.heartbeat()
         self.handler_start_st = True
@@ -576,9 +578,12 @@ class Controller(Node):
         if pushover is not None:
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
-                snode = self.add_node(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
-                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
-                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+                if self.edition == "Free":
+                    self.Notices[pd['name']] = f"Can't add Pushover node {pd['name']} in {self.edition} Edition"
+                else:
+                    snode = self.add_node(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
+                    self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                    LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         if isyportal is not None:
             # https://wiki.universal-devices.com/index.php?title=UD_Mobile#Notifications_Tab
@@ -587,16 +592,22 @@ class Controller(Node):
             # Body: title=message_title&body=message_body where message_title and message_body are replaced by your desired title and body values.
             self.isyportal_session = polyglotSession(self,"https://my.isy.io",LOGGER)
             for pd in isyportal:
-                snode = self.add_node(ISYPortal(self, self.address, self.get_service_node_address_isyportal(pd['name']), get_valid_node_name('Service ISYPortal '+pd['name']), self.isyportal_session, pd))
-                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
-                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+                if self.edition == "Free":
+                    self.Notices[pd['name']] = f"Can't add ISYPortal node {pd['name']} in {self.edition} Edition"
+                else:
+                    snode = self.add_node(ISYPortal(self, self.address, self.get_service_node_address_isyportal(pd['name']), get_valid_node_name('Service ISYPortal '+pd['name']), self.isyportal_session, pd))
+                    self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                    LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         if telegramub is not None:
             self.telegramub_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
             for pd in telegramub:
-                snode = self.add_node(TelegramUB(self, self.address, self.get_service_node_address_telegramub(pd['name']), get_valid_node_name('Service TelegramUB '+pd['name']), self.telegramub_session, pd))
-                self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
-                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+                if self.edition == "Free":
+                    self.Notices[pd['name']] = f"Can't add Telegram node {pd['name']} in {self.edition} Edition"
+                else:
+                    snode = self.add_node(TelegramUB(self, self.address, self.get_service_node_address_telegramub(pd['name']), get_valid_node_name('Service TelegramUB '+pd['name']), self.telegramub_session, pd))
+                    self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                    LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         # Always start the UDMobile node
         self.udmobile_session = polyglotSession(self,"https://my.isy.io",LOGGER)
