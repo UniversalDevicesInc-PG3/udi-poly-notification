@@ -52,6 +52,7 @@ class Controller(Node):
         poly.subscribe(poly.LOGLEVEL,               self.handler_log_level)
         poly.subscribe(poly.STOP,                   self.handler_stop)
         self.handler_start_st      = None
+        self.handler_params_st     = None
         self.handler_data_st       = None
         self.handler_typed_data_st = None
         self.handler_config_st     = None
@@ -431,6 +432,20 @@ class Controller(Node):
             st = False
         else:
             self.Notices.delete(ack)
+
+        if st:
+            val = "portal_api_key"
+            if self.Params[val] == 'PleaseDefine':
+                self.Notices[val] = 'Please Define portal_api_key'
+            else:
+                self.Notices.delete(val)
+                # Start the UDMobile node
+                self.udmobile_session = polyglotSession(self,"https://my.isy.io",LOGGER)
+                snode = self.add_node(UDMobile(self, self.address, 'udmobile', get_valid_node_name('UD Mobile'), self.udmobile_session, self.portal_api_key))
+                self.service_nodes.append({ 'name': snode.name, 'node': snode, 'index': len(self.service_nodes)})
+                LOGGER.info('service_nodes={}'.format(self.service_nodes))
+
+
         self.handler_params_st = st
         # Dont' start on first run cause we need handler_typed_data to be completed
         # add_node_done will do it on first start 
@@ -609,12 +624,6 @@ class Controller(Node):
                     self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                     LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
-        # Always start the UDMobile node
-        self.udmobile_session = polyglotSession(self,"https://my.isy.io",LOGGER)
-        snode = self.add_node(UDMobile(self, self.address, 'udmobile', get_valid_node_name('UD Mobile'), self.udmobile_session, self.portal_api_key))
-        self.service_nodes.append({ 'name': snode.name, 'node': snode, 'index': len(self.service_nodes)})
-        LOGGER.info('service_nodes={}'.format(self.service_nodes))
-
         # TODO: Save service_nodes names in customParams
         if notify_nodes is not None:
             save = True
@@ -734,12 +743,12 @@ class Controller(Node):
                     config_info_rest.append(node.config_info_rest())
                 else:
                     LOGGER.error( 'Node {} failed to initialize init_st={}'.format(node.name, node.init_st()))
-                    st = False
+                    #st = False
+        nls.write("\n# Start: End Service Nodes:\n")
         LOGGER.debug(f'st={st}')
         if st is False:
             LOGGER.error('Not all nodes initialized, can not write profile')
             return
-        nls.write("# Start: End Service Nodes:\n")
         LOGGER.debug("Closing {}".format(en_us_txt))
         nls.close()
         config_info_rest.append('</ul>')
