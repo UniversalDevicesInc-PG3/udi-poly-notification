@@ -216,6 +216,7 @@ class polyglotRESTServer():
         self.l_name = "polyglotRESTServer"
         self.logger = logger
         self.port   = int(port)
+        self.rest   = None
         self.client_id = client_id
         self.client_secret = client_secret
         self.ghandler=ghandler

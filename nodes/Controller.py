@@ -8,6 +8,7 @@ import logging
 from node_funcs import *
 from PolyglotREST import polyglotRESTServer,polyglotSession
 from copy import deepcopy
+from threading import Lock
 import re
 import time
 import fnmatch
@@ -56,6 +57,7 @@ class Controller(Node):
         self.handler_data_st       = None
         self.handler_typed_data_st = None
         self.handler_config_st     = None
+        self.write_profile_lock = Lock() # Lock for syncronizing acress threads
         self.init_typed()
         poly.ready()
         self.Notices.clear()
@@ -119,8 +121,8 @@ class Controller(Node):
             if cnt < 60:
                 LOGGER.warning(f'Done waiting, all looks good')
             self.start_rest_server()
-            self.first_run = False
             self.write_profile()
+            self.first_run = False
         LOGGER.debug("exit")
     
     def handler_poll(self, polltype):
@@ -445,11 +447,12 @@ class Controller(Node):
                 self.service_nodes.append({ 'name': snode.name, 'node': snode, 'index': len(self.service_nodes)})
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
-
         self.handler_params_st = st
         # Dont' start on first run cause we need handler_typed_data to be completed
         # add_node_done will do it on first start 
         if not self.first_run:
+            # When data changes build the profile, 
+            self.write_profile()
             self.start_rest_server()
 
     def handler_typed_data(self, data):
@@ -643,6 +646,7 @@ class Controller(Node):
     def write_profile(self):
         pfx = 'write_profile'
         LOGGER.info('enter')
+        self.write_profile_lock.acquire()
         # Good unless there is an error.
         st = True
         #
@@ -785,6 +789,7 @@ class Controller(Node):
         #
         if st:
             self.poly.updateProfile()
+        self.write_profile_lock.release()
         return st
 
     def handler_log_level(self,level):

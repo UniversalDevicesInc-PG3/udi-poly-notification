@@ -152,7 +152,7 @@ class UDMobile(Node):
         return str
 
     def config_info_nr(self):
-        if self.controller.rest is None:
+        if self.controller.rest is None or self.controller.rest.ip is None:
             rest_ip = "None"
             rest_port = "None"
         else:
