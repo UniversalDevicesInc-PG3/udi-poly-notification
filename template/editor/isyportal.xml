@@ -1,11 +1,11 @@
 <editors>
 
-    <!-- Pusover User -->
+    <!-- ISY Portal User -->
     <editor id="IP_D_{0}">
       <range uom="25" subset="{1}" nls="IPD_{0}" />
     </editor>
 
-    <!-- Pusover Sound -->
+    <!-- ISY Portal Sound -->
     <editor id="IP_S_{0}">
       <range uom="25" subset="{2}" nls="IPS_{0}" />
     </editor>

@@ -16,7 +16,7 @@
     </cmds>
   </nodeDef>
 
-  <!--- Poushover Notify Node -->
+  <!--- Telegram Notify Node -->
   <nodeDef id="{0}_notify" nls="tgubnfy">
       <editors />
       <sts>

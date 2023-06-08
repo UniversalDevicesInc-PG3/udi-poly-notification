@@ -66,6 +66,7 @@ class UDMobile(Node):
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             self.set_error(ERROR_NONE)
+            self.set_groups()
             self._init_st = True
             msg = f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.'
             if self.controller.edition == 'Free':
