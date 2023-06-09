@@ -96,6 +96,8 @@ class UDMobile(Node):
         return data
 
     def set_groups(self):
+        if GROUP_LIST in self.controller.Data:
+            self.groups_list = self.controller.Data[GROUP_LIST]
         data = self.get_groups()
         LOGGER.info("got UDMobile groups={}".format(data['data']['data']))
         self.build_group_list(data['data']['data'])
@@ -110,6 +112,16 @@ class UDMobile(Node):
     def build_group_list(self,vlist):
         # Add new items to the group list
         dlist = list()
+        # Make sure default is the first in the list
+        if len(self.groups_list) == 0:
+            self.groups_list.append({'id': '_default_', 'name': 'default'})
+        elif self.groups_list[0]['id'] == 'default':
+            # Fix mine with old default
+            self.groups_list[0] = {'id': '_default_', 'name': 'default'}
+        elif self.groups_list[0]['id'] != '_default_':
+            # For NS's that were created before we added defaults, this will
+            # increment all indexes so programs will need to be updated.
+            self.groups_list.insert(0,{'id': '_default_', 'name': 'default'})
         for item in vlist:
             LOGGER.debug('group={}'.format(item))
             dlist.append(item['id'])
@@ -119,6 +131,8 @@ class UDMobile(Node):
         # Make sure items are in the passed in list, otherwise prefix it in groups_list
         groups_list = list()
         for item in self.groups_list:
+            if item['id'] == '_default_':
+                next
             # Add removed prefix to items no longer in the list.
             if not item['name'].startswith(REM_PREFIX) and dlist.count(item['name']) == 0:
                 groups_list.append({'id': item['id'], 'name': REM_PREFIX + item['name']})
@@ -299,6 +313,7 @@ class UDMobile(Node):
         LOGGER.info('{}'.format(rval))
         return rval
 
+    # This is what we got back for _sys_notify_short
     # command={'address': 'udmobile', 'cmd': 'GV10', 'query': {'Group.uom25': '2', 'Sound.uom25': '1', 'Content.uom145': 'Simple Title\nSimple Body\nBody line 2'}}
     def cmd_send_message(self,command):
         LOGGER.debug(f'command={command}')
@@ -314,9 +329,9 @@ class UDMobile(Node):
             LOGGER.warning(f"No Sound passed in for command: {command}")
         else:
             params['sound'] = val
-        msg = query.get('Content.uom145')
+        msg = query.get('Content.uom147')
         if msg is None:
-            LOGGER.warning(f"No sys short message passed in?")
+            LOGGER.warning(f"No system message passed in?")
             msg = "No Message Defined"
         params['message'] = msg
         return self.do_send(params)
@@ -346,14 +361,17 @@ class UDMobile(Node):
         if not 'body' in params:
             params['body'] = ' '
         if 'group' in params:
-            if is_int(params['group']):
-                # It's an index, so get the name
-                group = self.get_group_name_by_index(params['group'])
-                if group is False:
-                    # Bad param, can't send
-                    return
+            if is_int(params['group']) and params['group'] == 0:
+                LOGGER.info('Using default group')
+            else:
+                if is_int(params['group']):
+                    # It's an index, so get the name
+                    group = self.get_group_name_by_index(params['group'])
+                    if group is False:
+                        # Bad param, can't send
+                        return
+                params['groupid'] = group
             del params['group']
-            params['groupid'] = group
         if 'sound' in params:
             if is_int(params['sound']):
                 sound = self.get_UDMobile_sound(params['sound'])
