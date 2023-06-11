@@ -691,6 +691,12 @@ class Controller(Node):
             LOGGER.warning("No User Messages, define some in Configuration if desired")
         else:
             for message in self.messages:
+                if not 'id' in message:
+                    LOGGER.error("message id not defined, please define as a integer")
+                    continue
+                if message['id'] == '':
+                    LOGGER.error("message id='{}' is empty, please define as a unique integer".format(message['id']))
+                    continue
                 try:
                     id = int(message['id'])
                 except:

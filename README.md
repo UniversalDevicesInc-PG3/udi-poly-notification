@@ -378,6 +378,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 1. Currently all upgrades happen on restart, but eventually only patch updates will be automatic, major and minore updates will require user intervention.
 
 ## Release Notes
+- 3.6.1: 06/xx/2023
+  - Fixed [Crash when message id is not defined](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/43)
 - 3.6.0: 06/08/2023
   - Convert to sys_notify_full to send full custom messages!
   - Only compatible with IoX 5.6.2 and above
