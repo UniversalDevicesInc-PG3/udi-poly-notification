@@ -494,6 +494,9 @@ class Controller(Node):
             pushover = None
         else:
             for pd in pushover:
+                if not 'name' in pd:
+                    LOGGER.error("Missing name in pushover node {}".format(pd))
+                    continue
                 sname = pd['name']
                 # Save info for later
                 pd['type'] = 'pushover'
@@ -519,6 +522,9 @@ class Controller(Node):
             isyportal = None
         else:
             for pd in isyportal:
+                if not 'name' in pd:
+                    LOGGER.error("Missing name in ISYPortal node {}".format(pd))
+                    continue
                 sname = pd['name']
                 # Save info for later
                 pd['type'] = 'isyportal'
