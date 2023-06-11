@@ -385,6 +385,7 @@ Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY
   - Fixed [Crash on restart](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/40)
   - Fixed [Crash on bad Config data](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/42)
   - Fixed [Crash when message id is not defined](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/43)
+  - Fixed [Do not try to initialize Pushover when initialize fails](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/27)
 - 3.6.0: 06/08/2023
   - Convert to sys_notify_full to send full custom messages!
   - Only compatible with IoX 5.6.2 and above
