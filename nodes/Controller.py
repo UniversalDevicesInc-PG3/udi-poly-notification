@@ -28,6 +28,7 @@ class Controller(Node):
         self._sys_short_msg = None
         LOGGER.warning(f'init={self.poly.pg3init}')
         self.edition = self.poly.pg3init['edition']
+        self.edition = 'Test'
         self.uuid    = self.poly.pg3init['uuid']
         self.nodename = os.uname().nodename
         # List of all service nodes
@@ -494,18 +495,19 @@ class Controller(Node):
             pushover = None
         else:
             for pd in pushover:
-                if not 'name' in pd:
-                    LOGGER.error("Missing name in pushover node {}".format(pd))
+                if 'name' in pd:
+                    sname = pd['name']
+                    # Save info for later
+                    pd['type'] = 'pushover'
+                    snames[sname] = pd
+                    # Check for duplicates
+                    address = self.get_service_node_address(sname)
+                    if not address in pnames:
+                        pnames[address] = list()
+                    pnames[address].append(sname)
+                else:
+                    err_list.append("Missing name in pushover node {}".format(pd))
                     continue
-                sname = pd['name']
-                # Save info for later
-                pd['type'] = 'pushover'
-                snames[sname] = pd
-                # Check for duplicates
-                address = self.get_service_node_address(sname)
-                if not address in pnames:
-                    pnames[address] = list()
-                pnames[address].append(sname)
             for address in pnames:
                 if len(pnames[address]) > 1:
                     err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
@@ -522,18 +524,19 @@ class Controller(Node):
             isyportal = None
         else:
             for pd in isyportal:
-                if not 'name' in pd:
-                    LOGGER.error("Missing name in ISYPortal node {}".format(pd))
+                if 'name' in pd:
+                    sname = pd['name']
+                    # Save info for later
+                    pd['type'] = 'isyportal'
+                    snames[sname] = pd
+                    # Check for duplicates
+                    address = self.get_service_node_address(sname)
+                    if not address in unames:
+                        unames[address] = list()
+                    unames[address].append(sname)
+                else:
+                    err_list.append("Missing name in ISYPortal node {}".format(pd))
                     continue
-                sname = pd['name']
-                # Save info for later
-                pd['type'] = 'isyportal'
-                snames[sname] = pd
-                # Check for duplicates
-                address = self.get_service_node_address(sname)
-                if not address in unames:
-                    unames[address] = list()
-                unames[address].append(sname)
             for address in unames:
                 if len(unames[address]) > 1:
                     err_list.append("Duplicate isyportal names for {} items {} from {}".format(len(unames[address]),address,",".join(unames[address])))
@@ -606,7 +609,9 @@ class Controller(Node):
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
                 if self.edition == "Free":
-                    self.Notices[pd['name']] = f"Can't add Pushover node {pd['name']} in {self.edition} Edition"
+                    err = f"Can't add Pushover node {pd['name']} in {self.edition} Edition"
+                    LOGGER.error(err)
+                    self.Notices[pd['name']] = err
                 else:
                     snode = self.add_node(Pushover(self, self.address, self.get_service_node_address(pd['name']), get_valid_node_name('Service Pushover '+pd['name']), self.pushover_session, pd))
                     self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
@@ -620,7 +625,9 @@ class Controller(Node):
             self.isyportal_session = polyglotSession(self,"https://my.isy.io",LOGGER)
             for pd in isyportal:
                 if self.edition == "Free":
-                    self.Notices[pd['name']] = f"Can't add ISYPortal node {pd['name']} in {self.edition} Edition"
+                    err = f"Can't add ISYPortal node {pd['name']} in {self.edition} Edition"
+                    LOGGER.error(err)
+                    self.Notices[pd['name']] = err
                 else:
                     snode = self.add_node(ISYPortal(self, self.address, self.get_service_node_address_isyportal(pd['name']), get_valid_node_name('Service ISYPortal '+pd['name']), self.isyportal_session, pd))
                     self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
@@ -630,7 +637,9 @@ class Controller(Node):
             self.telegramub_session = polyglotSession(self,"https://api.telegram.org",LOGGER)
             for pd in telegramub:
                 if self.edition == "Free":
-                    self.Notices[pd['name']] = f"Can't add Telegram node {pd['name']} in {self.edition} Edition"
+                    err = f"Can't add Telegram node {pd['name']} in {self.edition} Edition"
+                    LOGGER.error(err)
+                    self.Notices[pd['name']] = err
                 else:
                     snode = self.add_node(TelegramUB(self, self.address, self.get_service_node_address_telegramub(pd['name']), get_valid_node_name('Service TelegramUB '+pd['name']), self.telegramub_session, pd))
                     self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
