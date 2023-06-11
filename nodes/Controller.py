@@ -580,9 +580,12 @@ class Controller(Node):
                     mnames[address] = list()
                 mnames[address].append(node['id'])
                 # And check that service node name is known
-                sname = node['service_node_name']
-                if not sname in snames:
-                    err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node['id'],",".join(snames)))
+                if 'service_node_name' in node:
+                    sname = node['service_node_name']
+                    if not sname in snames:
+                        err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node,",".join(snames)))
+                else:
+                    err_list.append("No service node name in message node {} must be one of {}".format(sname,node,",".join(snames)))
             for address in mnames:
                 if len(mnames[address]) > 1:
                     err_list.append("Duplicate Notify ids for {} items {} from {}".format(len(mnames[address]),address,",".join(mnames[address])))
