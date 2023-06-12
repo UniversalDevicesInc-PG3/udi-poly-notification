@@ -914,5 +914,5 @@ class Controller(Node):
         {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
         {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
         {'driver': 'GV2', 'value': 0,  'uom': 25}, # Message
-        {'driver': 'GV3', 'value': 0,  'uom': 148}, # Custom Content
+        {'driver': 'GV3', 'value': 0,  'uom': 146}, # Custom Content
     ]

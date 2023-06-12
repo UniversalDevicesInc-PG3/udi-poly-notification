@@ -23,7 +23,7 @@ ERROR_PARAM          = 6
 ALL_DEVICES  = 'all devices'
 REM_PREFIX   = "REMOVED-"
 DEVICES_LIST = 'devices_list_isyp'
-GROUPS_LIST  = 'groups_list_isyp'
+GROUP_LIST  = 'groups_list_isyp'
 
 # How many tries to get or post, -1 is forever
 RETRY_MAX = -1
@@ -64,10 +64,11 @@ class ISYPortal(Node):
         # Old deprecated devices list
         self.devices_list = self.controller.get_data(DEVICES_LIST,[])
         # New devices list is just groups
-        self.groups_list  = self.controller.get_data(GROUPS_LIST,[])
+        self.groups_list  = self.controller.get_data(GROUP_LIST,[])
         self.sounds_list  = SOUNDS_LIST
+        self.devices_and_groups = list()
         LOGGER.info("{}={}".format(DEVICES_LIST,self.devices_list))
-        LOGGER.info("{}={}".format(GROUPS_LIST,self.groups_list))
+        LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing ISYPortal api {}'.format(self.api_key))
         vstat = self.validate()
         if vstat['status'] is False:
@@ -77,8 +78,6 @@ class ISYPortal(Node):
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             LOGGER.info("got isyportal devices={}".format(vstat['data']['data']))
-            self.build_device_list(vstat['data']['data'])
-            self.controller.Data[DEVICES_LIST] = self.devices_list
             self.set_groups()
             self.set_error(ERROR_NONE)
             self._init_st = True
@@ -99,42 +98,23 @@ class ISYPortal(Node):
     def validate(self):
         return self.api_get("tokens")
 
-    def build_device_list(self,vlist):
-        # If we don't have devices, don't create them anymore
-        if len(self.devices_list) == 0:
-            return
-        # Old device list had 'all' as the first item.
-        self.devices_list[0] = ALL_DEVICES
-        # Strip deprecated from device names
-        # Get list of all known devices, we no longer add new devices to the list
-        dlist = list()
-        for idict in vlist:
-            item = idict['name']
-            dlist.append(item)
-        # If our current devices are no longer registered, prefix them.
-        devices_list = list()
-        for item in self.devices_list:
-            if item != ALL_DEVICES:
-                # Add removed prefix to items no longer in the list.
-                if not item.startswith(REM_PREFIX) and dlist.count(item) == 0:
-                    item = REM_PREFIX + item
-                # Get rid of removed prefix if the device is back
-                if item.startswith(REM_PREFIX) and dlist.count(item.removeprefix(REM_PREFIX)) > 0:
-                    item = item.removeprefix(REM_PREFIX)
-            devices_list.append(item)
-        self.devices_list = devices_list
-        LOGGER.info("devices_list={}".format(self.devices_list))
-
     def get_groups(self):
         data = self.api_get("groups")
         LOGGER.debug("got groups: {}".format(data))
         return data
 
     def set_groups(self):
+        if GROUP_LIST in self.controller.Data:
+            self.groups_list = self.controller.Data[GROUP_LIST]
         data = self.get_groups()
-        LOGGER.info("got ISYPortal groups={}".format(data['data']['data']))
+        LOGGER.info("got UDMobile groups={}".format(data['data']['data']))
         self.build_group_list(data['data']['data'])
-        self.controller.Data[GROUPS_LIST] = self.groups_list
+        self.controller.Data[GROUP_LIST] = self.groups_list
+        # Build the devices and groups list
+        for item in self.devices_list:
+            self.devices_and_groups.append({'type': 'device', 'id': item, 'name': item})
+        for item in self.groups_list:
+            self.devices_and_groups.append({'type': 'group', 'id': item['id'], 'name': item['name']})
 
     def group_id2name(self,id):
         for item in self.groups_list:
@@ -145,6 +125,10 @@ class ISYPortal(Node):
     def build_group_list(self,vlist):
         # Add new items to the group list
         dlist = list()
+        # Make sure default is the first in the list
+        # IF we have a device list (legacy) then it will already have the default
+        if len(self.devices_list) == 0 and len(self.groups_list) == 0:
+            self.groups_list.append({'id': '_default_', 'name': 'default'})
         for item in vlist:
             LOGGER.debug('group={}'.format(item))
             dlist.append(item['id'])
@@ -154,6 +138,8 @@ class ISYPortal(Node):
         # Make sure items are in the passed in list, otherwise prefix it in groups_list
         groups_list = list()
         for item in self.groups_list:
+            if item['id'] == '_default_':
+                next
             # Add removed prefix to items no longer in the list.
             if not item['name'].startswith(REM_PREFIX) and dlist.count(item['name']) == 0:
                 groups_list.append({'id': item['id'], 'name': REM_PREFIX + item['name']})
@@ -163,12 +149,6 @@ class ISYPortal(Node):
             else:
                 groups_list.append(item)
         self.groups_list = groups_list
-        # Build devices and groups list for reference
-        self.devices_and_groups = list()
-        for item in self.devices_list:
-            self.devices_and_groups.append(item)
-        for item in self.groups_list:
-            self.devices_and_groups.append(item['name'])
         LOGGER.info("groups_list={}".format(self.groups_list))
 
     """
@@ -216,18 +196,15 @@ class ISYPortal(Node):
             '<tr><th>Name<th>Value<th>Description',
         ]
         i = 0
-        if len(self.devices_list) > 0:
-            i = 0
-            t = 'device'
-            for item in self.devices_list:
-                info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
-                i += 1
+        pt = ""
+        for item in self.devices_and_groups:
+            if item['type'] == pt:
                 t = '&nbsp;'
-        t = 'group'
-        for item in self.groups_list:
+            else:
+                t = item['type']
             info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item['name']))
+            pt = item['type']
             i += 1
-            t = '&nbsp;'
         t = 'sound'
         i = 0
         for item in self.sounds_list:
@@ -325,7 +302,7 @@ class ISYPortal(Node):
             return 0
         return int(cval)
 
-    def get_device_name_by_index(self,dev=None):
+    def get_device_by_index(self,dev=None):
         LOGGER.debug('dev={}'.format(dev))
         if dev is None:
             dev = self.get_device()
@@ -335,17 +312,15 @@ class ISYPortal(Node):
                 LOGGER.error('Passed in {} is not an integer'.format(dev))
                 return False
             dev = int(dev)
-        dev_name = None
-        try:
-            # 0 is all, so return none, otherwise look up the name
-            dev_name = self.devices_and_groups[dev]
-            if dev_name == ALL_DEVICES:
-                dev_name = None
-        except:
-            LOGGER.error('Bad device index {}'.format(dev),exc_info=True)
+        if dev == 0:
+            # 0 is all, so return False, otherwise look up the name
+            return False
+        if dev < len(self.devices_and_groups):
+            return self.devices_and_groups[dev]
+        else:
+            LOGGER.error('Bad device/group index {} must be < {}'.format(dev,len(self.devices_and_groups)),exc_info=True)
             self.set_error(ERROR_PARAM)
             return False
-        return dev_name
 
     def set_st(self,val):
         LOGGER.info(val)
@@ -487,15 +462,11 @@ class ISYPortal(Node):
     def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
-        self.set_device(query.get('Device.uom25'))
-        self.set_sound(query.get('Sound.uom25'))
-        #Can't do this since it changes the current sys short message which has no driver?
-        #self.set_sys_short(query.get('Content.uom145'))
         msg = query.get('Content.uom145')
         if msg is None:
             LOGGER.warning(f"No sys short message passed in?")
             msg = "No Message Defined"
-        return self.do_send({ 'message': msg})
+        return self.do_send({ 'message': msg, 'device': query.get('Device.uom25'), 'sound': query.get('Sound.uom25')})
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
@@ -519,26 +490,23 @@ class ISYPortal(Node):
         if not 'body' in params:
             params['body'] = ' '
         device = 'default'
+        # The device and group is in the same list, so both are accepted
         if 'device' in params:
-            if is_int(params['device']):
-                # It's an index, so get the name
-                device = self.get_device_name_by_index(params['device'])
-                if device is False:
-                    # Bad param, can't send
-                    return
+            device_or_group = params['device']
             del params['device']
         elif 'group' in params:
-            if is_int(params['group']):
-                # It's an index, so get the name
-                device = self.get_device_name_by_index(params['group'])
-                if device is False:
-                    # Bad param, can't send
-                    return
+            device_or_group = params['group']
             del params['group']
         else:
-            device = self.get_device_name_by_index()
-        if not (device == 'default' or device is None):
-            params['device'] = device
+            device_or_group = None
+        if device_or_group is not None:
+            # It's an index, so get the name
+            item = self.get_device_by_index(device_or_group)
+            if item is not False:
+                if item['type'] == 'device':
+                    params['device'] = item['id']
+                else:
+                    params['group_id'] = item['id']
         sound = None
         if 'sound' in params:
             if is_int(params['sound']):
