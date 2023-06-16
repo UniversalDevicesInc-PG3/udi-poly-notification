@@ -235,7 +235,7 @@ class ISYPortal(Node):
         # Write the nodedef file with our info
         LOGGER.debug("Writing {}".format(output_f))
         out_h = open(output_f, "w")
-        out_h.write(data.format(self.id,self.iname))
+        out_h.write(data.format(self.id,self.iname,self.controller.sys_notify_editor))
         out_h.close()
         #
         # nls
@@ -462,7 +462,7 @@ class ISYPortal(Node):
     def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
-        msg = query.get('Content.uom145')
+        msg = query.get(f'Content.uom{self.controller.uom_t}')
         if msg is None:
             LOGGER.warning(f"No sys short message passed in?")
             msg = "No Message Defined"

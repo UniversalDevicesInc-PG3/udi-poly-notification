@@ -270,7 +270,7 @@ class Pushover(Node):
         # Write the nodedef file with our info
         LOGGER.debug("Writing {}".format(output_f))
         out_h = open(output_f, "w")
-        out_h.write(data.format(self.id,self.iname))
+        out_h.write(data.format(self.id,self.iname,self.controller.sys_notify_editor))
         out_h.close()
         #
         # nls
@@ -573,9 +573,7 @@ class Pushover(Node):
         self.set_sound(query.get('Sound.uom25'))
         self.set_retry(query.get('Retry.uom56'))
         self.set_expire(query.get('Expire.uom56'))
-        #Can't do this since it changes the current sys short message which has no driver?
-        #self.set_sys_short(query.get('Content.uom145'))
-        msg = query.get('Content.uom145')
+        msg = query.get(f'Content.uom{self.controller.uom_t}')
         if msg is None:
             LOGGER.warning(f"No sys short message passed in?")
             msg = "No Message Defined"

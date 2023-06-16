@@ -381,6 +381,9 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.1: 06/15/2023
+  - Support _sys_notify_full and _sys_notify_short based on ISY Version
+    - Still need to support check for PG3x > 3.1.30 or PG3 >= 3.1.22 but not sure how to do that yet.
 - 3.6.0: 06/08/2023 (In Beta Only)
   - Convert to sys_notify_full to send full custom messages!
   - Only compatible with IoX 5.6.2 and above

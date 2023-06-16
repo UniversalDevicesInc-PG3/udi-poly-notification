@@ -23,12 +23,12 @@
           <p id="" editor="MESSAGE" init="GV3"/>
         </cmd>
         <cmd id="SET_SYS_SHORT">
-          <p id="" editor="_sys_notify_short"/>
+          <p id="" editor="{2}"/>
         </cmd>
         <cmd id="GV10">
           <p id="Device" editor="IP_D_{1}" init="GV1" optional="T"/>
           <p id="Sound" editor="IP_S_{1}" init="GV2" optional="T"/>
-          <p id="Content" editor="_sys_notify_short"/>
+          <p id="Content" editor="{2}"/>
         </cmd>
         <cmd id="SEND_MY_MESSAGE" />
         <cmd id="SEND_MY_SYS_SHORT" />

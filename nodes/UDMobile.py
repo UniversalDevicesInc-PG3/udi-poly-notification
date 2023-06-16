@@ -59,7 +59,7 @@ class UDMobile(Node):
         LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing UDMobile api {}'.format(self.api_key))
         vstat = self.validate()
-        if vstat['status'] is False:
+        if vstat is False or vstat['status'] is False:
             self.authorized = False
         else:
             self.authorized = True if vstat['status'] == 1 else False
@@ -329,7 +329,7 @@ class UDMobile(Node):
             LOGGER.warning(f"No Sound passed in for command: {command}")
         else:
             params['sound'] = val
-        msg = query.get('Content.uom147')
+        msg = query.get(f'Content.uom{self.controller.uom_t}')
         if msg is None:
             LOGGER.warning(f"No system message passed in?")
             msg = "No Message Defined"

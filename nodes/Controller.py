@@ -13,6 +13,7 @@ import re
 import time
 import fnmatch
 import os
+from distutils.version import StrictVersion
 
 class Controller(Node):
     """
@@ -26,8 +27,25 @@ class Controller(Node):
         self.rest = None
         self.rest_port = None
         self._sys_short_msg = None
+        #  pg3init={'uuid': '00:0d:b9:52:ce:50', 'profileNum': 2, 
+        #  'logLevel': 'DEBUG', 'token': 'vuXtqI5ILW**A&Zf', 'mqttHost': 'localhost', 'mqttPort': 1888, 'secure': 1, 
+        #  'pg3Version': '3.1.21', 'isyVersion': '5.6.2', 'edition': 'Free'}
         LOGGER.warning(f'init={self.poly.pg3init}')
         self.edition = self.poly.pg3init['edition']
+        self.has_sys_editor_full = True if (
+            StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
+            and False
+            ) else False
+        self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
+        self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
+        self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
+        LOGGER.warning(f'has sys_editor_full={self.has_sys_editor_full} editor={self.sys_notify_editor}')
+        self.drivers = [
+            {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
+            {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
+            {'driver': 'GV2', 'value': 0,  'uom': 25}, # Message
+            {'driver': 'GV3', 'value': 0,  'uom': self.sys_notify_uom_d}, # Custom Content
+        ]
         self.edition = 'Test'
         self.uuid    = self.poly.pg3init['uuid']
         self.nodename = os.uname().nodename
@@ -675,11 +693,29 @@ class Controller(Node):
             for file in os.listdir(dir):
                 LOGGER.debug(file)
                 path = dir+'/'+file
-                if os.path.isfile(path) and file != 'editors.xml' and file != 'nodedefs.xml':
+                if os.path.isfile(path) and file != 'editors.xml':
                     LOGGER.debug('Removing: {}'.format(path))
                     os.remove(path)
+        #
         # Write the profile Data
         #
+        #
+        # nodedef
+        #
+        # Open the template, and read into a string for formatting.
+        template_f = 'template/nodedef/nodedefs.xml'
+        LOGGER.debug("Reading {}".format(template_f))
+        with open (template_f, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        # Open the output nodedefs file
+        output_f   = 'profile/nodedef/nodedefs.xml'
+        make_file_dir(output_f)
+        # Write the nodedef file with our info
+        LOGGER.debug("Writing {}".format(output_f))
+        out_h = open(output_f, "w")
+        out_h.write(data.format(self.sys_notify_editor))
+        out_h.close()
         # There is only one nls, so read the nls template and write the new one
         #
         en_us_txt = "profile/nls/en_us.txt"
@@ -910,9 +946,4 @@ class Controller(Node):
         'BUILD_PROFILE': cmd_build_profile,
         'INSTALL_PROFILE': cmd_install_profile,
     }
-    drivers = [
-        {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
-        {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
-        {'driver': 'GV2', 'value': 0,  'uom': 25}, # Message
-        {'driver': 'GV3', 'value': 0,  'uom': 146}, # Custom Content
-    ]
+
