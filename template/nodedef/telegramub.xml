@@ -11,7 +11,7 @@
       <sends />
       <accepts>
         <cmd id="SEND_MESSAGE" />
-        <cmd id="SEND_SYS_SHORT" />
+        <cmd id="SEND_SYS_CUSTOM" />
       </accepts>
     </cmds>
   </nodeDef>

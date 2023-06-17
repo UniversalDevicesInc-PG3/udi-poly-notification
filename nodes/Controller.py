@@ -34,12 +34,12 @@ class Controller(Node):
         self.edition = self.poly.pg3init['edition']
         self.has_sys_editor_full = True if (
             StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
-            and False
+            and 'isPG3x' in self.poly.pg3init 
             ) else False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
         self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
         self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
-        LOGGER.warning(f'has sys_editor_full={self.has_sys_editor_full} editor={self.sys_notify_editor}')
+        LOGGER.warning(f'has_sys_editor_full={self.has_sys_editor_full} editor={self.sys_notify_editor}')
         self.drivers = [
             {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
             {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
@@ -123,6 +123,10 @@ class Controller(Node):
 
     def add_node_done(self):
         LOGGER.debug("enter")
+        if not self.has_sys_editor_full:
+            msg = "Please upgrade modules and reboot to allow usage of Full Custom System Notifications.  See <a href='https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#system-customizations'>System Customizations</a>"
+            self.Notices['upgrade'] = msg
+            LOGGER.warning(msg)
         cnt = 60
         while (cnt > 0 and (
             self.handler_start_st is None
@@ -716,6 +720,7 @@ class Controller(Node):
         out_h = open(output_f, "w")
         out_h.write(data.format(self.sys_notify_editor))
         out_h.close()
+        #
         # There is only one nls, so read the nls template and write the new one
         #
         en_us_txt = "profile/nls/en_us.txt"
@@ -939,7 +944,7 @@ class Controller(Node):
     id = 'controller'
     commands = {
         'SET_MESSAGE': cmd_set_message,
-        'SET_SYS_SHORT': cmd_set_sys_short,
+        'SET_SYS_CUSTOM': cmd_set_sys_short,
         #'SET_SHORTPOLL': cmd_set_short_poll,
         #'SET_LONGPOLL':  cmd_set_long_poll,
         'QUERY': query,
