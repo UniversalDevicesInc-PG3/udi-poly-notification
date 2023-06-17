@@ -45,7 +45,7 @@ The nodeserver allows you to
 1. MESSAGES: Create short messages under Config and send them to a Notification Service easily thru an ISY program
 2. NOTIFY NODES: Create a node that can be added to a scene to send canned messages when the scene is controlled
 3. LARGE MESSAGES WITH SYSTEM VARIABLES: Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
-4. New in 3.3.0 [Short Custom Content](#short-custom-content)
+4. [System Customizations](#system-customizations)
 
 
 ## Notification Services
@@ -106,8 +106,7 @@ This is the main node which contains the Status of the nodeserver and provides a
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
   - Message
         -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/jimboca/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
-  - Short Custom Content
-    - [See Section Below](#short-custom-content)
+  - [System Customizations](#system-customizations)
 
 ### Service Nodes
 These are the Services such as Pushover that are called when a Send is issued.  There can be multiple Services as defined in the Configuration Page.  This includes all available drivers, but not all are available with all services.  Neeed to document which apply to which nodes...
@@ -143,24 +142,24 @@ These are the Services such as Pushover that are called when a Send is issued.  
         - Expires
           - This is only for the Emergency <a href="https://pushover.net/api#priority">Priority</a>. It specifies how many seconds your notification will continue to be retried for (every retry seconds)
         - Message
-          - The user messages configured in the PG3 UI, these will eventually be removed in favor of Sys Short Custom Content
-        - Short Custom Content
+          - The user messages configured in the PG3 UI, these will eventually be removed in favor of Sys Custom
+        - System Custom Content
           - A custom content defined in Admin Console Configuration -> Emails/Notifications -> Customizations
           - The final parsed value must be 80 characters or less
           - Can use any [ISY-994i Series:EMail and Networking Substitution Variables](https://wiki.universal-devices.com/index.php?title=ISY-994i_Series:EMail_and_Networking_Substitution_Variables) 
       - Commands
         - Send Message (old from controller)
           - Sends the Message selected on the controller node.  This is the old way and will eventually be removed
-        - Send Sys Short (old from controller)
-          - Sends the Sys Short message selected on the controller.  This is the old way and will eventually be removed
+        - Send Sys Custom (old from controller)
+          - Sends the Sys Custom message selected on the controller.  This is the old way and will eventually be removed
         - Send Message
           - Send the message selected on this node
-        - Send Sys Short
-          - Send the Sys Short message selected on this node [See Section Below](#short-custom-content)
+        - Send Sys Custom
+          - Send the [System Customizations](#system-customizations) 
 
 ### UD Mobile
 
-The UD Mobile node is simliar to the [ISY Portal](#isy-portal) service except it only has the ability to send a system short message (long messages coming soon).  This node is always added by default as of 3.5.0. You must enter your Portal API Key in the node server configuration portal_api_key setting, which you can find in UD Mobile Notification Settings.  More infomation will follow as this feature becomes available in the UD Mobile app.
+The UD Mobile node is simliar to the [ISY Portal](#isy-portal) service except it only has the ability to send a [System Customizations](#system-customizations) message.  This node is always added by default as of 3.5.0. You must enter your Portal API Key in the node server configuration portal_api_key setting, which you can find in UD Mobile Notification Settings.  More infomation will follow as this feature becomes available in the UD Mobile app.
 
 ### Notify Nodes
 Notify nodes are defined by user on the Configuration Page and are meant to be added to a Scene as a device. They send predefined messages when the device is turned ON or device is turned OFF.
@@ -217,24 +216,25 @@ TODO: Add program info here
 
 ## Sending messages
 
-### Short Custom Content
+### System Customizations
 
-This is a new feature available only for ISY On Polisy staring with version 5.4.2 which will list the "Customized Content" entries you have defined under Configuration -> Emails/Notifications -> Customizations.  This is a much easier way to send simple messsages instead of using Network Resources.   Eventually we may have Long Custom Content but for now this is a huge improvement for creating simple messages which allows executing from a program and including system variables included program and node that initiated the the message.  This only allows sending the message, not the subject (title) for the Pushover message.
+This feature allows sending messages defined in the Admin Console Configuration->Emails/Notifications->Customizations and send that as a notification.  Starting with Version 3.6.1 if you have the latest releases of IoX 5.6.2 and PG3x >= 3.1.30 or PG3 >= 3.1.22 you can now send the full text in these Customizations, otherwise it will only send a 80 character message.
 
-- The subject can contain one or two lines, if left blank then it will send the body.
-- This is currently limited to 80 characters.
+With this feature fully implemented you will no longer needed to use the Network Resources method to send long messages.
+
+Note that subject can contain one or two lines, if left blank then it will send the body.
 
 #### Example
 
 ##### Controller Node
 
-This is an example of the Controller node showing the Short Custom Content.  You can change it here, then select 'Send Sys Short' on the Pushover node to test, but the real power is running from a program.
+This is an example of the Controller node showing the Custom Content.  You can change it here, then select 'Send Sys Custom' on the Pushover node to test, but the real power is running from a program.
 
 ![Controller Node](pics/Controller.png)
 
 ##### Pushover Node
 
-This shows the Pushover Node with the "Send Sys Short" at the bottom.
+This shows the Pushover Node with the "Send Sys Custom" at the bottom.
 
 ![Pushover Node](pics/Pushover_node.png)
 
@@ -244,19 +244,19 @@ A simple example of a very useful custom content sends the program name with nod
 
 ![Custom Content Program Name, Node Name and Status](pics/CustomizedContent_ProgramName-NodeST.png)
 
-##### Send Sys Short
+##### Send Sys Custom
 
 Which can be shared by many programs like this example which sends a notification when Ecobee Nodeserver connects or disconnects.  It's only meant as an example.  (Ignore the NLSG:UD_UOM_146_NAME, that's a ISY bug that Chris will fix in the next release)
 
-![Program Notify Test Sys Short](pics/Program_NotifyTestSysShort.png)
+![Program Notify Test Sys Custom](pics/Program_NotifyTestSysShort.png)
 
 ##### Pushover Result
 
 Which gives you a notificaiton that looks like this
 
-![Pushover Notify Test Sys Short](pics/Pushover_NotifyTestSysShort.png)
+![Pushover Notify Test Sys Custom](pics/Pushover_NotifyTestSysShort.png)
 
-##### Send Sys Short With Params
+##### Send Sys Custom With Params
 
 You can also pass all params on one line with the program entry as like this:
 
@@ -382,8 +382,7 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
 - 3.6.1: 06/15/2023
-  - Support _sys_notify_full and _sys_notify_short based on ISY Version
-    - Still need to support check for PG3x > 3.1.30 or PG3 >= 3.1.22 but not sure how to do that yet.
+  - Support _sys_notify_full and _sys_notify_short based on ISY Version and PG3 version See [System Customizations](#system-customizations)
 - 3.6.0: 06/08/2023 (In Beta Only)
   - Convert to sys_notify_full to send full custom messages!
   - Only compatible with IoX 5.6.2 and above

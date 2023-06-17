@@ -312,5 +312,5 @@ class TelegramUB(Node):
     commands = {
                 #'DON': setOn, 'DOF': setOff
                 'SEND_MESSAGE': cmd_send_message,
-                'SEND_SYS_SHORT': cmd_send_sys_short,
+                'SEND_SYS_CUSTOM': cmd_send_sys_short,
                 }

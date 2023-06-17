@@ -329,7 +329,7 @@ class UDMobile(Node):
             LOGGER.warning(f"No Sound passed in for command: {command}")
         else:
             params['sound'] = val
-        msg = query.get(f'Content.uom{self.controller.uom_t}')
+        msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
         if msg is None:
             LOGGER.warning(f"No system message passed in?")
             msg = "No Message Defined"

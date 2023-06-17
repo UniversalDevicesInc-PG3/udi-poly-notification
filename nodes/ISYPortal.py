@@ -372,10 +372,11 @@ class ISYPortal(Node):
         self.setDriver('GV3', val)
 
     def get_sys_short(self):
+        LOGGER.debug('sys_short={}'.format(self._sys_short))
         return self._sys_short
 
     def set_sys_short(self,val):
-        LOGGER.info(val)
+        LOGGER.info('val={}'.format(val))
         self._sys_short = val
 
     # Returns ISYPortal priority numbers which start at -2 and our priority nubmers that start at zero
@@ -462,7 +463,7 @@ class ISYPortal(Node):
     def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
-        msg = query.get(f'Content.uom{self.controller.uom_t}')
+        msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
         if msg is None:
             LOGGER.warning(f"No sys short message passed in?")
             msg = "No Message Defined"
@@ -627,10 +628,10 @@ class ISYPortal(Node):
                 'SET_DEVICE': cmd_set_device,
                 'SET_SOUND': cmd_set_sound,
                 'SET_MESSAGE': cmd_set_message,
-                'SET_SYS_SHORT': cmd_set_sys_short,
+                'SET_SYS_CUSTOM': cmd_set_sys_short,
                 'SEND': cmd_send_message,
-                'SEND_SYS_SHORT': cmd_send_sys_short,
+                'SEND_SYS_CUSTOM': cmd_send_sys_short,
                 'SEND_MY_MESSAGE': cmd_send_my_message,
-                'SEND_MY_SYS_SHORT': cmd_send_my_sys_short,
+                'SEND_MY_SYS_CUSTOM': cmd_send_my_sys_short,
                 'GV10': cmd_send_sys_short_with_params,
                 }
