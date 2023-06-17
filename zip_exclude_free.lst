@@ -1,0 +1,10 @@
+nodes/AssistantRelay.py
+nodes/ISYPortal.py
+nodes/Pushover.py
+nodes/TelegramUB.py
+template/editor/isyportal.xml
+template/editor/pushover.xml
+template/editor/telegramub.xml
+template/nodedef/isyportal.xml
+template/nodedef/pushover.xml
+template/nodedef/telegramub.xml

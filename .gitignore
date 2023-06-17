@@ -87,3 +87,5 @@ target/
 profile/*/custom.xml
 profile/*/homeisy.xml
 profile/nodedef
+profile/editor/udmobile.xml
+zip_exclude_free_full.lst

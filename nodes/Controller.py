@@ -123,7 +123,7 @@ class Controller(Node):
     def add_node_done(self):
         LOGGER.debug("enter")
         if not self.has_sys_editor_full:
-            msg = "Please upgrade modules and reboot to allow usage of Full Custom System Notifications.  See <a href='https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#system-customizations'>System Customizations</a>"
+            msg = "Please upgrade modules and reboot to allow usage of Full Custom System Notifications.  See <a href='https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#system-customizations' target='_ blank'>System Customizations</a>"
             self.Notices['upgrade'] = msg
             LOGGER.warning(msg)
         cnt = 60
@@ -692,19 +692,22 @@ class Controller(Node):
         # First clean out all files we created
         #
         for dir in ['profile/editor', 'profile/nodedef']:
-            LOGGER.debug('Cleaning: {}'.format(dir))
-            for file in os.listdir(dir):
-                LOGGER.debug(file)
-                path = dir+'/'+file
-                if os.path.isfile(path) and file != 'editors.xml':
-                    LOGGER.debug('Removing: {}'.format(path))
-                    os.remove(path)
+            if os.path.exists(dir):
+                LOGGER.debug('Cleaning: {}'.format(dir))
+                for file in os.listdir(dir):
+                    LOGGER.debug(file)
+                    path = dir+'/'+file
+                    if os.path.isfile(path) and file != 'editors.xml':
+                        LOGGER.debug('Removing: {}'.format(path))
+                        os.remove(path)
         #
         # Write the profile Data
         #
         #
         # nodedef
         #
+        if not os.path.exists('profile/nodedef'):
+            os.mkdir('profile/nodedef')
         # Open the template, and read into a string for formatting.
         template_f = 'template/nodedef/nodedefs.xml'
         LOGGER.debug("Reading {}".format(template_f))
