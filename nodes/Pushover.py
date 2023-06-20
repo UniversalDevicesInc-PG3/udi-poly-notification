@@ -535,10 +535,21 @@ class Pushover(Node):
         LOGGER.info(val)
         self.set_message(val)
 
+
     def cmd_set_sys_short(self,command):
-        val = command.get('value')
-        LOGGER.info(val)
-        self.set_sys_short(val)
+        LOGGER.debug(f'command={command}')
+        msg = command.get('value')
+        if msg is None:
+            query = command.get('query')
+            msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
+            subject = msg['notification']['formatted']['subject']
+            body    = msg['notification']['formatted']['body']
+            if (body == ""):
+                msg = subject
+            else:
+                msg = subject + "\n" + body
+        LOGGER.info(msg)
+        self.set_sys_short(msg)
 
     def cmd_send_message(self,command):
         LOGGER.info('')
@@ -575,8 +586,17 @@ class Pushover(Node):
         self.set_expire(query.get('Expire.uom56'))
         msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
         if msg is None:
-            LOGGER.warning(f"No sys short message passed in?")
+            LOGGER.warning(f"No system message passed in?")
             msg = "No Message Defined"
+        elif type(msg) is dict:
+            #  'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
+            # Support old style with multi-line subject
+            subject = msg['notification']['formatted']['subject']
+            body    = msg['notification']['formatted']['body']
+            if (body == ""):
+                msg = subject
+            else:
+                msg = subject + "\n" + body
         return self.do_send({ 'message': msg})
 
     def do_send(self,params):

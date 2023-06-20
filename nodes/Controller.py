@@ -32,8 +32,10 @@ class Controller(Node):
         #  'pg3Version': '3.1.21', 'isyVersion': '5.6.2', 'edition': 'Free'}
         LOGGER.warning(f'init={self.poly.pg3init}')
         self.edition = self.poly.pg3init['edition']
+        self.edition = "Test"
         self.has_sys_editor_full = True if (
             StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
+            # All versions since isPG3x was added to PG3 and PG3x works with sys_notify_full
             and 'isPG3x' in self.poly.pg3init 
             ) else False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'

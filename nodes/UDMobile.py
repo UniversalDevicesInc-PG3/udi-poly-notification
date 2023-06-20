@@ -333,7 +333,18 @@ class UDMobile(Node):
         if msg is None:
             LOGGER.warning(f"No system message passed in?")
             msg = "No Message Defined"
-        params['message'] = msg
+        elif type(msg) is dict:
+            #  'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
+            # Support old style with multi-line subject
+            subject = msg['notification']['formatted']['subject']
+            body    = msg['notification']['formatted']['body']
+            if (body == ""):
+                params['message'] = subject
+            else:
+                params['title'] = subject
+                params['body']  = body
+        else:
+            params['message'] = msg
         return self.do_send(params)
 
     def do_send(self,params):
