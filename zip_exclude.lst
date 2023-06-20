@@ -15,3 +15,4 @@ profile/*/telegram.xml
 profile/*/isyp.xml
 pics/*
 mysettings.txt
+zip_exclude*
