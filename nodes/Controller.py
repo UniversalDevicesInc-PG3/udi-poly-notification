@@ -189,6 +189,64 @@ class Controller(Node):
         else:
             return super(Controller, self).getDriver(driver)
 
+    def get_message_short(self,msg):
+        msg = query.get(f'Content.uom145')
+        if msg is None:
+            return ret
+        # Entire message
+        ret['message'] = msg
+        # Title is first line, body is the rest
+        sp = msg.split("\n",1)
+        ret = { 'subject': sp[0] }
+        if len(sp) > 1:
+            ret['body'] = sp[1]
+        else:
+            ret['body'] = ''
+        return ret
+
+    # New: 'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
+    def get_message_long(self,query):
+        msg = query.get(f'Content.uom147')
+        if msg is None:
+            return msg
+        # Contains subject & body
+        ret = msg['notification']['formatted']
+        if (ret['body'] == ""):
+            ret['message'] = ret['subject']
+        else:
+            ret['message'] = ret['subject'] + "\n" + ret['body']
+        return ret
+
+    # Format old short or new long query.
+    def get_message_from_query(self,query):
+        reboot = False
+        if self.has_sys_editor_full:
+            # New _sys_editor_full
+            msg = self.get_message_long(query)
+            if msg is None:
+                # Check for the old one
+                msg = self.get_message_short(query)
+                if msg is None:
+                    msg = { 'subject': "ERROR", 'body': "No message passed in"}
+                else:
+                    reboot = True
+            else:
+                ret = self.get_message_long(msg)
+        else:
+            # Old _sys_editor_short
+            msg = self.get_message_short(query)
+            if msg is None:
+                # New _sys_editor_full
+                msg = self.get_message_long(query)
+                if msg is None:
+                    msg = { 'subject': "ERROR", 'body': "No message passed in"}
+                else:
+                    reboot = True
+        if reboot:
+            self.Notices['reboot_iox'] = "ERROR: You need to reboot our IoX to fix references to sys_notify editors"
+        msg['reboot'] = reboot
+        return msg
+    
     def get_service_node(self,sname):
         for item in self.service_nodes:
             if item['name'] == sname or item['node'].address == sname or item['node'].name == sname:

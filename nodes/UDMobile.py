@@ -68,10 +68,12 @@ class UDMobile(Node):
             self.set_error(ERROR_NONE)
             self.set_groups()
             self._init_st = True
-            msg = f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.'
+            params = { 'system': True, 'title': f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.' }
             if self.controller.edition == 'Free':
-                msg += ' Please upgrade to Standard version to get all features'
-            self.do_send({ 'message': msg, 'system': True})
+                params['body'] = 'Please upgrade to Standard version to get all features'
+            else:
+                params['body'] = ' '
+            self.do_send(params)
         else:
             self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
             # We always set to true sicne on first startup the api key will not exist.
@@ -329,22 +331,9 @@ class UDMobile(Node):
             LOGGER.warning(f"No Sound passed in for command: {command}")
         else:
             params['sound'] = val
-        msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
-        if msg is None:
-            LOGGER.warning(f"No system message passed in?")
-            msg = "No Message Defined"
-        elif type(msg) is dict:
-            #  'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
-            # Support old style with multi-line subject
-            subject = msg['notification']['formatted']['subject']
-            body    = msg['notification']['formatted']['body']
-            if (body == ""):
-                params['message'] = subject
-            else:
-                params['title'] = subject
-                params['body']  = body
-        else:
-            params['message'] = msg
+        msg = self.controller.get_message_from_query(query)
+        params['title'] = msg['subject']
+        params['body']  = msg['body']
         return self.do_send(params)
 
     def do_send(self,params):
@@ -352,25 +341,6 @@ class UDMobile(Node):
         system = False
         if 'system' in params:
             system = params['system']
-        # These may all eventually be passed in or pulled from drivers.
-        if 'message' in params:
-            if not 'title' in params and not 'body' in params:
-                # Title is first line, body is the rest
-                sp = params['message'].split("\n",1)
-                params['title'] = sp[0]
-                if len(sp) > 1:
-                    params['body'] = sp[1]
-            elif 'title' in params and 'body' in params:
-                LOGGER.error("title, body, and message all passed in?  Not sure what to do with message={message}")
-                return False
-            elif 'title' in params:
-                params['body'] = params['message']
-            else:
-                params['title'] = params['message']
-            del params['message']
-        # No body, which is required, so just make it a space :(
-        if not 'body' in params:
-            params['body'] = ' '
         if 'group' in params:
             if is_int(params['group']) and params['group'] == 0:
                 LOGGER.info('Using default group')

@@ -535,19 +535,13 @@ class Pushover(Node):
         LOGGER.info(val)
         self.set_message(val)
 
-
+    # Works for old and new sys_editor
     def cmd_set_sys_short(self,command):
         LOGGER.debug(f'command={command}')
         msg = command.get('value')
         if msg is None:
-            query = command.get('query')
-            msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
-            subject = msg['notification']['formatted']['subject']
-            body    = msg['notification']['formatted']['body']
-            if (body == ""):
-                msg = subject
-            else:
-                msg = subject + "\n" + body
+            msg = self.controller.get_message_from_query(command.get('query'))
+            msg = msg['message']
         LOGGER.info(msg)
         self.set_sys_short(msg)
 
@@ -584,20 +578,8 @@ class Pushover(Node):
         self.set_sound(query.get('Sound.uom25'))
         self.set_retry(query.get('Retry.uom56'))
         self.set_expire(query.get('Expire.uom56'))
-        msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
-        if msg is None:
-            LOGGER.warning(f"No system message passed in?")
-            msg = "No Message Defined"
-        elif type(msg) is dict:
-            #  'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
-            # Support old style with multi-line subject
-            subject = msg['notification']['formatted']['subject']
-            body    = msg['notification']['formatted']['body']
-            if (body == ""):
-                msg = subject
-            else:
-                msg = subject + "\n" + body
-        return self.do_send({ 'message': msg})
+        msg = self.controller.get_message_from_query(query)
+        return self.do_send({ 'message': msg['message']})
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
@@ -664,8 +646,6 @@ class Pushover(Node):
         sent = False
         retry = True
         cnt  = 0
-        # Clear error if there was one
-        self.set_error(ERROR_NONE)
         LOGGER.debug('params={}'.format(params))
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
