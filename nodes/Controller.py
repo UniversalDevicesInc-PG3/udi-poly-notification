@@ -35,7 +35,14 @@ class Controller(Node):
         self.has_sys_editor_full = True if (
             StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
             # All versions since isPG3x was added to PG3 and PG3x works with sys_notify_full
-            and 'isPG3x' in self.poly.pg3init 
+            # But, now one more version to full support the data coming from the IoX http post
+            and (
+                'isPG3x' in self.poly.pg3init
+                and ( 
+                    (self.poly.pg3init['isPG3X'] is True and StrictVersion(self.poly.pg3init['pg3Version']) > StrictVersion('3.1.31'))
+                    or (self.poly.pg3init['isPG3X'] is not True and StrictVersion(self.poly.pg3init['pg3Version']) > StrictVersion('3.1.23'))
+                    ) 
+                )
             ) else False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
         self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
@@ -124,10 +131,10 @@ class Controller(Node):
     def add_node_done(self):
         LOGGER.debug("enter")
         if not self.has_sys_editor_full:
-            msg = "Please upgrade modules and reboot to allow usage of Full Custom System Notifications.  See <a href='https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#system-customizations' target='_ blank'>System Customizations</a>"
+            msg = f"Please upgrade modules and reboot to allow usage of Full Custom System Notifications. isyVersion={self.poly.pg3init['isyVersion']} isPG3x={self.poly.pg3init['isPG3X']} pg3Version={self.poly.pg3init['pg3Version']} See <a href='https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#system-customizations' target='_ blank'>System Customizations</a>"
             self.Notices['upgrade'] = msg
             LOGGER.warning(msg)
-        cnt = 60
+        cnt = 120
         while (cnt > 0 and (
             self.handler_start_st is None
             or self.handler_params_st is None
