@@ -37,8 +37,6 @@ class Controller(Node):
             # All versions since isPG3x was added to PG3 and PG3x works with sys_notify_full
             and 'isPG3x' in self.poly.pg3init 
             ) else False
-        self.edition = "Test"
-        self.has_sys_editor_full = False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
         self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
         self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
