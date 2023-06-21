@@ -58,7 +58,7 @@
     </cmds>
   </nodeDef>
 
-  <!--- Poushover Notify Node -->
+  <!--- Pushover Notify Node -->
   <nodeDef id="{0}_notify" nls="povnfy">
       <editors />
       <sts>

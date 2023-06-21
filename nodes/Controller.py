@@ -32,12 +32,13 @@ class Controller(Node):
         #  'pg3Version': '3.1.21', 'isyVersion': '5.6.2', 'edition': 'Free'}
         LOGGER.warning(f'init={self.poly.pg3init}')
         self.edition = self.poly.pg3init['edition']
-        self.edition = "Test"
         self.has_sys_editor_full = True if (
             StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
             # All versions since isPG3x was added to PG3 and PG3x works with sys_notify_full
             and 'isPG3x' in self.poly.pg3init 
             ) else False
+        self.edition = "Test"
+        self.has_sys_editor_full = False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
         self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
         self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
@@ -189,19 +190,17 @@ class Controller(Node):
         else:
             return super(Controller, self).getDriver(driver)
 
-    def get_message_short(self,msg):
+    def get_message_short(self,query):
         msg = query.get(f'Content.uom145')
         if msg is None:
             return ret
-        # Entire message
-        ret['message'] = msg
-        # Title is first line, body is the rest
+        # Entire message and title is first line, body is the rest
         sp = msg.split("\n",1)
-        ret = { 'subject': sp[0] }
+        ret = { 'message': msg, 'subject': sp[0] }
         if len(sp) > 1:
             ret['body'] = sp[1]
         else:
-            ret['body'] = ''
+            ret['body'] = ' '
         return ret
 
     # New: 'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
@@ -213,6 +212,7 @@ class Controller(Node):
         ret = msg['notification']['formatted']
         if (ret['body'] == ""):
             ret['message'] = ret['subject']
+            ret['body'] = ' '
         else:
             ret['message'] = ret['subject'] + "\n" + ret['body']
         return ret

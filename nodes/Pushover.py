@@ -655,11 +655,13 @@ class Pushover(Node):
                 sent = True
                 self.set_error(ERROR_NONE)
             else:
+                LOGGER.debug('res={}'.format(res))
                 if 'data' in res:
-                    if 'errors' in res['data']:
+                    if res['data'] is False:
+                        LOGGER.error('From Pushover: {}'.format(res))
+                    elif 'errors' in res['data']:
                         LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
                 # No status code or not 4xx code is
-                LOGGER.debug('res={}'.format(res))
                 if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
