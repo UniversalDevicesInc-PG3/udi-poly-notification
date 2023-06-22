@@ -474,22 +474,9 @@ class ISYPortal(Node):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
         params = { 'device': query.get('Device.uom25'), 'sound': query.get('Sound.uom25')}
-        msg = query.get(f'Content.uom{self.controller.sys_notify_uom_t}')
-        if msg is None:
-            LOGGER.warning(f"No system message passed in?")
-            msg = "No Message Defined"
-        elif type(msg) is dict:
-            #  'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
-            # Support old style with multi-line subject
-            subject = msg['notification']['formatted']['subject']
-            body    = msg['notification']['formatted']['body']
-            if (body == ""):
-                params['message'] = subject
-            else:
-                params['title'] = subject
-                params['body']  = body
-        else:
-            params['message'] = msg
+        msg = self.controller.get_message_from_query(query)
+        params['title'] = msg['subject']
+        params['body']  = msg['body']
         return self.do_send(params)
 
     def do_send(self,params):

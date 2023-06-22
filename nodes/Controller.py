@@ -224,6 +224,7 @@ class Controller(Node):
 
     # Format old short or new long query.
     def get_message_from_query(self,query):
+        LOGGER.debug(f'enter query={query}')
         reboot = False
         if self.has_sys_editor_full:
             # New _sys_editor_full
@@ -250,6 +251,7 @@ class Controller(Node):
         if reboot:
             self.Notices['reboot_iox'] = "ERROR: You need to reboot our IoX to fix references to sys_notify editors"
         msg['reboot'] = reboot
+        LOGGER.debug(f'exit msg={msg}')
         return msg
     
     def get_service_node(self,sname):
