@@ -382,7 +382,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
 - 3.6.4: 06/21/2023
-  - Now requires an even newer version of PG3/PG3x to fix pushover messages using sys_notify_full
+  - Now requires an even newer version of PG3/PG3x, which isn't released yet, to fix pushover messages using sys_notify_full
+  - Trap old uom issues with UD Mobile nodes
 - 3.6.3: 06/20/2023
   - Bug fixes for new [System Customizations](#system-customizations)
 - 3.6.2: 06/15/2023
