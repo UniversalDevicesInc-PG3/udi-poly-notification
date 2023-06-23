@@ -7,7 +7,7 @@ by JimBoCA jimboca3@gmail.com
 from udi_interface import Interface,LOGGER
 import sys
 import time
-from nodes import Controller
+from nodes import Controller,NSVERSION
 
 if __name__ == "__main__":
     if sys.version_info < (3, 6):
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         sys.exit(1)
     try:
         polyglot = Interface([Controller])
-        polyglot.start()
+        polyglot.start("version":NSVERSION)
         control = Controller(polyglot, 'controller', 'controller', 'Notification Controller')
         polyglot.runForever()
     except (KeyboardInterrupt, SystemExit):

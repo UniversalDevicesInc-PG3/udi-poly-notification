@@ -14,7 +14,6 @@ zip:
 zip_free:
 	cat zip_exclude.lst zip_exclude_free.lst > zip_exclude_free_full.lst
 	cp nodes/__init__.py .
-	echo "from .UDMobile import UDMobile" > nodes/__init__.py
-	echo "from .Controller import Controller" >> nodes/__init__.py
+	cat nodes/__init__.py | egrep 'VERSION|UDMobile|Controller' > nodes/__init__.py
 	zip -x@zip_exclude_free_full.lst -r ${NAME}_free.zip *
 	mv __init__.py nodes/
