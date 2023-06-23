@@ -1,5 +1,7 @@
 """ Node classes used by the Notification Node Server. """
 
+NSVERSION = 3.6.7
+
 from .Notify import Notify
 from .Pushover import Pushover
 from .ISYPortal import ISYPortal

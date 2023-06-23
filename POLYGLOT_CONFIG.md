@@ -1,6 +1,6 @@
 
 # Polyglot Node Server Configuration
-Please read <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md" target="_ blank">README</a> for more information and insight to Configuration described below.
+Please read <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md" target="_ blank">README</a> for more information and insight to Configuration described below.
 
 ## Custom Configuration Parameters
 
@@ -68,6 +68,6 @@ After changing any configuration you must restart the node server.
 
 ## Help
 
-Please see <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md" target="_ blank">README</a> for more information.
+Please see <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md" target="_ blank">README</a> for more information.
 
 <i>Note: The information below is generated on the fly and will be updated on each nodeserver restart or when discover or update profile is run from the Admin Console.  It takes a minute to update since it polls the pushover servers.</i>
