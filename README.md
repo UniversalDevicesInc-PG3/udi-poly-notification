@@ -381,6 +381,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.7: 06/23/2023
+  - Update to pass NS version the new way
 - 3.6.6: 06/22/2023
   - Fix bug which caused a lot of the configuration documentation to not show up
     - Also add more info to configuration doc, still more to add.
