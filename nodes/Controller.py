@@ -13,6 +13,7 @@ import re
 import time
 import fnmatch
 import os
+import markdown
 from distutils.version import StrictVersion
 
 class Controller(Node):
@@ -258,7 +259,7 @@ class Controller(Node):
                 else:
                     reboot = True
         if reboot:
-            self.Notices['reboot_iox'] = "ERROR: You need to reboot IoX to fix references to sys_notify editors"
+            self.Notices['reboot_iox'] = f"WARNING: You need to edit your ISY program that sent: {msg}\nCheck the log for more errors like this."
         msg['reboot'] = reboot
         LOGGER.debug(f'exit msg={msg}')
         return msg
@@ -904,7 +905,12 @@ class Controller(Node):
         #
         # SEt the Custom Config Doc
         #
-        self.poly.setCustomParamsDoc(s.join(self.config_info))
+        config_doc_file = "POLYGLOT_CONFIG.md"
+        LOGGER.debug("Reading {}".format(config_doc_file))
+        with open (config_doc_file, "r") as myfile:
+            data=myfile.read()
+            myfile.close()
+        self.poly.setCustomParamsDoc(markdown.markdown(data)+s.join(self.config_info))
         #
         # editor/custom.xml
         #
