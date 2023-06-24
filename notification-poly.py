@@ -15,7 +15,7 @@ if __name__ == "__main__":
         sys.exit(1)
     try:
         polyglot = Interface([Controller])
-        polyglot.start("version":NSVERSION)
+        polyglot.start(NSVERSION)
         control = Controller(polyglot, 'controller', 'controller', 'Notification Controller')
         polyglot.runForever()
     except (KeyboardInterrupt, SystemExit):
