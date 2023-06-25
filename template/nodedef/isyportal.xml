@@ -38,7 +38,7 @@
     </cmds>
   </nodeDef>
 
-  <!--- Poushover Notify Node -->
+  <!--- ISY Portal Notify Node -->
   <nodeDef id="{0}_notify" nls="ipnfy">
       <editors />
       <sts>
