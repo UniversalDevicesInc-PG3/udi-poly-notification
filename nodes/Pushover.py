@@ -383,7 +383,7 @@ class Pushover(Node):
         cval = self.getDriver('GV2')
         if cval is None:
             return 0
-        return int(self.getDriver('GV2'))
+        return int(cval)
 
     def set_format(self,val):
         LOGGER.info(val)
@@ -572,14 +572,21 @@ class Pushover(Node):
     def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
-        self.set_device(query.get('Device.uom25'))
-        self.set_priority(query.get('Priority.uom25'))
-        self.set_format(query.get('Format.uom25'))
-        self.set_sound(query.get('Sound.uom25'))
-        self.set_retry(query.get('Retry.uom56'))
-        self.set_expire(query.get('Expire.uom56'))
         msg = self.controller.get_message_from_query(query)
-        return self.do_send({ 'message': msg['message']})
+        params = { 'message': msg['message']}
+        if query.get('Device.uom25') is not None:
+            self.set_device(query.get('Device.uom25'))
+        if query.get('Priority.uom25') is not None:
+            self.set_priority(query.get('Priority.uom25'))
+        if query.get('Format.uom25') is not None:
+            self.set_format(query.get('Format.uom25'))
+        if query.get('Sound.uom25') is not None:
+            self.set_sound(query.get('Sound.uom25'))
+        if query.get('Retry.uom56') is not None:
+            self.set_retry(query.get('Retry.uom56'))
+        if query.get('Expire.uom56') is not None:
+            self.set_expire(query.get('Expire.uom56'))
+        return self.do_send(params)
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
