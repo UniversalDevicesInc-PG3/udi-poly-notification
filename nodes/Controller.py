@@ -132,6 +132,10 @@ class Controller(Node):
 
     def add_node_done(self):
         LOGGER.debug("enter")
+        configurationHelp = './POLYGLOT_CONFIG.md';
+        if os.path.isfile(configurationHelp):
+            cfgdoc = markdown2.markdown_path(configurationHelp)
+            poly.setCustomParamsDoc(cfgdoc)        
         if self.has_sys_editor_full:
             if (
                 (self.poly.pg3init['isPG3x'] is True and StrictVersion(self.poly.pg3init['pg3Version']) == StrictVersion('3.1.31'))
@@ -905,7 +909,7 @@ class Controller(Node):
         self.config_info = config_info_nr + config_info_rest
         s = "\n"
         #
-        # SEt the Custom Config Doc
+        # Set the Custom Config Doc
         #
         config_doc_file = "POLYGLOT_CONFIG.md"
         LOGGER.debug("Reading {}".format(config_doc_file))
