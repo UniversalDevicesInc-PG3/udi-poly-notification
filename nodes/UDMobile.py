@@ -334,6 +334,8 @@ class UDMobile(Node):
         msg = self.controller.get_message_from_query(query)
         params['title'] = msg['subject']
         params['body']  = msg['body']
+        if ('reboot' in params and params['reboot'] is True):
+            self.Notices['reboot_iox'] = f"WARNING: You need to reboot IoX to support long messages for: {msg}"
         return self.do_send(params)
 
     def do_send(self,params):
@@ -341,6 +343,14 @@ class UDMobile(Node):
         system = False
         if 'system' in params:
             system = params['system']
+        # Fix up what a notify node sends.
+        if 'device' in params:
+            params['group'] = params['device']
+            del params['device']
+        if 'message' in params:
+            params['title'] = params['message']
+            params['body'] = ' '
+            del params['message']
         if 'group' in params:
             if is_int(params['group']) and params['group'] == 0:
                 LOGGER.info('Using default group')

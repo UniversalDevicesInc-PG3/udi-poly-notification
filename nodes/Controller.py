@@ -240,12 +240,16 @@ class Controller(Node):
             # New _sys_editor_full
             msg = self.get_message_long(query)
             if msg is None:
+                # May need a reboot to get proper uom, but for now only UDMobile
+                reboot = True
                 # Check for the old one
                 msg = self.get_message_short(query)
                 if msg is None:
                     msg = { 'subject': "ERROR", 'body': "No message passed in"}
-                else:
-                    reboot = True
+                # No longer needed, AC will fix this soon. else:
+                #    self.Notices['reboot_iox'] = f"WARNING: You need to edit & save your ISY program to support long messages that sent: {msg}\nCheck the log for more errors like this."
+                #    msg['reboot'] = reboot
+                #    reboot = True
             else:
                 ret = self.get_message_long(msg)
         else:
@@ -256,21 +260,19 @@ class Controller(Node):
                 msg = self.get_message_long(query)
                 if msg is None:
                     msg = { 'subject': "ERROR", 'body': "No message passed in"}
-                else:
-                    reboot = True
-        if reboot:
-            self.Notices['reboot_iox'] = f"WARNING: You need to edit your ISY program that sent: {msg}\nCheck the log for more errors like this."
         msg['reboot'] = reboot
         LOGGER.debug(f'exit msg={msg}')
         return msg
     
     def get_service_node(self,sname):
+        LOGGER.debug(f'start: {sname}')
         for item in self.service_nodes:
+            LOGGER.debug(f'  check: {item}')
             if item['name'] == sname or item['node'].address == sname or item['node'].name == sname:
                 return item
         l = list()
         for item in self.service_nodes:
-            l.extend([item['name'],item['node'].address,item['node'].name])
+            l.append(f"{item['name']},{item['node'].address},{item['node'].name}")
         LOGGER.error(f"Unknown service node {sname} must be one of: " + ", ".join(l))
         return False
 
@@ -577,7 +579,7 @@ class Controller(Node):
 
         #
         # List of all service node names
-        snames   = dict()
+        snames   = { 'udmobile': { 'type': 'udmobile', 'name': 'udmobile'}}
         # List of errors to print at the end in a Notice        
         err_list = list()
 
@@ -667,7 +669,7 @@ class Controller(Node):
                 if len(tnames[address]) > 1:
                     err_list.append("Duplicate names for {} items {} from {}".format(len(tnames[address]),address,",".join(tnames[address])))
         #
-        # Check the message notify_nodes are all good
+        # Check the notify nodes are all good
         #
         notify_nodes    = data.get('notify',el)
         if len(notify_nodes) == 0:
@@ -684,9 +686,9 @@ class Controller(Node):
                 if 'service_node_name' in node:
                     sname = node['service_node_name']
                     if not sname in snames:
-                        err_list.append("Unknown service node name {} in message node {} must be one of {}".format(sname,node,",".join(snames)))
+                        err_list.append("Unknown service node name {} in notify node {} must be one of {}".format(sname,node,",".join(snames)))
                 else:
-                    err_list.append("No service node name in message node {} must be one of {}".format(sname,node,",".join(snames)))
+                    err_list.append("No service node name in notify node {} must be one of {}".format(sname,node,",".join(snames)))
             for address in mnames:
                 if len(mnames[address]) > 1:
                     err_list.append("Duplicate Notify ids for {} items {} from {}".format(len(mnames[address]),address,",".join(mnames[address])))
