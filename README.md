@@ -291,7 +291,7 @@ A Notify node accepts a Device ON / Device OFF from a scene or a program
 - Create a Notify node in the Configuration using "Add Notify Nodes” as follows:
   - ID for Node: Set this to a short unique string (to be used for the nodeid in the ISY)
   - Name for Node: This text string will become the beginning of the message sent so descriptive names are helpful here. For example ‘Kitchen’. So when used with the predefined Light on message, the message delivered is ‘Kitchen Light on’
-  - Service Node Name: Set to match to the Name of an existing Service Node you created, cap sensitive. In the above programming example, my Service Node Name is ‘homeisy’. This is the name I used for my Pushover service. Therefore if I want to use this Pushover service to deliver this predefined message, it needs to match this name and therefore would be ‘homeisy’.
+  - Service Node Name: Set to match to the Name of an existing Service Node you created, case sensitive. In the above programming example, my Service Node Name is ‘homeisy’. This is the name I used for my Pushover service. Therefore if I want to use this Pushover service to deliver this predefined message, it needs to match this name and therefore would be ‘homeisy’.  For the UDMObile node, use 'usmobile'
 - Press 'Save Changes'
 - Press 'Restart'
 
@@ -381,6 +381,10 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.8: 06/25/2023
+  - Add support for UDMobile <a href="#notify-node">notify node</a> with updated <a href="#notify-nodes-with-predefined-messages">Instructions</a>.
+  - Fix Pushover defaults when not supplied
+  - Only show reboot message for UD Mobile, will add for others when Admin Console is fixed.
 - 3.6.7: 06/23/2023
   - Update to pass NS version the new way
 - 3.6.6: 06/22/2023
