@@ -77,7 +77,7 @@ First create your User Bot
     1. Also save a permenant record of it somewhere, along with the link in the next step
 1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
 1. The "Start" will be shown, click that
-1. Go to: [@RawDataBot](https://t.me/RawDataBot)
+1. Go to: [@RawDataBot](https://t.me/RawDataBot) on your phone
     1. Click Start
     1. This will give your user id listed under message -> from -> id
     1. Copy that to use in Nodeserver configuration
