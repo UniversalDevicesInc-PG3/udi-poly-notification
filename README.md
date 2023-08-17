@@ -381,6 +381,10 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.10: 08/16/2023
+  - Properly set config doc on startup
+  - Add node names for PG3 UI
+  - UD Mobile wait to send message until node is ready in case message is sent on startup
 - 3.6.8: 06/25/2023
   - Add support for UDMobile <a href="#notify-node">notify node</a> with updated <a href="#notify-nodes-with-predefined-messages">Instructions</a>.
   - Fix Pushover defaults when not supplied
