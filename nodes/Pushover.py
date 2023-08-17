@@ -732,15 +732,15 @@ class Pushover(Node):
     _init_st = None
     id = 'pushover'
     drivers = [
-        {'driver': 'ST',  'value': 0, 'uom': 2},
-        {'driver': 'ERR', 'value': 0, 'uom': 25},
-        {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 2, 'uom': 25},
-        {'driver': 'GV3', 'value': 0, 'uom': 25},
-        {'driver': 'GV4', 'value': 30, 'uom': 56},
-        {'driver': 'GV5', 'value': 10800, 'uom': 56},
-        {'driver': 'GV6', 'value': 0, 'uom': 25},
-        {'driver': 'GV7', 'value': 0, 'uom': 25},
+        {'driver': 'ST',  'value': 0, 'uom': 2, 'name': 'Last Status'},
+        {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
+        {'driver': 'GV1', 'value': 0, 'uom': 25, 'name': 'Device'},
+        {'driver': 'GV2', 'value': 2, 'uom': 25, 'name': 'Priority'},
+        {'driver': 'GV3', 'value': 0, 'uom': 25, 'name': 'Format'},
+        {'driver': 'GV4', 'value': 30, 'uom': 56, 'name': 'Retry'},
+        {'driver': 'GV5', 'value': 10800, 'uom': 56, 'name': 'Expire'},
+        {'driver': 'GV6', 'value': 0, 'uom': 25, 'name': 'Sound'},
+        {'driver': 'GV7', 'value': 0, 'uom': 25, 'name': 'User Message'},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff

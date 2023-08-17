@@ -301,17 +301,17 @@ class Notify(Node):
     _init_st = None
     id = 'notify'
     drivers = [
-        {'driver': 'ST',  'value': 0, 'uom': 2},
-        {'driver': 'ERR', 'value': 0, 'uom': 25},
-        {'driver': 'GV1', 'value': 1, 'uom': 25},
-        {'driver': 'GV2', 'value': 2, 'uom': 25},
-        {'driver': 'GV3', 'value': 0, 'uom': 25},
-        {'driver': 'GV4', 'value': 0, 'uom': 25},
-        {'driver': 'GV5', 'value': 2, 'uom': 25},
-        {'driver': 'GV6', 'value': 0, 'uom': 25},
-        {'driver': 'GV7', 'value': 30, 'uom': 56},
-        {'driver': 'GV8', 'value': 10800, 'uom': 56},
-        {'driver': 'GV9', 'value': 0, 'uom': 25},
+        {'driver': 'ST',  'value': 0, 'uom': 2,  'name': 'Last Status'},
+        {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
+        {'driver': 'GV1', 'value': 1, 'uom': 25, 'name': 'Device On Message'},
+        {'driver': 'GV2', 'value': 2, 'uom': 25, 'name': 'Device Off Message'},
+        {'driver': 'GV3', 'value': 0, 'uom': 25, 'name': 'Service Node'},
+        {'driver': 'GV4', 'value': 0, 'uom': 25, 'name': 'Pushover Device'},
+        {'driver': 'GV5', 'value': 2, 'uom': 25, 'name': 'Pushover Priority'},
+        {'driver': 'GV6', 'value': 0, 'uom': 25, 'name': 'Pushover Format'},
+        {'driver': 'GV7', 'value': 30, 'uom': 56, 'name': 'Pushover Retry'},
+        {'driver': 'GV8', 'value': 10800, 'uom': 56, 'name': 'Pushover Expire'},
+        {'driver': 'GV9', 'value': 0, 'uom': 25, 'name': 'Pushover Sound'},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff

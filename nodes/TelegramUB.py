@@ -306,8 +306,8 @@ class TelegramUB(Node):
     _init_st = None
     id = 'Telegram'
     drivers = [
-        {'driver': 'ST',  'value': 0, 'uom': 2},
-        {'driver': 'ERR', 'value': 0, 'uom': 25},
+        {'driver': 'ST',  'value': 0, 'uom': 2, 'name': 'Last Status'},
+        {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff

@@ -36,7 +36,7 @@ class UDMobile(Node):
     def __init__(self, controller, primary, address, name, session, api_key):
         """
         """
-        # Need these for l_debug
+        self.ready = False
         self.name     = name
         self.address  = address
         self.controller = controller
@@ -78,6 +78,7 @@ class UDMobile(Node):
             self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
             # We always set to true sicne on first startup the api key will not exist.
             self._init_st = True
+        self.ready = True
 
     def api_get(self,command):
         res = self.session.get(f"api/push/{command}",api_key=self.api_key)
@@ -253,13 +254,13 @@ class UDMobile(Node):
             return False
         gidx = int(gidx)
         try:
-            gname = self.groups_list[gidx]['name']
+            group = self.groups_list[gidx]
         except:
-            LOGGER.error('Bad group index {}'.format(gidx),exc_info=True)
+            LOGGER.error('Bad group index {} groups={}'.format(gidx,",".join(self.groups_list)),exc_info=True)
             self.set_error(ERROR_PARAM,f'Unknown group name or index {gidx}')
             return False
-        LOGGER.debug('gidx={} name={}'.format(gidx,gname))
-        return gname
+        LOGGER.debug('gidx={} group={}'.format(gidx,group))
+        return group['name']
 
     def set_st(self,val):
         LOGGER.info(val)
@@ -318,6 +319,9 @@ class UDMobile(Node):
     # This is what we got back for _sys_notify_short
     # command={'address': 'udmobile', 'cmd': 'GV10', 'query': {'Group.uom25': '2', 'Sound.uom25': '1', 'Content.uom145': 'Simple Title\nSimple Body\nBody line 2'}}
     def cmd_send_message(self,command):
+        while (not self.ready):
+            LOGGER.warning(f'Waiting for all node to be ready...')
+            time.sleep(1)
         LOGGER.debug(f'command={command}')
         params = dict()
         query = command.get('query')
@@ -476,8 +480,8 @@ class UDMobile(Node):
     _init_st = None
     id = 'udmobile'
     drivers = [
-        {'driver': 'ST',  'value': 0, 'uom': 2},
-        {'driver': 'ERR', 'value': 0, 'uom': 25},
+        {'driver': 'ST',  'value': 0, 'uom': 2,  'name': 'Last Status'},
+        {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
     ]
     commands = {
                 'GV10': cmd_send_message,

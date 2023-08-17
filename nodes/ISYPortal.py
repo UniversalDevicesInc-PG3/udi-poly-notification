@@ -627,11 +627,11 @@ class ISYPortal(Node):
     _init_st = None
     id = 'isyportal'
     drivers = [
-        {'driver': 'ST',  'value': 0, 'uom': 2},
-        {'driver': 'ERR', 'value': 0, 'uom': 25},
-        {'driver': 'GV1', 'value': 0, 'uom': 25},
-        {'driver': 'GV2', 'value': 0, 'uom': 25},
-        {'driver': 'GV3', 'value': 0, 'uom': 25},
+        {'driver': 'ST',  'value': 0, 'uom': 2,  'name': 'Last Status'},
+        {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
+        {'driver': 'GV1', 'value': 0, 'uom': 25, 'name': 'Device Group'},
+        {'driver': 'GV2', 'value': 0, 'uom': 25, 'name': 'Sound'},
+        {'driver': 'GV3', 'value': 0, 'uom': 25, 'name': 'User Message'},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff

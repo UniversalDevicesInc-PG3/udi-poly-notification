@@ -13,7 +13,7 @@ import re
 import time
 import fnmatch
 import os
-import markdown
+import markdown2
 from distutils.version import StrictVersion
 
 class Controller(Node):
@@ -51,10 +51,10 @@ class Controller(Node):
         self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
         LOGGER.warning(f'has_sys_editor_full={self.has_sys_editor_full} editor={self.sys_notify_editor}')
         self.drivers = [
-            {'driver': 'ST',  'value': 1,  'uom': 25}, # Nodeserver status
-            {'driver': 'GV1', 'value': 0,  'uom': 25}, # REST Status
-            {'driver': 'GV2', 'value': 0,  'uom': 25}, # Message
-            {'driver': 'GV3', 'value': 0,  'uom': self.sys_notify_uom_d}, # Custom Content
+            {'driver': 'ST',  'value': 1,  'uom': 25, 'name': "Nodeserver Status"},
+            {'driver': 'GV1', 'value': 0,  'uom': 25, 'name': 'REST Status'},
+            {'driver': 'GV2', 'value': 0,  'uom': 25, 'name': 'Message'},
+            {'driver': 'GV3', 'value': 0,  'uom': self.sys_notify_uom_d, 'name': 'Custom Content'},
         ]
         self.uuid    = self.poly.pg3init['uuid']
         self.nodename = os.uname().nodename
@@ -135,7 +135,7 @@ class Controller(Node):
         configurationHelp = './POLYGLOT_CONFIG.md';
         if os.path.isfile(configurationHelp):
             cfgdoc = markdown2.markdown_path(configurationHelp)
-            poly.setCustomParamsDoc(cfgdoc)        
+            self.poly.setCustomParamsDoc(cfgdoc)        
         if self.has_sys_editor_full:
             if (
                 (self.poly.pg3init['isPG3x'] is True and StrictVersion(self.poly.pg3init['pg3Version']) == StrictVersion('3.1.31'))
@@ -916,7 +916,7 @@ class Controller(Node):
         with open (config_doc_file, "r") as myfile:
             data=myfile.read()
             myfile.close()
-        self.poly.setCustomParamsDoc(markdown.markdown(data)+s.join(self.config_info))
+        self.poly.setCustomParamsDoc(markdown2.markdown(data)+s.join(self.config_info))
         #
         # editor/custom.xml
         #
