@@ -381,6 +381,8 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.11: 08/19/2023
+  - Fixed: [ERROR after adding portal api key](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/50)
 - 3.6.10: 08/16/2023
   - Properly set config doc on startup
   - Add node names for PG3 UI

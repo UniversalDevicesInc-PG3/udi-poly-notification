@@ -18,6 +18,7 @@ class Notify(Node):
         """
         #LOGGER.debug('{} {}'.format(self.address,self.name))
         self.controller = controller
+        self.address  = address
         self._init_st = None
         self.oid      = self.id
         self.info     = info
