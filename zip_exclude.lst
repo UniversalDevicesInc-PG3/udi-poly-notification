@@ -16,3 +16,6 @@ profile/*/isyp.xml
 pics/*
 mysettings.txt
 zip_exclude*
+*.cert
+*.pid
+*.key
