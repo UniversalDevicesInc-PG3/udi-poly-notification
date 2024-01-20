@@ -543,7 +543,7 @@ class Controller(Node):
         if st:
             val = "portal_api_key"
             if self.Params[val] == 'PleaseDefine':
-                self.Notices[val] = 'Please Define portal_api_key'
+                self.Notices[val] = 'Please Define <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md#portal_api_key">portal_api_key</a> or review configuration help section below.'
             else:
                 self.Notices.delete(val)
                 # Start the UDMobile node
