@@ -4,9 +4,17 @@ Please read <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notific
 
 ## Custom Configuration Parameters
 
-- <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/ACKNOWLEDGE.md" target="_blank">Acknowledge</a>: Before using you must follow the link and follow do as instructed.
-- portal_api_key: This is the key for sending messages to the UD Portal to create the special <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#ud-mobile" target="_blank">UD Mobile node</a>.
-- rest_port: Default setting of 8199 is almost always ok, however if this port is used by something else it must be changed.  If you are not using the REST interface, then no need to worry about it.  In the future this will default to 0 to turn off this feature since it's not really needed anymore.
+### acknowledge
+<a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/ACKNOWLEDGE.md" target="_blank">Acknowledge</a>: Before using you must follow the link and follow do as instructed.
+
+### rest_port
+Default setting of 8199 is almost always ok, however if this port is used by something else it must be changed.  If you are not using the REST interface, then no need to worry about it.  In the future this will default to 0 to turn off this feature since it's not really needed anymore.
+
+### portal\_api\_key
+
+This is the key for sending messages to the UD Portal to create the special <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/README.md#ud-mobile" target="_blank">UD Mobile node</a>. 
+
+The API key can be obtained in UD Mobile -> Notification Tab -> Settings (Gear Icon).  However UDM can configure the Node Server with this parameter automatically if you click "Notifications" on the Home Tab.
 
 ## Messages
 
@@ -41,9 +49,7 @@ You may create multiple Applications on Pushover, just list each one with a uniq
 
 ## UD Portal
 
-These send messages to the UD Portal which are received by the UD Mobile app.
-
-TODO: More instructions here.
+These send messages to the UD Portal which are received by the UD Mobile app.  You crease service nodes, or use the UD Mobile node which is always created and uses the main portal_api_key Custom Config Parameter.
 
 ## Telegram
 
