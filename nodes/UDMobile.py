@@ -81,12 +81,12 @@ class UDMobile(Node):
         self.ready = True
 
     def api_get(self,command):
-        res = self.session.get(f"api/push/{command}",api_key=self.api_key)
+        res = self.session.get(f"api/push/{command}",timeout=60,api_key=self.api_key)
         LOGGER.debug('got: {}'.format(res))
         return res
 
     def api_post(self,command,params):
-        res = self.session.post(f"api/push/{command}",params,api_key=self.api_key,content="urlencode")
+        res = self.session.post(f"api/push/{command}",params,timeout=60,api_key=self.api_key,content="urlencode")
         LOGGER.debug('got: {}'.format(res))
         return res
 
