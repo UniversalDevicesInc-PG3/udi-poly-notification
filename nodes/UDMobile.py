@@ -15,8 +15,8 @@ from datetime import datetime
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
-ERROR_APP_AUTH   = 2
-ERROR_USER_AUTH  = 3
+ERROR_APP        = 2
+ERROR_APP_AUTH   = 3
 ERROR_MESSAGE_CREATE = 4
 ERROR_MESSAGE_SEND   = 5
 ERROR_PARAM          = 6
@@ -58,11 +58,7 @@ class UDMobile(Node):
         LOGGER.debug("controller.data={}".format(self.controller.Data))
         LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing UDMobile api {}'.format(self.api_key))
-        vstat = self.validate()
-        if vstat is False or vstat['status'] is False:
-            self.authorized = False
-        else:
-            self.authorized = True if vstat['status'] == 1 else False
+        self.authorized = self.validate()
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             self.set_error(ERROR_NONE)
@@ -75,23 +71,33 @@ class UDMobile(Node):
                 params['body'] = ' '
             self.do_send(params)
         else:
-            self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
             # We always set to true sicne on first startup the api key will not exist.
             self._init_st = True
         self.ready = True
 
     def api_get(self,command):
-        res = self.session.get(f"api/push/{command}",timeout=60,api_key=self.api_key)
-        LOGGER.debug('got: {}'.format(res))
-        return res
+        return self.check_result(
+            self.session.get(f"api/push/{command}",timeout=60,api_key=self.api_key)
+        )
 
     def api_post(self,command,params):
-        res = self.session.post(f"api/push/{command}",params,timeout=60,api_key=self.api_key,content="urlencode")
-        LOGGER.debug('got: {}'.format(res))
-        return res
+        return self.check_result(
+            self.session.post(f"api/push/{command}",params,timeout=60,
+                              api_key=self.api_key,content="urlencode")
+        )
 
+    def check_result(self,res):
+        LOGGER.debug('got: {}'.format(res))
+        if res['status']: return res
+        if res['code'] == 403:
+            self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
+        else:
+            self.set_error(ERROR_APP,res['errorMessage'])
+        return res
+    
     def validate(self):
-        return self.api_get("tokens")
+        res = self.api_get("tokens")
+        return False if res is False or res['status'] is False else True
 
     def get_groups(self):
         data = self.api_get("groups")

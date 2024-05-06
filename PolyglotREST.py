@@ -384,7 +384,7 @@ class polyglotSession():
             response = self.session.post(
                 url,
                 data=payload_out,
-                timeout=(61,10)
+                timeout=(10,60)
             )
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
