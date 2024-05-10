@@ -381,6 +381,10 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.13: 05/10/2024
+  - Fixed: [Increase Read timeout](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/54)
+  - Fixed: [Pushover: Use Customization Subject as Title](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/55)
+  - Also for Notify Node's use the Node Name as the title
 - 3.6.12: 01/19/2024
   - Added more info to the "Please Define api key" message.
 - 3.6.11: 08/19/2023
