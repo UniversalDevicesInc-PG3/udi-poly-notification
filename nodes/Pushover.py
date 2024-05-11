@@ -573,7 +573,11 @@ class Pushover(Node):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
         msg = self.controller.get_message_from_query(query)
-        params = { 'title': msg['subject'], 'message': msg['body']}
+        if msg['body'] == '' or msg['body'] == ' ':
+            # Pushover must have a message, title is optional
+            params = { 'message': msg['message']}
+        else:
+            params = { 'title': msg['subject'], 'message': msg['body']}
         if query.get('Device.uom25') is not None:
             self.set_device(query.get('Device.uom25'))
         if query.get('Priority.uom25') is not None:
