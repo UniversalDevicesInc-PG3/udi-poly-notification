@@ -282,8 +282,7 @@ class Notify(Node):
         LOGGER.info("mi={} msg={}".format(mi,msg))
         st = self.service_node['node'].do_send(
             {
-                'title': self.iname,
-                'message': msg,
+                'message': f'{self.iname} {msg}',
                 'device': self.get_device(),
                 'priority': self.get_priority(),
                 'format': self.get_format(),
