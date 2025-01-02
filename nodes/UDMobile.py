@@ -118,9 +118,15 @@ class UDMobile(Node):
                 return item['name']
         return None
 
+    def group_id2index(self,id):
+        cnt = 0
+        for item in self.groups_list:
+            if item['id'] == id:
+                return cnt
+            cnt += 1
+        return None
+
     def build_group_list(self,vlist):
-        # Add new items to the group list
-        dlist = list()
         # Make sure default is the first in the list
         if len(self.groups_list) == 0:
             self.groups_list.append({'id': '_default_', 'name': 'default'})
@@ -131,25 +137,35 @@ class UDMobile(Node):
             # For NS's that were created before we added defaults, this will
             # increment all indexes so programs will need to be updated.
             self.groups_list.insert(0,{'id': '_default_', 'name': 'default'})
+        # Add any new groups to the groups_list, and create hash of id->name
+        idhash = dict()
         for item in vlist:
             LOGGER.debug('group={}'.format(item))
-            dlist.append(item['id'])
+            idhash[item['id']] = item['name']
             # If it's not in the saved list, append it
-            if self.group_id2name(item['id']) is None:
+            gidx = self.group_id2index(item['id'])
+            if gidx is None:
                 self.groups_list.append({'id': item['id'], 'name': item['name']})
+            else:
+                # Check for name changes
+                if self.groups_list[gidx]['name'] != item['name']:
+                    self.groups_list[gidx]['name'] = item['name']
         # Make sure items are in the passed in list, otherwise prefix it in groups_list
         groups_list = list()
         for item in self.groups_list:
             if item['id'] == '_default_':
-                next
-            # Add removed prefix to items no longer in the list.
-            if not item['name'].startswith(REM_PREFIX) and dlist.count(item['name']) == 0:
-                groups_list.append({'id': item['id'], 'name': REM_PREFIX + item['name']})
-            # Get rid of removed prefix if the group is back
-            elif item['name'].startswith(REM_PREFIX):
-                groups_list.append({'id': item['id'], 'name': item['name'][len(REM_PREFIX):] })
+                # Force it to fix previous bug that added REM_PREFIX
+                item['name'] = 'default'
             else:
-                groups_list.append(item)
+                # Add or remove the removed prefix to items
+                if item['id'] in idhash:
+                    if item['name'].startswith(REM_PREFIX):
+                        # It came back, get rid of removed prefix
+                        item['name'] = item['name'][len(REM_PREFIX):]
+                elif not item['name'].startswith(REM_PREFIX):
+                    # It's gone, add the prefix
+                    item['name'] = REM_PREFIX + item['name']
+            groups_list.append(item)
         self.groups_list = groups_list
         LOGGER.info("groups_list={}".format(self.groups_list))
 
@@ -185,18 +201,18 @@ class UDMobile(Node):
             '<h4>Example Network Resource settings for UDMobile</h4><ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}&Subject=My+Subject&group=1&sound=2<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'.format(rest_ip,rest_port,self.address),
             '<p>The parms in the Path can be any of the below, if the param is not passed then the default from the UDMobile node will be used'
             '<table>',
-            '<tr><th>Name<th>Value<th>Description',
+            '<tr><th>Name<th>Index<th>ID<th>Description',
         ]
         i = 0
         t = 'group'
         for item in self.groups_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item['name']))
+            info.append('<tr><td>{}<td>{}<td>{}<td>{}'.format(t,i,item['id'],item['name']))
             i += 1
             t = '&nbsp;'
         t = 'sound'
         i = 0
         for item in self.sounds_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item['name']))
+            info.append('<tr><td>{}<td>{}<td>{}<td>{}'.format(t,i,'&nbsp;',item['name']))
             i += 1
             t = '&nbsp;'
         info = info + [
