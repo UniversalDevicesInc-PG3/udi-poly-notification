@@ -381,6 +381,9 @@ curl -d 'The message' -X POST 'http://192.168.86.77:8199/send?node=po_develop'
 
 Important!  As of 3.5.2 sending to ISYPortal "devices" is deperacated.  See [ISY Portal](#isy-portal)
 
+- 3.6.16: 01/01/2025
+  - Fixed: [Group Names Not Updated on Change](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/58)
+  - Fixed: [UDM Notification Group index's are changing](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/issues/57)
 - 3.6.15: 06/06/2024
   - Fixed Notify node sending to UDMobile
 - 3.6.14: 05/10/2024
