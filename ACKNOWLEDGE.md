@@ -1,5 +1,5 @@
 
-# Acknowledge
+# I understand and agree
 
 You must acknowledge that this node server and it's author are not responsible if critical notifications are not sent.
 This node server was created to make it easier for ISY users to send notifications, but you should not rely
