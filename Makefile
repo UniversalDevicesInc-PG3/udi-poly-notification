@@ -57,7 +57,7 @@ zip_free:
 beta:
 	@set -e; \
 	ROOT=$$(pwd); \
-	NSVERSION=$$(sed -n 's/^$(VERSION_KEY) = "\([^"]*\)"$$/\1/p' "$$ROOT/$(VERSION_FILE)"); \
+	NSVERSION=$$(awk -F'"' '/^$(VERSION_KEY) = "/ {print $$2; exit}' "$$ROOT/$(VERSION_FILE)"); \
 	test -n "$$NSVERSION" || { echo "Could not parse $(VERSION_KEY) from $$ROOT/$(VERSION_FILE)"; exit 1; }; \
 	test -z "$$(git -C "$$ROOT" status --porcelain)" || { \
 		echo "Working tree is not clean. Commit or stash before make beta."; \
@@ -84,7 +84,7 @@ beta:
 production:
 	@set -e; \
 	ROOT=$$(pwd); \
-	NSVERSION=$$(sed -n 's/^$(VERSION_KEY) = "\([^"]*\)"$$/\1/p' "$$ROOT/$(VERSION_FILE)"); \
+	NSVERSION=$$(awk -F'"' '/^$(VERSION_KEY) = "/ {print $$2; exit}' "$$ROOT/$(VERSION_FILE)"); \
 	test -n "$$NSVERSION" || { echo "Could not parse $(VERSION_KEY) from $$ROOT/$(VERSION_FILE)"; exit 1; }; \
 	test -z "$$(git -C "$$ROOT" status --porcelain)" || { \
 		echo "Working tree is not clean. Commit or stash before make production."; \
@@ -112,7 +112,7 @@ production:
 release:
 	@set -e; \
 	ROOT=$$(pwd); \
-	NSVERSION=$$(sed -n 's/^$(VERSION_KEY) = "\([^"]*\)"$$/\1/p' "$$ROOT/$(VERSION_FILE)"); \
+	NSVERSION=$$(awk -F'"' '/^$(VERSION_KEY) = "/ {print $$2; exit}' "$$ROOT/$(VERSION_FILE)"); \
 	test -n "$$NSVERSION" || { echo "Could not parse $(VERSION_KEY) from $$ROOT/$(VERSION_FILE)"; exit 1; }; \
 	test -z "$$(git -C "$$ROOT" status --porcelain)" || { \
 		echo "Working tree is not clean. Commit or stash before make release."; \
