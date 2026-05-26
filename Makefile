@@ -9,6 +9,7 @@
 #   4. `make production`  — push HEAD to the `production` branch and build $(NAME)-production-<NSVERSION>.zip.
 #                           Then in PG3 UI, edit the plugin and set Version to that exact NSVERSION.
 # The track-specific zip files are the actual deliverables uploaded to PG3.
+# The free-edition artifact is built locally as $(NAME)-Production-Free-<NSVERSION>.zip.
 
 PYTHON ?= python3
 NAME = Notification
@@ -35,7 +36,7 @@ help:
 	@echo "  make production          Push HEAD -> $(GIT_REMOTE)/$(BRANCH_PRODUCTION) and build $(NAME)-$(BRANCH_PRODUCTION)-\$$NSVERSION.zip"
 	@echo "                           After make release / make beta / make production, edit plugin in PG3 UI and set Version to \$$NSVERSION"
 	@echo "  make zip                 Ad-hoc local $(NAME).zip (no version suffix)"
-	@echo "  make zip_free            Ad-hoc local $(NAME)_free.zip (no version suffix)"
+	@echo "  make production-free    Build local $(NAME)-Production-Free-\$$NSVERSION.zip"
 	@echo ""
 	@echo "Variables: PYTHON GIT_REMOTE BRANCH_BETA BRANCH_PRODUCTION"
 
@@ -48,12 +49,17 @@ zip:
 	rm -f $(NAME).zip
 	zip -x@zip_exclude.lst -r $(NAME).zip *
 
-zip_free:
-	rm -f zip_exclude_free_full.lst $(NAME)_free.zip __init__.py
-	cat zip_exclude.lst zip_exclude_free.lst > zip_exclude_free_full.lst
-	cp nodes/__init__.py .
-	egrep 'NSVERSION|UDMobile|Controller' __init__.py > nodes/__init__.py
-	zip -x@zip_exclude_free_full.lst -r $(NAME)_free.zip *
+production-free zip_free:
+	@set -e; \
+	ROOT=$$(pwd); \
+	NSVERSION=$$(awk -F'"' '/^$(VERSION_KEY) = "/ {print $$2; exit}' "$$ROOT/$(VERSION_FILE)"); \
+	test -n "$$NSVERSION" || { echo "Could not parse $(VERSION_KEY) from $$ROOT/$(VERSION_FILE)"; exit 1; }; \
+	ZIPFILE="$(NAME)-Production-Free-$$NSVERSION.zip"; \
+	rm -f zip_exclude_free_full.lst "$$ZIPFILE" __init__.py; \
+	cat zip_exclude.lst zip_exclude_free.lst > zip_exclude_free_full.lst; \
+	cp nodes/__init__.py .; \
+	egrep 'NSVERSION|UDMobile|Controller' __init__.py > nodes/__init__.py; \
+	zip -x@zip_exclude_free_full.lst -r "$$ZIPFILE" *; \
 	mv __init__.py nodes/
 
 # Push current HEAD to $(GIT_REMOTE)/$(BRANCH_BETA) and build $(NAME)-$(BRANCH_BETA)-<NSVERSION>.zip
@@ -140,4 +146,4 @@ release:
 	echo "Pushed $$BRANCH and v$$NSVERSION to $(GIT_REMOTE)."; \
 	echo "PG3 UI action required: edit this plugin and set Version to $$NSVERSION."
 
-.PHONY: check xml-check help clean zip zip_free beta production release
+.PHONY: check xml-check help clean zip production-free zip_free beta production release
