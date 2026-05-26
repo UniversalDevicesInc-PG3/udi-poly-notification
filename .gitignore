@@ -13,6 +13,10 @@ profile.zip
 profile/version.txt
 profile/*/custom*.xml
 profile/nls/en_us.txt
+profile/*/dev.xml
+profile/*/isyp.xml
+profile/*/tgub.xml
+profile/*/telegram.xml
 *.yaml
 hubs.json
 
@@ -89,3 +93,12 @@ profile/*/homeisy.xml
 profile/nodedef
 profile/editor/udmobile.xml
 zip_exclude_free_full.lst
+
+# Local Polyglot / runtime artifacts (do not commit)
+*.cert
+*.key
+*.pid
+.installed
+.local/
+mysettings.txt
+udi_interface.lnk

@@ -19,3 +19,7 @@ zip_exclude*
 *.cert
 *.pid
 *.key
+.installed
+.local/*
+.local/**/*
+udi_interface.lnk

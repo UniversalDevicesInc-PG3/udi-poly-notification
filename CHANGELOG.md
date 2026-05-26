@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.18] - 2026-05-25
+
+### Changed
+
+- **Release workflow:** the notification `Makefile` now mirrors the Ecobee PG3 flow more closely by documenting the paired `profile/version.txt` bump and reminding the operator to set the exact plugin version in PG3 UI after `release`, `beta`, and `production`.
+
+### Fixed
+
+- **Installed-checkout releases:** local Polyglot runtime artifacts like `.local/`, `.installed`, certs, keys, pid files, and generated editor XML are now ignored by git and excluded from release zips so `make beta` / `make production` can safely build upload artifacts from an installed checkout.
+- **Profile version metadata:** align `profile/version.txt` with the node server version for this release so profile/version reporting stays consistent with `nodes/__init__.py`.
+
 ## [3.6.17] - 2026-05-25
 
 ### Changed
