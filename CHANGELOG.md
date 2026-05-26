@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.18] - 2026-05-25
+
+### Fixed
+
+- **Startup wait logging:** controller handler-start waits now stay at `DEBUG` for brief normal delays, escalate to `WARNING` only for longer waits, and log a matching cleared message once startup recovers.
+
+---
+
 ## [3.6.17] - 2026-05-25
 
 ### Changed

@@ -148,21 +148,36 @@ class Controller(Node):
             self.Notices['upgrade'] = msg
             LOGGER.warning(msg)
         cnt = 120
+        waited = 0
+        warn_after = 5
+        warned_wait = False
         while (cnt > 0 and (
             self.handler_start_st is None
             or self.handler_params_st is None
             or self.handler_data_st is None
             or self.handler_typed_data_st is None)):
-            LOGGER.warning(f'Waiting for all handlers to complete start={self.handler_start_st} params={self.handler_params_st} data={self.handler_data_st} typed_data={self.handler_typed_data_st} cnt={cnt}')
+            msg = (
+                f'Waiting for all handlers to complete start={self.handler_start_st} '
+                f'params={self.handler_params_st} data={self.handler_data_st} '
+                f'typed_data={self.handler_typed_data_st} cnt={cnt}'
+            )
+            if waited >= warn_after:
+                LOGGER.warning(msg)
+                warned_wait = True
+            else:
+                LOGGER.debug(msg)
             time.sleep(1)
             cnt -= 1
+            waited += 1
         if cnt == 0:
             LOGGER.error('Timed out waiting for all handlers to complete')
             LOGGER.error('Exiting...')
             self.poly.stop()
         else:
-            if cnt < 60:
-                LOGGER.warning(f'Done waiting, all looks good')
+            if warned_wait:
+                LOGGER.warning(f'Wait for all handlers cleared after {waited} seconds')
+            elif waited > 0:
+                LOGGER.debug(f'Wait for all handlers cleared after {waited} seconds')
             self.start_rest_server()
             self.write_profile()
             self.first_run = False
