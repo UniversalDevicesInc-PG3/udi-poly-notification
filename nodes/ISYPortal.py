@@ -29,6 +29,15 @@ GROUP_LIST  = 'groups_list_isyp'
 RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
+# Startup validation retries use exponential backoff.
+# A non-positive value retries forever for retryable failures such as
+# DNS resolution, connection errors, and upstream 5xx responses.
+# Non-retryable auth failures such as 401/403 still fail immediately.
+STARTUP_RETRY_MAX = -1
+# Initial wait before the next startup validation retry, in seconds.
+STARTUP_RETRY_WAIT = 1
+# Maximum exponential-backoff delay between startup retries, in seconds.
+STARTUP_RETRY_MAX_WAIT = 8
 
 class ISYPortal(Node):
     """
@@ -71,18 +80,24 @@ class ISYPortal(Node):
         LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing ISYPortal api {}'.format(self.api_key))
         vstat = self.validate()
-        if vstat['status'] is False:
-            self.authorized = False
-        else:
-            self.authorized = True if vstat['status'] == 1 else False
+        self.authorized = vstat.get('status', False) is True
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
-            LOGGER.info("got isyportal devices={}".format(vstat['data']['data']))
-            self.set_groups()
-            self.set_error(ERROR_NONE)
-            self._init_st = True
+            groups = self.get_groups(retry=True)
+            if self.set_groups(groups):
+                self.set_error(ERROR_NONE)
+                self._init_st = True
+                if not self.controller.first_run:
+                    LOGGER.warning('ISY Portal initialized after startup timeout, rebuilding profile...')
+                    self.controller.write_profile()
+            else:
+                self.set_error(ERROR_UNKNOWN,self.get_error_message(groups,'Unable to fetch ISY Portal groups'))
+                self._init_st = False
         else:
-            self.set_error(ERROR_APP_AUTH)
+            if vstat.get('code') == 403:
+                self.set_error(ERROR_APP_AUTH,'Please verify your ISY Portal API key')
+            else:
+                self.set_error(ERROR_UNKNOWN,self.get_error_message(vstat,'Unable to reach my.isy.io'))
             self._init_st = False
         
     def api_get(self,command):
@@ -95,26 +110,87 @@ class ISYPortal(Node):
         LOGGER.debug('got: {}'.format(res))
         return res
 
-    def validate(self):
-        return self.api_get("tokens")
+    def get_error_message(self,res,default='Unknown error'):
+        if res is None or res is False:
+            return default
+        message = res.get('errorMessage')
+        if message:
+            return message
+        code = res.get('code')
+        if code is not None:
+            return 'HTTP {}'.format(code)
+        return default
 
-    def get_groups(self):
-        data = self.api_get("groups")
+    def is_retryable_result(self,res):
+        if res is None or res is False:
+            return True
+        return res.get('retryable', res.get('code') is None or res.get('code', 0) >= 500)
+
+    def api_get_with_backoff(self,command,description):
+        attempt = 0
+        wait = STARTUP_RETRY_WAIT
+        res = None
+        max_attempts = STARTUP_RETRY_MAX
+        retry_forever = max_attempts <= 0
+        while retry_forever or attempt < max_attempts:
+            attempt += 1
+            res = self.api_get(command)
+            if res.get('status'):
+                return res
+            if not self.is_retryable_result(res):
+                break
+            if not retry_forever and attempt >= max_attempts:
+                break
+            attempt_label = '{}'.format(attempt) if retry_forever else '{}/{}'.format(attempt, max_attempts)
+            LOGGER.warning(
+                '{} failed on attempt {}: {}. Retrying in {} seconds...'.format(
+                    description,
+                    attempt_label,
+                    self.get_error_message(res,'Unknown error'),
+                    wait,
+                )
+            )
+            time.sleep(wait)
+            wait = min(wait * 2, STARTUP_RETRY_MAX_WAIT)
+        if res is not None and not res.get('status'):
+            LOGGER.error(
+                '{} failed after {}: {}'.format(
+                    description,
+                    '{} attempt(s)'.format(attempt) if not retry_forever else 'retrying until a non-retryable error occurs',
+                    self.get_error_message(res,'Unknown error'),
+                )
+            )
+        return res
+
+    def validate(self):
+        return self.api_get_with_backoff("tokens","ISY Portal token validation")
+
+    def get_groups(self,retry=False):
+        if retry:
+            data = self.api_get_with_backoff("groups","ISY Portal group fetch")
+        else:
+            data = self.api_get("groups")
         LOGGER.debug("got groups: {}".format(data))
         return data
 
-    def set_groups(self):
+    def set_groups(self,data=None):
         if GROUP_LIST in self.controller.Data:
             self.groups_list = self.controller.Data[GROUP_LIST]
-        data = self.get_groups()
-        LOGGER.info("got UDMobile groups={}".format(data['data']['data']))
-        self.build_group_list(data['data']['data'])
+        if data is None:
+            data = self.get_groups()
+        groups = data.get('data', {}).get('data') if isinstance(data.get('data'), dict) else None
+        if groups is None:
+            LOGGER.error('Failed to get ISY Portal groups: {}'.format(self.get_error_message(data,'Unknown error')))
+            return False
+        LOGGER.info("got ISYPortal groups={}".format(groups))
+        self.build_group_list(groups)
         self.controller.Data[GROUP_LIST] = self.groups_list
         # Build the devices and groups list
         for item in self.devices_list:
             self.devices_and_groups.append({'type': 'device', 'id': item, 'name': item})
         for item in self.groups_list:
             self.devices_and_groups.append({'type': 'group', 'id': item['id'], 'name': item['name']})
+        return True
 
     def group_id2name(self,id):
         for item in self.groups_list:
@@ -355,7 +431,7 @@ class ISYPortal(Node):
         LOGGER.info('Set ST to {}'.format(val))
         self.setDriver('ST', val)
 
-    def set_error(self,val):
+    def set_error(self,val,message=None):
         LOGGER.info(val)
         if val is False:
             val = 0
@@ -364,6 +440,11 @@ class ISYPortal(Node):
         LOGGER.info('Set ERR to {}'.format(val))
         self.setDriver('ERR', val)
         self.set_st(True if val == 0 else False)
+        notice_name = '{}_err'.format(self.address)
+        if val == 0:
+            self.controller.Notices.delete(notice_name)
+        elif message:
+            self.controller.Notices[notice_name] = 'ERROR: {}'.format(message)
 
     def get_sound(self):
         cval = self.getDriver('GV2')

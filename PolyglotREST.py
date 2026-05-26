@@ -329,6 +329,16 @@ class polyglotSession():
             }
         )
 
+    def error_result(self, code=None, error_message="Unknown error", retryable=True, data=False):
+        return {
+            'status': False,
+            'status_code': code,
+            'code': code,
+            'data': data,
+            'errorMessage': error_message,
+            'retryable': retryable,
+        }
+
     # TODO: auth and api_key should be passed as a header list
     def get(self,path,params={},auth=None,api_key=None):
         url = "{}/{}".format(self.url,path)
@@ -353,7 +363,7 @@ class polyglotSession():
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
             self.logger.error("Connection error for %s: %s" % (url, e))
-            return False
+            return self.error_result(error_message=str(e), retryable=True)
         return(self.response(response,'get'))
 
     def post(self,path,payload,api_key=None,content="json"):
@@ -370,13 +380,13 @@ class polyglotSession():
                 payload_out = json.dumps(payload)
             except Exception as e:
                 self.logger.error('Error converting to json: {}'.format(payload))
-                return False
+                return self.error_result(error_message='Error converting payload to json', retryable=False)
         elif content == "urlencode":
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
             payload_out = urlencode(payload)
         else:
             LOGGER.error("Unknown content={content}, must be json or urlencode")
-            return { 'status': False, 'status_code': None, 'code': None }
+            return self.error_result(error_message='Unknown content type', retryable=False)
         self.logger.debug("Sending: url={0} payload={1}".format(url,payload_out))
         self.logger.debug( "headers={}".format(headers))
         self.session.headers.update(headers)
@@ -389,7 +399,7 @@ class polyglotSession():
         # This is supposed to catch all request excpetions.
         except requests.exceptions.RequestException as e:
             self.logger.error("Connection error for %s: %s" % (url, e))
-            return { 'status': False, 'status_code': None, 'code': None }
+            return self.error_result(error_message=str(e), retryable=True)
         return(self.response(response,'post'))
 
     def response(self,response,name):
@@ -398,26 +408,38 @@ class polyglotSession():
         self.logger.debug('      text=%s' % (response.text))
         json_data = False
         st = False
+        retryable = False
+        error_message = None
         if response.status_code == 200:
             self.logger.debug(' All good!')
             st = True
         elif response.status_code == 400:
             self.logger.error("Bad request: %s: text: %s" % (response.url,response.text) )
+            error_message = "Bad request"
         elif response.status_code == 404:
             self.logger.error("Not Found: %s: text: %s" % (response.url,response.text) )
+            error_message = "Not found"
         elif response.status_code == 401:
             # Authentication error
             self.logger.error("Unauthorized: %s: text: %s" % (response.url,response.text) )
+            error_message = "Unauthorized"
         elif response.status_code == 403:
             # Forbidden, ISY Portal returns this for bad api key
             self.logger.error("Forbidden: %s: text: %s" % (response.url,response.text) )
+            error_message = "Forbidden"
         elif response.status_code == 500:
             self.logger.error("Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
+            error_message = "Server error"
+            retryable = True
         elif response.status_code == 522:
             self.logger.error("Timeout Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
+            error_message = "Timeout error"
+            retryable = True
         else:
             self.logger.error("Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
             self.logger.error("Check system status: https://status.ecobee.com/")
+            error_message = "Unknown response"
+            retryable = response.status_code >= 500
         try:
             json_data = json.loads(response.text)
         except (Exception) as err:
@@ -425,7 +447,24 @@ class polyglotSession():
             if st:
                 self.logger.error('Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
             json_data = False
-        return { 'status': st, 'code': response.status_code, 'data': json_data }
+        if not st:
+            if isinstance(json_data, dict):
+                error_message = (
+                    json_data.get('errorMessage')
+                    or json_data.get('message')
+                    or json_data.get('error')
+                    or error_message
+                )
+            if not error_message:
+                error_message = response.text if response.text else f'HTTP {response.status_code}'
+        return {
+            'status': st,
+            'status_code': response.status_code,
+            'code': response.status_code,
+            'data': json_data,
+            'errorMessage': error_message,
+            'retryable': retryable,
+        }
 
     def l_info(self, name, string):
         self.logger.info("%s:%s: %s" %  (self.parent.name,name,string))

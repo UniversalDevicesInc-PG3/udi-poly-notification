@@ -29,6 +29,17 @@ GROUP_LIST = 'group_list_udmobile'
 RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
+# Startup validation retries use exponential backoff.
+# A non-positive value retries forever for retryable failures such as
+# DNS resolution, connection errors, and upstream 5xx responses.
+# Non-retryable auth failures such as 401/403 still fail immediately.
+STARTUP_RETRY_MAX = -1
+# Initial wait before the next startup validation retry, in seconds.
+STARTUP_RETRY_WAIT = 1
+# Maximum exponential-backoff delay between startup retries, in seconds.
+STARTUP_RETRY_MAX_WAIT = 8
+READY_WAIT_MAX = 30
+READY_LOG_INTERVAL = 5
 
 class UDMobile(Node):
     """
@@ -58,21 +69,27 @@ class UDMobile(Node):
         LOGGER.debug("controller.data={}".format(self.controller.Data))
         LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing UDMobile api {}'.format(self.api_key))
-        self.authorized = self.validate()
+        validation = self.validate()
+        self.authorized = validation.get('status', False) is True
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
-            self.set_error(ERROR_NONE)
-            self.set_groups()
-            self._init_st = True
-            params = { 'system': True, 'title': f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.' }
-            if self.controller.edition == 'Free':
-                params['body'] = 'Please upgrade to Standard version to get all features'
+            groups = self.get_groups(retry=True)
+            if self.set_groups(groups):
+                self.set_error(ERROR_NONE)
+                self._init_st = True
+                if not self.controller.first_run:
+                    LOGGER.warning('UD Mobile initialized after startup timeout, rebuilding profile...')
+                    self.controller.write_profile()
+                params = { 'system': True, 'title': f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.' }
+                if self.controller.edition == 'Free':
+                    params['body'] = 'Please upgrade to Standard version to get all features'
+                else:
+                    params['body'] = ' '
+                self.do_send(params)
             else:
-                params['body'] = ' '
-            self.do_send(params)
+                self._init_st = False
         else:
-            # We always set to true sicne on first startup the api key will not exist.
-            self._init_st = True
+            self._init_st = False
         self.ready = True
 
     def api_get(self,command):
@@ -86,31 +103,92 @@ class UDMobile(Node):
                               api_key=self.api_key,content="urlencode",)
         )
 
+    def get_error_message(self,res,default='Unknown error'):
+        if res is None or res is False:
+            return default
+        message = res.get('errorMessage')
+        if message:
+            return message
+        code = res.get('code')
+        if code is not None:
+            return 'HTTP {}'.format(code)
+        return default
+
+    def is_retryable_result(self,res):
+        if res is None or res is False:
+            return True
+        return res.get('retryable', res.get('code') is None or res.get('code', 0) >= 500)
+
+    def api_get_with_backoff(self,command,description):
+        attempt = 0
+        wait = STARTUP_RETRY_WAIT
+        res = None
+        max_attempts = STARTUP_RETRY_MAX
+        retry_forever = max_attempts <= 0
+        while retry_forever or attempt < max_attempts:
+            attempt += 1
+            res = self.api_get(command)
+            if res.get('status'):
+                return res
+            if not self.is_retryable_result(res):
+                break
+            if not retry_forever and attempt >= max_attempts:
+                break
+            attempt_label = '{}'.format(attempt) if retry_forever else '{}/{}'.format(attempt, max_attempts)
+            LOGGER.warning(
+                '{} failed on attempt {}: {}. Retrying in {} seconds...'.format(
+                    description,
+                    attempt_label,
+                    self.get_error_message(res, 'Unknown error'),
+                    wait,
+                )
+            )
+            time.sleep(wait)
+            wait = min(wait * 2, STARTUP_RETRY_MAX_WAIT)
+        if res is not None and not res.get('status'):
+            LOGGER.error(
+                '{} failed after {}: {}'.format(
+                    description,
+                    '{} attempt(s)'.format(attempt) if not retry_forever else 'retrying until a non-retryable error occurs',
+                    self.get_error_message(res, 'Unknown error'),
+                )
+            )
+        return res
+
     def check_result(self,res):
         LOGGER.debug('got: {}'.format(res))
-        if res['status']: return res
-        if res['code'] == 403:
+        if res.get('status'):
+            return res
+        if res.get('code') == 403:
             self.set_error(ERROR_APP_AUTH,"Please verify your portal_api_key value")
         else:
-            self.set_error(ERROR_APP,res['errorMessage'])
+            self.set_error(ERROR_APP,self.get_error_message(res,'Unable to reach my.isy.io'))
         return res
     
     def validate(self):
-        res = self.api_get("tokens")
-        return False if res is False or res['status'] is False else True
+        return self.api_get_with_backoff("tokens","UD Mobile token validation")
 
-    def get_groups(self):
-        data = self.api_get("groups")
+    def get_groups(self,retry=False):
+        if retry:
+            data = self.api_get_with_backoff("groups","UD Mobile group fetch")
+        else:
+            data = self.api_get("groups")
         LOGGER.debug("got groups: {}".format(data))
         return data
 
-    def set_groups(self):
+    def set_groups(self,data=None):
         if GROUP_LIST in self.controller.Data:
             self.groups_list = self.controller.Data[GROUP_LIST]
-        data = self.get_groups()
-        LOGGER.info("got UDMobile groups={}".format(data['data']['data']))
-        self.build_group_list(data['data']['data'])
+        if data is None:
+            data = self.get_groups()
+        groups = data.get('data', {}).get('data') if isinstance(data.get('data'), dict) else None
+        if groups is None:
+            LOGGER.error('Failed to get UDMobile groups: {}'.format(self.get_error_message(data,'Unknown error')))
+            return False
+        LOGGER.info("got UDMobile groups={}".format(groups))
+        self.build_group_list(groups)
         self.controller.Data[GROUP_LIST] = self.groups_list
+        return True
 
     def group_id2name(self,id):
         for item in self.groups_list:
@@ -340,10 +418,28 @@ class UDMobile(Node):
 
     # This is what we got back for _sys_notify_short
     # command={'address': 'udmobile', 'cmd': 'GV10', 'query': {'Group.uom25': '2', 'Sound.uom25': '1', 'Content.uom145': 'Simple Title\nSimple Body\nBody line 2'}}
-    def cmd_send_message(self,command):
-        while (not self.ready):
-            LOGGER.warning(f'Waiting for all node to be ready...')
+    def wait_until_ready(self):
+        wait = 0
+        while not self.ready and wait < READY_WAIT_MAX:
+            if self.init_st() is False:
+                LOGGER.error('UD Mobile failed to initialize, can not send message')
+                return False
+            if wait == 0 or wait % READY_LOG_INTERVAL == 0:
+                LOGGER.warning('Waiting for UD Mobile node to be ready...')
             time.sleep(1)
+            wait += 1
+        if not self.ready:
+            self.set_error(ERROR_MESSAGE_SEND,'Timed out waiting for UD Mobile initialization')
+            LOGGER.error('Timed out waiting for UD Mobile node to be ready')
+            return False
+        if self.init_st() is False:
+            LOGGER.error('UD Mobile initialization failed, can not send message')
+            return False
+        return True
+
+    def cmd_send_message(self,command):
+        if not self.wait_until_ready():
+            return False
         LOGGER.debug(f'command={command}')
         params = dict()
         query = command.get('query')

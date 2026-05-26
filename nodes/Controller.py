@@ -884,7 +884,8 @@ class Controller(Node):
                 # we can get here before the node is ready.
                 cnt = 60
                 while node.init_st() is None and cnt > 0:
-                    LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
+                    if cnt == 60 or cnt % 5 == 0:
+                        LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
                     time.sleep(1)
                     cnt -= 1
                 if node.init_st():
