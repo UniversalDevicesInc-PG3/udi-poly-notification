@@ -9,7 +9,8 @@ from socket import MsgFlag
 from udi_interface import Node,LOGGER,Custom
 from threading import Thread
 import time
-from node_funcs import make_file_dir,is_int
+from copy import deepcopy
+from node_funcs import make_file_dir,is_int,SendQueue
 from constants import SOUNDS_LIST
 from datetime import datetime
 
@@ -40,6 +41,9 @@ STARTUP_RETRY_WAIT = 1
 STARTUP_RETRY_MAX_WAIT = 8
 READY_WAIT_MAX = 30
 READY_LOG_INTERVAL = 5
+SEND_QUEUE_MAX = 128
+SEND_QUEUE_MAX_AGE = 3600
+FAILED_REQUEUE_MAX = 5
 
 class UDMobile(Node):
     """
@@ -56,6 +60,7 @@ class UDMobile(Node):
         self._sys_short = None
         self.handler_data_st = None
         self.msg_cnt  = 0
+        self.send_queue = SendQueue(SEND_QUEUE_MAX, SEND_QUEUE_MAX_AGE)
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(UDMobile, self).__init__(controller.poly, primary, address, name)
@@ -77,9 +82,7 @@ class UDMobile(Node):
             if self.set_groups(groups):
                 self.set_error(ERROR_NONE)
                 self._init_st = True
-                if not self.controller.first_run:
-                    LOGGER.warning('UD Mobile initialized after startup timeout, rebuilding profile...')
-                    self.controller.write_profile()
+                self.controller.on_service_node_ready(self)
                 params = { 'system': True, 'title': f'{self.controller.nodename} {self.controller.uuid} Notification Node Server {self.controller.edition} Edition Startup.' }
                 if self.controller.edition == 'Free':
                     params['body'] = 'Please upgrade to Standard version to get all features'
@@ -91,6 +94,7 @@ class UDMobile(Node):
         else:
             self._init_st = False
         self.ready = True
+        self.flush_send_queue()
 
     def api_get(self,command):
         return self.check_result(
@@ -438,8 +442,6 @@ class UDMobile(Node):
         return True
 
     def cmd_send_message(self,command):
-        if not self.wait_until_ready():
-            return False
         LOGGER.debug(f'command={command}')
         params = dict()
         query = command.get('query')
@@ -458,10 +460,52 @@ class UDMobile(Node):
         params['body']  = msg['body']
         if ('reboot' in params and params['reboot'] is True):
             self.Notices['reboot_iox'] = f"WARNING: You need to reboot IoX to support long messages for: {msg}"
+        if not self.wait_until_ready():
+            self.enqueue_send(params, 'UD Mobile not ready from command path')
+            return True
         return self.do_send(params)
 
+    def can_deliver(self):
+        return (
+            self.init_st() is True
+            and self.controller.profile_installed is True
+            and self.controller.is_profile_node_written(self)
+        )
+
+    def enqueue_send(self,params,reason):
+        qparams = deepcopy(params)
+        dropped = self.send_queue.enqueue(qparams)
+        if dropped is not None:
+            LOGGER.warning('UD Mobile queue full ({}), dropped oldest notification'.format(SEND_QUEUE_MAX))
+        LOGGER.warning('Queued UD Mobile notification ({} pending): {}'.format(self.send_queue.size(), reason))
+
+    def flush_send_queue(self):
+        if not self.can_deliver():
+            return 0
+        items = self.send_queue.pop_all()
+        if len(items) == 0:
+            return 0
+        payloads, stale = self.send_queue.keep_fresh(items)
+        if stale > 0:
+            LOGGER.warning('Dropped {} stale queued UD Mobile notifications'.format(stale))
+        for params in payloads:
+            self.do_send(params)
+        LOGGER.warning('Flushed {} queued UD Mobile notifications'.format(len(payloads)))
+        return len(payloads)
+
+    def _dispatch_send(self,params):
+        self.thread = Thread(target=self.send,args=(params,))
+        self.thread.daemon = True
+        LOGGER.debug(f'Starting Thread {self.msg_cnt}')
+        st = self.thread.start()
+        LOGGER.debug('Thread start st={}'.format(st))
+        return True
+
     def do_send(self,params):
+        params = deepcopy(params)
         LOGGER.info('params={}'.format(params))
+        if self.can_deliver():
+            self.flush_send_queue()
         system = False
         if 'system' in params:
             system = params['system']
@@ -498,24 +542,29 @@ class UDMobile(Node):
             self.set_error(ERROR_MAX,f'Reached max daily message count, please upgrde to Standard Edition {params}')
             params['title'] = 'Reached max daily message count, please upgrde to Standard Edition'
             params['body'] = ' '
-        #
-        # Send the message in a thread with retries
-        #
-        # Just keep serving until we are killed
-        self.thread = Thread(target=self.send,args=(params,))
-        self.thread.daemon = True
-        LOGGER.debug(f'Starting Thread {self.msg_cnt}')
-        st = self.thread.start()
-        LOGGER.debug('Thread start st={}'.format(st))
+        if not self.can_deliver():
+            self.enqueue_send(params, 'UD Mobile can_deliver gate is false')
+            return True
+        self._dispatch_send(params)
         if not system:
             self.msg_cnt += 1
         # Always have to return true case we don't know..
         return True
 
+    def requeue_failed_send(self, params, reason):
+        retry_count = int(params.get('_retry_count', 0)) + 1
+        if retry_count > FAILED_REQUEUE_MAX:
+            LOGGER.error('UD Mobile failed message exceeded requeue max {}, dropping. reason={}'.format(FAILED_REQUEUE_MAX, reason))
+            return
+        qparams = deepcopy(params)
+        qparams['_retry_count'] = retry_count
+        self.enqueue_send(qparams, 'failed delivery (attempt {}): {}'.format(retry_count, reason))
+
     def send(self,params):
         sent = False
         retry = True
         cnt  = 0
+        requeue_reason = None
         # Clear error if there was one
         self.set_error(ERROR_NONE)
         LOGGER.debug('params={}'.format(params))
@@ -523,9 +572,12 @@ class UDMobile(Node):
             cnt += 1
             LOGGER.info('try #{}'.format(cnt))
             res = self.api_post("notification/send",params)
-            failed_count = False
+            failed_count = 0
             if 'data' in res and 'failedCount' in res['data']:
-                failed_count = res['data']['failedCount'] 
+                try:
+                    failed_count = int(res['data']['failedCount'])
+                except (TypeError, ValueError):
+                    failed_count = -1
             if res['status'] is True and failed_count == 0:
                 sent = True
                 self.set_error(ERROR_NONE)
@@ -533,13 +585,19 @@ class UDMobile(Node):
             else:
                 # No status code or not 4xx code is
                 LOGGER.debug(f"issue status={res['status']} failed_count={failed_count} res={res}")
-                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                if failed_count > 0:
+                    LOGGER.warning("UD Mobile accepted request but failed delivery count={}, payload={}".format(failed_count, res.get('data')))
+                    retry = False
+                    requeue_reason = 'failedCount={}'.format(failed_count)
+                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 and res['code'] < 500)):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
+                    if requeue_reason is None:
+                        requeue_reason = 'http {}'.format(res['code'])
                 else:
                     LOGGER.warning('Previous error is retryable...')
                     if 'data' in res and 'failedCount' in res['data'] and res['data']['failedCount'] > 0:
-                        LOGGER.error("From UDMobile: Failed to send to {res['data']['failedCount']} groups, will send again")
+                        LOGGER.error("From UDMobile: Failed to send to {} groups, will send again".format(res['data']['failedCount']))
             if (not sent):
                 self.set_error(ERROR_MESSAGE_SEND,"ERROR Sending message")
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
@@ -547,6 +605,8 @@ class UDMobile(Node):
                     retry = False
             if (not sent and retry):
                 time.sleep(RETRY_WAIT)
+        if not sent and requeue_reason is not None:
+            self.requeue_failed_send(params, requeue_reason)
         #LOGGER.info('is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
 

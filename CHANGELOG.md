@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.19] - 2026-05-27
+
+### Fixed
+
+- **Post-outage profile recovery:** service-node readiness now triggers controller-level profile recovery when startup finished with pending nodes, so UD Mobile/ISY Portal no longer require a manual plugin restart after DNS/network recovery.
+- **Profile build tracking:** controller now tracks `profile_installed`, profiled service nodes, and pending nodes, with longer bounded waits for late startup and clearer deferred-node logging.
+- **Queued delivery while recovering:** UD Mobile and ISY Portal now use bounded send queues (`128` max, `1 hour` max age), enqueue when not deliver-ready, and flush automatically after profile/service recovery.
+- **Portal send result visibility:** `failedCount` parsing is now strict integer handling with `WARNING` logs when API accepts a request but reports failed deliveries.
+
+---
+
 ## [3.6.18] - 2026-05-25
 
 ### Fixed

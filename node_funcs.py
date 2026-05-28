@@ -2,6 +2,9 @@
 import os
 import re
 import json
+import time
+from collections import deque
+from threading import Lock
 
 
 def get_messages():
@@ -191,3 +194,40 @@ def get_subset_str(subset):
                 y = subset.pop(0)
             subset_str += "-" + str(y)
     return(subset_str)
+
+class SendQueue:
+    def __init__(self, max_items=128, max_age=3600):
+        self.max_items = max_items
+        self.max_age = max_age
+        self.items = deque()
+        self.lock = Lock()
+
+    def enqueue(self, payload):
+        dropped = None
+        with self.lock:
+            self.items.append({'ts': time.time(), 'payload': payload})
+            while len(self.items) > self.max_items:
+                dropped = self.items.popleft()
+        return dropped
+
+    def pop_all(self):
+        with self.lock:
+            items = list(self.items)
+            self.items.clear()
+        return items
+
+    def size(self):
+        with self.lock:
+            return len(self.items)
+
+    def keep_fresh(self, items):
+        now = time.time()
+        fresh = []
+        stale = 0
+        for item in items:
+            ts = item.get('ts', 0)
+            if now - ts <= self.max_age:
+                fresh.append(item.get('payload'))
+            else:
+                stale += 1
+        return fresh, stale

@@ -16,6 +16,8 @@ import os
 import markdown2
 from distutils.version import StrictVersion
 
+PROFILE_NODE_WAIT_MAX = 180
+
 class Controller(Node):
     """
     """
@@ -61,6 +63,9 @@ class Controller(Node):
         self.service_nodes = list()
         self.first_run = True
         self.ready     = False
+        self.profile_installed = False
+        self.profile_nodes_written = set()
+        self.pending_profile_nodes = set()
         self.n_queue = []
         # We track our driver values because we need the value before it's been pushed.
         # Is this necessary anymore in PG3?
@@ -780,187 +785,185 @@ class Controller(Node):
             self.write_profile()
 
     def write_profile(self):
-        pfx = 'write_profile'
         LOGGER.info('enter')
         self.write_profile_lock.acquire()
-        # Good unless there is an error.
-        st = True
-        #
-        # First clean out all files we created
-        #
-        for dir in ['profile/editor', 'profile/nodedef']:
-            if os.path.exists(dir):
-                LOGGER.debug('Cleaning: {}'.format(dir))
-                for file in os.listdir(dir):
-                    LOGGER.debug(file)
-                    path = dir+'/'+file
-                    if os.path.isfile(path) and file != 'editors.xml':
-                        LOGGER.debug('Removing: {}'.format(path))
-                        os.remove(path)
-        #
-        # Write the profile Data
-        #
-        #
-        # nodedef
-        #
-        if not os.path.exists('profile/nodedef'):
-            os.mkdir('profile/nodedef')
-        # Open the template, and read into a string for formatting.
-        template_f = 'template/nodedef/nodedefs.xml'
-        LOGGER.debug("Reading {}".format(template_f))
-        with open (template_f, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        # Open the output nodedefs file
-        output_f   = 'profile/nodedef/nodedefs.xml'
-        make_file_dir(output_f)
-        # Write the nodedef file with our info
-        LOGGER.debug("Writing {}".format(output_f))
-        out_h = open(output_f, "w")
-        out_h.write(data.format(self.sys_notify_editor))
-        out_h.close()
-        #
-        # There is only one nls, so read the nls template and write the new one
-        #
-        en_us_txt = "profile/nls/en_us.txt"
-        make_file_dir(en_us_txt)
-        template_f = "template/nls/en_us.txt"
-        LOGGER.debug("Reading {}".format(template_f))
-        nls_tmpl = open(template_f, "r")
-        LOGGER.debug("Writing {}".format(en_us_txt))
-        nls      = open(en_us_txt,  "w")
-        nls.write("# From: {}\n".format(template_f))
-        for line in nls_tmpl:
-            nls.write(line)
-        nls_tmpl.close()
-        # Get all the indexes and write the nls.
-        nls.write("# End: {}\n\n".format(template_f))
-        msg_cnt = 0
-        nls.write("# Start: Internal Messages:\n")
-        for message in get_messages():
-            nls.write("NMESSAGE-{} = {}\n".format(msg_cnt,message))
-            msg_cnt += 1
-        nls.write("# End: Internal Messages:\n\n")
-        nls.write("# Start: Custom Messages:\n")
-        ids = list()
-        if self.messages is None:
-            self.messages = list()
-            self.messages.append({'id':0, 'title':"Default"})
-            LOGGER.warning("No User Messages, define some in Configuration if desired")
-        else:
-            for message in self.messages:
-                if not 'id' in message:
-                    LOGGER.error("message id not defined, please define as a integer")
-                    continue
-                if message['id'] == '':
-                    LOGGER.error("message id='{}' is empty, please define as a unique integer".format(message['id']))
-                    continue
-                try:
-                    id = int(message['id'])
-                except:
-                    LOGGER.error("message id={} is not an int".format(message['id']))
-                    st = False
-                    continue
-                LOGGER.debug(f'MESSAGE:id={id}')
-                ids.append(id)
-                if 'message' not in message or message['message'] == '':
-                    message['message'] = message['title']
-                LOGGER.debug('message={}'.format(message))
-                nls.write("MID-{} = {}\n".format(message['id'],message['title']))
-        #
-        nls.write("# End: Custom Messages:\n\n")
+        try:
+            self.profile_installed = False
+            st = True
+            profile_nodes_written = set()
+            pending_profile_nodes = set()
 
-        nls.write("# Start: Service Nodes\n")
-        svc_cnt = 0
-        nls.write("NFYN--1 = Unknown\n")
-        if self.service_nodes is not None:
-            for pd in self.service_nodes:
-                nls.write("NFYN-{} = {}\n".format(pd['index'],pd['name']))
-                svc_cnt += 1
-        nls.write("# End: Service Nodes\n\n")
-        config_info_nr = [
-            '<h3>Create ISY Network Resources</h3>',
-            '<p>For messages that contain a larger body use ISY Network Resources. More information available at <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#rest-interface" target="_ blank">README - REST Interface</a>'
-            '<ul>'
-        ]
-        config_info_rest = [
-            '<h3>Sending REST Commands</h3>',
-            '<p>Pass /send with node=the_node'
-            '<p>By default it is sent based on the current selected params of that node for device and priority.'
-            '<ul>'
-        ]
-        # Call the write profile on all the nodes.
-        nls.write("# Start: Custom Service Nodes:\n")
-        # This is a list of all possible devices we can select, they are provided by the service nodes
-        self.devices = list()
-        for node in self.poly.nodes():
-            if node.name != self.name:
-                # We have to wait until the node is done initializing since
-                # we can get here before the node is ready.
-                cnt = 60
-                while node.init_st() is None and cnt > 0:
-                    if cnt == 60 or cnt % 5 == 0:
-                        LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
-                    time.sleep(1)
-                    cnt -= 1
-                if node.init_st():
-                    if cnt < 60:
-                        LOGGER.warning(f'{node.name} is initialized...')
-                    LOGGER.info('node={} id={}'.format(node.name,node.id))
-                    node.write_profile(nls)
-                    config_info_nr.append(node.config_info_nr())
-                    config_info_rest.append(node.config_info_rest())
-                else:
-                    LOGGER.error( 'Node {} failed to initialize init_st={}'.format(node.name, node.init_st()))
-                    #st = False
-        nls.write("\n# Start: End Service Nodes:\n")
-        LOGGER.debug(f'st={st}')
-        if st is False:
-            LOGGER.error('Not all nodes initialized, can not write profile')
-            return
-        LOGGER.debug("Closing {}".format(en_us_txt))
-        nls.close()
-        config_info_rest.append('</ul>')
-        self.config_info = config_info_nr + config_info_rest
-        s = "\n"
-        #
-        # Set the Custom Config Doc
-        #
-        config_doc_file = "POLYGLOT_CONFIG.md"
-        LOGGER.debug("Reading {}".format(config_doc_file))
-        with open (config_doc_file, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        self.poly.setCustomParamsDoc(markdown2.markdown(data)+s.join(self.config_info))
-        #
-        # editor/custom.xml
-        #
-        # The subset string for message id's
-        full_subset_str = ",".join(map(str,ids))
-        LOGGER.debug(f"MESSAGE:full_subset_str={full_subset_str}")
-        subset_str = get_subset_str(ids)
-        LOGGER.debug(f"MESSAGE:subset_str={subset_str}")
-        # Open the output editors fileme
-        editor_f   = "profile/editor/custom.xml"
-        make_file_dir(editor_f)
-        # Open the template, and read into a string for formatting.
-        template_f = 'template/editor/custom.xml'
-        LOGGER.debug("Reading {}".format(template_f))
-        with open (template_f, "r") as myfile:
-            data=myfile.read()
-            myfile.close()
-        # Write the editors file with our info
-        LOGGER.debug("Writing {}".format(editor_f))
-        editor_h = open(editor_f, "w")
-        editor_h.write(data.format(full_subset_str,subset_str,(msg_cnt-1),(svc_cnt-1)))
-        editor_h.close()
-        #
-        # Send it to the ISY
-        #
-        if st:
+            for dir in ['profile/editor', 'profile/nodedef']:
+                if os.path.exists(dir):
+                    LOGGER.debug('Cleaning: {}'.format(dir))
+                    for file in os.listdir(dir):
+                        LOGGER.debug(file)
+                        path = dir+'/'+file
+                        if os.path.isfile(path) and file != 'editors.xml':
+                            LOGGER.debug('Removing: {}'.format(path))
+                            os.remove(path)
+
+            if not os.path.exists('profile/nodedef'):
+                os.mkdir('profile/nodedef')
+            template_f = 'template/nodedef/nodedefs.xml'
+            LOGGER.debug("Reading {}".format(template_f))
+            with open(template_f, "r") as myfile:
+                data = myfile.read()
+            output_f = 'profile/nodedef/nodedefs.xml'
+            make_file_dir(output_f)
+            LOGGER.debug("Writing {}".format(output_f))
+            with open(output_f, "w") as out_h:
+                out_h.write(data.format(self.sys_notify_editor))
+
+            en_us_txt = "profile/nls/en_us.txt"
+            make_file_dir(en_us_txt)
+            template_f = "template/nls/en_us.txt"
+            LOGGER.debug("Reading {}".format(template_f))
+            with open(template_f, "r") as nls_tmpl:
+                LOGGER.debug("Writing {}".format(en_us_txt))
+                with open(en_us_txt, "w") as nls:
+                    nls.write("# From: {}\n".format(template_f))
+                    for line in nls_tmpl:
+                        nls.write(line)
+                    nls.write("# End: {}\n\n".format(template_f))
+                    msg_cnt = 0
+                    nls.write("# Start: Internal Messages:\n")
+                    for message in get_messages():
+                        nls.write("NMESSAGE-{} = {}\n".format(msg_cnt, message))
+                        msg_cnt += 1
+                    nls.write("# End: Internal Messages:\n\n")
+                    nls.write("# Start: Custom Messages:\n")
+                    ids = list()
+                    if self.messages is None:
+                        self.messages = [{'id': 0, 'title': "Default"}]
+                        LOGGER.warning("No User Messages, define some in Configuration if desired")
+                    else:
+                        for message in self.messages:
+                            if 'id' not in message:
+                                LOGGER.error("message id not defined, please define as a integer")
+                                continue
+                            if message['id'] == '':
+                                LOGGER.error("message id='{}' is empty, please define as a unique integer".format(message['id']))
+                                continue
+                            try:
+                                id = int(message['id'])
+                            except:
+                                LOGGER.error("message id={} is not an int".format(message['id']))
+                                st = False
+                                continue
+                            LOGGER.debug(f'MESSAGE:id={id}')
+                            ids.append(id)
+                            if 'message' not in message or message['message'] == '':
+                                message['message'] = message['title']
+                            LOGGER.debug('message={}'.format(message))
+                            nls.write("MID-{} = {}\n".format(message['id'], message['title']))
+                    nls.write("# End: Custom Messages:\n\n")
+
+                    nls.write("# Start: Service Nodes\n")
+                    svc_cnt = 0
+                    nls.write("NFYN--1 = Unknown\n")
+                    if self.service_nodes is not None:
+                        for pd in self.service_nodes:
+                            nls.write("NFYN-{} = {}\n".format(pd['index'], pd['name']))
+                            svc_cnt += 1
+                    nls.write("# End: Service Nodes\n\n")
+                    config_info_nr = [
+                        '<h3>Create ISY Network Resources</h3>',
+                        '<p>For messages that contain a larger body use ISY Network Resources. More information available at <a href="https://github.com/jimboca/udi-poly-notification/blob/master/README.md#rest-interface" target="_ blank">README - REST Interface</a>'
+                        '<ul>'
+                    ]
+                    config_info_rest = [
+                        '<h3>Sending REST Commands</h3>',
+                        '<p>Pass /send with node=the_node'
+                        '<p>By default it is sent based on the current selected params of that node for device and priority.'
+                        '<ul>'
+                    ]
+                    nls.write("# Start: Custom Service Nodes:\n")
+                    self.devices = list()
+                    for node in self.poly.nodes():
+                        if node.name == self.name:
+                            continue
+                        cnt = PROFILE_NODE_WAIT_MAX
+                        while node.init_st() is None and cnt > 0:
+                            if cnt == PROFILE_NODE_WAIT_MAX or cnt % 5 == 0:
+                                LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
+                            time.sleep(1)
+                            cnt -= 1
+                        init_state = node.init_st()
+                        if init_state is True:
+                            if cnt < PROFILE_NODE_WAIT_MAX:
+                                LOGGER.warning(f'{node.name} is initialized...')
+                            LOGGER.info('node={} id={}'.format(node.name, node.id))
+                            node.write_profile(nls)
+                            profile_nodes_written.update([node.address, node.name, node.id])
+                            config_info_nr.append(node.config_info_nr())
+                            config_info_rest.append(node.config_info_rest())
+                        elif init_state is None:
+                            LOGGER.warning('Node {} still initializing; deferring profile write'.format(node.name))
+                            pending_profile_nodes.update([node.address, node.name, node.id])
+                        else:
+                            LOGGER.error('Node {} failed to initialize init_st={}'.format(node.name, init_state))
+                    nls.write("\n# Start: End Service Nodes:\n")
+
+            LOGGER.debug(f'st={st}')
+            if st is False:
+                LOGGER.error('Not all nodes initialized, can not write profile')
+                return False
+
+            config_info_rest.append('</ul>')
+            self.config_info = config_info_nr + config_info_rest
+            config_doc_file = "POLYGLOT_CONFIG.md"
+            LOGGER.debug("Reading {}".format(config_doc_file))
+            with open(config_doc_file, "r") as myfile:
+                data = myfile.read()
+            self.poly.setCustomParamsDoc(markdown2.markdown(data) + "\n".join(self.config_info))
+
+            full_subset_str = ",".join(map(str, ids))
+            LOGGER.debug(f"MESSAGE:full_subset_str={full_subset_str}")
+            subset_str = get_subset_str(ids)
+            LOGGER.debug(f"MESSAGE:subset_str={subset_str}")
+            editor_f = "profile/editor/custom.xml"
+            make_file_dir(editor_f)
+            template_f = 'template/editor/custom.xml'
+            LOGGER.debug("Reading {}".format(template_f))
+            with open(template_f, "r") as myfile:
+                data = myfile.read()
+            LOGGER.debug("Writing {}".format(editor_f))
+            with open(editor_f, "w") as editor_h:
+                editor_h.write(data.format(full_subset_str, subset_str, (msg_cnt - 1), (svc_cnt - 1)))
+
             self.poly.updateProfile()
-        self.write_profile_lock.release()
-        return st
+            self.profile_installed = True
+            self.profile_nodes_written = profile_nodes_written
+            self.pending_profile_nodes = pending_profile_nodes
+            if len(pending_profile_nodes) > 0:
+                LOGGER.warning('Profile installed with pending nodes: {}'.format(",".join(sorted(pending_profile_nodes))))
+            for node in self.poly.nodes():
+                if hasattr(node, 'flush_send_queue'):
+                    node.flush_send_queue()
+            return True
+        finally:
+            self.write_profile_lock.release()
+
+    def is_profile_node_written(self,node):
+        if node is None:
+            return False
+        keys = [getattr(node, 'address', None), getattr(node, 'name', None), getattr(node, 'id', None)]
+        for key in keys:
+            if key and key in self.profile_nodes_written:
+                return True
+        return False
+
+    def on_service_node_ready(self,node):
+        if node is None:
+            return
+        if not self.profile_installed:
+            return
+        if not self.is_profile_node_written(node):
+            LOGGER.warning('Service node {} initialized after profile install; rebuilding profile...'.format(node.name))
+            self.write_profile()
+        elif hasattr(node, 'flush_send_queue'):
+            node.flush_send_queue()
 
     def handler_log_level(self,level):
         LOGGER.info(f'enter: level={level}')
