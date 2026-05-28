@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.20] - 2026-05-28
+
+### Fixed
+
+- **ISY short node addresses:** controller resolves bare addresses (`udmobile`, `mn_boot`) to profile slot prefixes (`n001_udmobile`) and registers aliases so ISY commands no longer fail with "node address does not exist".
+
+---
+
 ## [3.6.19] - 2026-05-27
 
 ### Fixed
@@ -13,7 +21,6 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - **Profile build tracking:** controller now tracks `profile_installed`, profiled service nodes, and pending nodes, with longer bounded waits for late startup and clearer deferred-node logging.
 - **Queued delivery while recovering:** UD Mobile and ISY Portal now use bounded send queues (`128` max, `1 hour` max age), enqueue when not deliver-ready, and flush automatically after profile/service recovery.
 - **Portal send result visibility:** `failedCount` parsing is now strict integer handling with `WARNING` logs when API accepts a request but reports failed deliveries.
-- **ISY short node addresses:** controller resolves bare addresses (`udmobile`, `mn_boot`) to profile slot prefixes (`n001_udmobile`) and registers aliases so ISY commands no longer fail with "node address does not exist".
 
 ---
 
