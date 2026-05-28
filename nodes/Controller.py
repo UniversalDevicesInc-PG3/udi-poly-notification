@@ -17,6 +17,7 @@ import markdown2
 from distutils.version import StrictVersion
 
 PROFILE_NODE_WAIT_MAX = 180
+_SLOT_PREFIX_RE = re.compile(r'^n\d+_(.+)$')
 
 class Controller(Node):
     """
@@ -94,6 +95,82 @@ class Controller(Node):
         poly.ready()
         self.Notices.clear()
         poly.addNode(self, conn_status="ST")
+        self._install_poly_address_hooks()
+
+    def slot_prefixed_address(self, address):
+        try:
+            profile_num = int(self.poly.profileNum)
+        except (TypeError, ValueError):
+            return None
+        return 'n{:03d}_{}'.format(profile_num, address)
+
+    def resolve_node_address(self, address):
+        nodes = self.poly.nodes_internal
+        if address is None or address == 'all':
+            return address
+        if address in nodes:
+            return address
+        prefixed = self.slot_prefixed_address(address)
+        if prefixed and prefixed in nodes:
+            LOGGER.debug('Resolved node address {} -> {}'.format(address, prefixed))
+            return prefixed
+        match = _SLOT_PREFIX_RE.match(address)
+        if match:
+            bare = match.group(1)
+            if bare in nodes:
+                LOGGER.debug('Resolved node address {} -> {}'.format(address, bare))
+                return bare
+        return address
+
+    def register_node_aliases(self, node):
+        nodes = self.poly.nodes_internal
+        prefixed = self.slot_prefixed_address(node.address)
+        if prefixed and prefixed != node.address:
+            nodes[prefixed] = node
+        match = _SLOT_PREFIX_RE.match(node.address)
+        if match:
+            bare = match.group(1)
+            if bare not in nodes:
+                nodes[bare] = node
+
+    def link_config_node_aliases(self, config):
+        if not config or 'nodes' not in config:
+            return
+        nodes = self.poly.nodes_internal
+        for node in config['nodes']:
+            addr = node.get('address')
+            if not addr:
+                continue
+            match = _SLOT_PREFIX_RE.match(addr)
+            if match:
+                bare = match.group(1)
+                if bare in nodes and addr not in nodes:
+                    nodes[addr] = nodes[bare]
+            else:
+                prefixed = self.slot_prefixed_address(addr)
+                if prefixed and prefixed not in nodes and addr in nodes:
+                    nodes[prefixed] = nodes[addr]
+
+    def _install_poly_address_hooks(self):
+        if getattr(self.poly, '_address_hooks_installed', False):
+            return
+        controller = self
+        handle_input = self.poly._handleInput
+
+        def _handleInput(key, item, published):
+            if (
+                key in ('command', 'query', 'status')
+                and isinstance(item, dict)
+                and item.get('address') not in (None, 'all')
+            ):
+                resolved = controller.resolve_node_address(item['address'])
+                if resolved != item['address']:
+                    item = dict(item)
+                    item['address'] = resolved
+            return handle_input(key, item, published)
+
+        self.poly._handleInput = _handleInput
+        self.poly._address_hooks_installed = True
 
     '''
     node_queue() and wait_for_node_event() create a simple way to wait
@@ -121,6 +198,8 @@ class Controller(Node):
         self.wait_for_node_done()
         if anode is None:
             LOGGER.error(f'Failed to add node {node}')
+        else:
+            self.register_node_aliases(anode)
         return anode
 
     def handler_start(self):
@@ -132,6 +211,9 @@ class Controller(Node):
     def handler_config_done(self):
         LOGGER.debug("enter")
         self.handler_config_st = True
+        config = self.poly.getConfig()
+        if config:
+            self.link_config_node_aliases(config)
         LOGGER.debug("exit")
 
     def add_node_done(self):
