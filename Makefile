@@ -6,10 +6,10 @@
 #                           Then in PG3 UI, edit the plugin and set Version to that exact NSVERSION.
 #   3. `make beta`        — push HEAD to the `beta` branch and build $(NAME)-beta-<NSVERSION>.zip.
 #                           Then in PG3 UI, edit the plugin and set Version to that exact NSVERSION.
-#   4. `make production`  — push HEAD to the `production` branch and build $(NAME)-production-<NSVERSION>.zip.
+#   4. `make production`  — push HEAD to the `production` branch and build both:
+#                           $(NAME)-production-<NSVERSION>.zip and $(NAME)-Production-Free-<NSVERSION>.zip.
 #                           Then in PG3 UI, edit the plugin and set Version to that exact NSVERSION.
 # The track-specific zip files are the actual deliverables uploaded to PG3.
-# The free-edition artifact is built locally as $(NAME)-Production-Free-<NSVERSION>.zip.
 
 PYTHON ?= python3
 NAME = Notification
@@ -33,7 +33,7 @@ help:
 	@echo "PG3 release (clean tree; not detached HEAD)"
 	@echo "  make release             Tag v\$$NSVERSION and push current branch + tag"
 	@echo "  make beta                Push HEAD -> $(GIT_REMOTE)/$(BRANCH_BETA) and build $(NAME)-$(BRANCH_BETA)-\$$NSVERSION.zip"
-	@echo "  make production          Push HEAD -> $(GIT_REMOTE)/$(BRANCH_PRODUCTION) and build $(NAME)-$(BRANCH_PRODUCTION)-\$$NSVERSION.zip"
+	@echo "  make production          Push HEAD -> $(GIT_REMOTE)/$(BRANCH_PRODUCTION); build full + Production-Free zips"
 	@echo "                           After make release / make beta / make production, edit plugin in PG3 UI and set Version to \$$NSVERSION"
 	@echo "  make zip                 Ad-hoc local $(NAME).zip (no version suffix)"
 	@echo "  make production-free    Build local $(NAME)-Production-Free-\$$NSVERSION.zip"
@@ -60,7 +60,8 @@ production-free zip_free:
 	cp nodes/__init__.py .; \
 	egrep 'NSVERSION|UDMobile|Controller' __init__.py > nodes/__init__.py; \
 	zip -x@zip_exclude_free_full.lst -r "$$ZIPFILE" *; \
-	mv __init__.py nodes/
+	mv __init__.py nodes/; \
+	echo "Built $$ROOT/$$ZIPFILE for upload to PG3 (free edition)."
 
 # Push current HEAD to $(GIT_REMOTE)/$(BRANCH_BETA) and build $(NAME)-$(BRANCH_BETA)-<NSVERSION>.zip
 # for upload to PG3. Requires clean tree; not detached HEAD.
@@ -116,7 +117,8 @@ production:
 	rm -f "$$ZIPFILE"; \
 	zip -x@zip_exclude.lst -r "$$ZIPFILE" * >/dev/null; \
 	echo "Built $$ROOT/$$ZIPFILE for upload to PG3."; \
-	echo "PG3 UI action required: edit this plugin and set Version to $$NSVERSION."
+	echo "PG3 UI action required: edit this plugin and set Version to $$NSVERSION."; \
+	$(MAKE) production-free
 
 # Tag the current HEAD as v<NSVERSION> and push the current branch + tag to $(GIT_REMOTE).
 # NSVERSION = nodes/__init__.py NSVERSION (canonical). Track-specific zips are built by `make beta` / `make production`.
