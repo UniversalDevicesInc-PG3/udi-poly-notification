@@ -5,6 +5,20 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [3.6.21] - 2026-06-20
+
+### Fixed
+
+- **Typed data validation:** Pushover, ISYPortal, TelegramUB, and Notify entries with missing/empty names or ids are rejected with PG3 notices instead of crashing `handler_typed_data` (fixes `KeyError: 'name'` on invalid Telegram nodes).
+- **Missing notification content:** `get_message_short()` no longer raises `UnboundLocalError` when ISY program query lacks `Content.uom145`; controller logs an error and sets notice `missing_notification_content`.
+- **Profile rebuild with failed service nodes:** `write_profile()` now continues for healthy nodes when a service node fails init (e.g. invalid Pushover app token). Failed nodes keep existing profile assets, get per-node `profile_init_*` notices, and a summary `profile_init_errors` notice.
+
+### Changed
+
+- **Makefile:** `make production` now also builds `Notification-Production-Free-<NSVERSION>.zip`.
+
 ## [3.6.20] - 2026-05-28
 
 ### Fixed

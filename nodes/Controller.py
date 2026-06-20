@@ -310,13 +310,32 @@ class Controller(Node):
         else:
             return super(Controller, self).getDriver(driver)
 
-    def get_message_short(self,query):
-        msg = query.get(f'Content.uom145')
-        if msg is None:
-            return ret
+    def _notice_missing_notification_content(self, query):
+        LOGGER.error(
+            'Notification content missing in command query (expected Content.uom147 or Content.uom145): %s',
+            query,
+        )
+        self.Notices['missing_notification_content'] = (
+            'Notification content was missing. Check your ISY program notification fields '
+            '(subject/body) and try again.'
+        )
+
+    def _missing_notification_message(self):
+        return {
+            'subject': 'ERROR',
+            'body': 'No message passed in',
+            'message': 'ERROR\nNo message passed in',
+        }
+
+    def get_message_short(self, query):
+        if not query or not isinstance(query, dict):
+            return None
+        msg = query.get('Content.uom145')
+        if msg is None or str(msg).strip() == '':
+            return None
         # Entire message and title is first line, body is the rest
-        sp = msg.split("\n",1)
-        ret = { 'message': msg, 'subject': sp[0] }
+        sp = msg.split("\n", 1)
+        ret = {'message': msg, 'subject': sp[0]}
         if len(sp) > 1:
             ret['body'] = sp[1]
         else:
@@ -338,7 +357,7 @@ class Controller(Node):
         return ret
 
     # Format old short or new long query.
-    def get_message_from_query(self,query):
+    def get_message_from_query(self, query):
         LOGGER.debug(f'enter query={query}')
         reboot = False
         if self.has_sys_editor_full:
@@ -350,13 +369,8 @@ class Controller(Node):
                 # Check for the old one
                 msg = self.get_message_short(query)
                 if msg is None:
-                    msg = { 'subject': "ERROR", 'body': "No message passed in"}
-                # No longer needed, AC will fix this soon. else:
-                #    self.Notices['reboot_iox'] = f"WARNING: You need to edit & save your ISY program to support long messages that sent: {msg}\nCheck the log for more errors like this."
-                #    msg['reboot'] = reboot
-                #    reboot = True
-            else:
-                ret = self.get_message_long(msg)
+                    self._notice_missing_notification_content(query)
+                    msg = self._missing_notification_message()
         else:
             # Old _sys_editor_short
             msg = self.get_message_short(query)
@@ -364,7 +378,8 @@ class Controller(Node):
                 # New _sys_editor_full
                 msg = self.get_message_long(query)
                 if msg is None:
-                    msg = { 'subject': "ERROR", 'body': "No message passed in"}
+                    self._notice_missing_notification_content(query)
+                    msg = self._missing_notification_message()
         msg['reboot'] = reboot
         LOGGER.debug(f'exit msg={msg}')
         return msg
@@ -380,6 +395,73 @@ class Controller(Node):
             l.append(f"{item['name']},{item['node'].address},{item['node'].name}")
         LOGGER.error(f"Unknown service node {sname} must be one of: " + ", ".join(l))
         return False
+
+    def _profile_child_nodes(self):
+        seen = set()
+        nodes = []
+        for node in self.poly.nodes():
+            if node.name == self.name:
+                continue
+            key = getattr(node, 'address', None) or getattr(node, 'id', None) or id(node)
+            if key in seen:
+                continue
+            seen.add(key)
+            nodes.append(node)
+        return nodes
+
+    def _profile_asset_paths(self, node):
+        paths = []
+        iname = getattr(node, 'iname', None)
+        if iname:
+            paths.append(f'profile/nodedef/{iname}.xml')
+            paths.append(f'profile/editor/{iname}.xml')
+        address = getattr(node, 'address', None)
+        if address and address != iname:
+            paths.append(f'profile/editor/{address}.xml')
+        return paths
+
+    def _wait_for_node_init(self, node):
+        cnt = PROFILE_NODE_WAIT_MAX
+        while node.init_st() is None and cnt > 0:
+            if cnt == PROFILE_NODE_WAIT_MAX or cnt % 5 == 0:
+                LOGGER.warning(
+                    f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...'
+                )
+            time.sleep(1)
+            cnt -= 1
+        init_state = node.init_st()
+        if init_state is True and cnt < PROFILE_NODE_WAIT_MAX:
+            LOGGER.warning(f'{node.name} is initialized...')
+        return init_state
+
+    def _notice_profile_node_init_failed(self, node):
+        err_code = None
+        if hasattr(node, 'getDriver'):
+            try:
+                err_code = node.getDriver('ERR')
+            except Exception:
+                err_code = None
+        msg = (
+            f'{node.name} failed to initialize and was skipped in this profile rebuild. '
+            f'Fix its configuration (API keys/credentials) and save again.'
+        )
+        if err_code is not None:
+            try:
+                if int(err_code) != 0:
+                    msg += f' (ERR={err_code})'
+            except (TypeError, ValueError):
+                pass
+        notice_key = f'profile_init_{getattr(node, "address", node.name)}'
+        LOGGER.error(msg)
+        self.Notices[notice_key] = msg
+
+    def _clear_profile_init_notices(self):
+        for key in list(self.Notices.keys()):
+            if key == 'profile_init_errors' or str(key).startswith('profile_init_'):
+                try:
+                    self.Notices.delete(key)
+                except Exception:
+                    LOGGER.debug('delete notice %s failed', key, exc_info=True)
 
     def get_current_message(self):
         return(self.get_message_by_id(self.getDriver('GV2')))
@@ -688,6 +770,20 @@ class Controller(Node):
         # List of errors to print at the end in a Notice        
         err_list = list()
 
+        def _typed_node_name(node_type, node):
+            if not isinstance(node, dict):
+                err_list.append(
+                    f"Invalid {node_type} node entry {node!r}. Delete this node or fix the name."
+                )
+                return None
+            name = str(node.get('name', '')).strip()
+            if not name:
+                err_list.append(
+                    f"Invalid {node_type} node entry {node}. Missing/empty name. Delete this node or fix the name."
+                )
+                return None
+            return name
+
         #
         # Check the pushover configs are all good
         #
@@ -700,19 +796,17 @@ class Controller(Node):
             pushover = None
         else:
             for pd in pushover:
-                if 'name' in pd:
-                    sname = pd['name']
-                    # Save info for later
-                    pd['type'] = 'pushover'
-                    snames[sname] = pd
-                    # Check for duplicates
-                    address = self.get_service_node_address(sname)
-                    if not address in pnames:
-                        pnames[address] = list()
-                    pnames[address].append(sname)
-                else:
-                    err_list.append("Missing name in pushover node {}".format(pd))
+                sname = _typed_node_name('pushover', pd)
+                if sname is None:
                     continue
+                # Save info for later
+                pd['type'] = 'pushover'
+                snames[sname] = pd
+                # Check for duplicates
+                address = self.get_service_node_address(sname)
+                if not address in pnames:
+                    pnames[address] = list()
+                pnames[address].append(sname)
             for address in pnames:
                 if len(pnames[address]) > 1:
                     err_list.append("Duplicate pushover names for {} items {} from {}".format(len(pnames[address]),address,",".join(pnames[address])))
@@ -729,19 +823,17 @@ class Controller(Node):
             isyportal = None
         else:
             for pd in isyportal:
-                if 'name' in pd:
-                    sname = pd['name']
-                    # Save info for later
-                    pd['type'] = 'isyportal'
-                    snames[sname] = pd
-                    # Check for duplicates
-                    address = self.get_service_node_address(sname)
-                    if not address in unames:
-                        unames[address] = list()
-                    unames[address].append(sname)
-                else:
-                    err_list.append("Missing name in ISYPortal node {}".format(pd))
+                sname = _typed_node_name('ISYPortal', pd)
+                if sname is None:
                     continue
+                # Save info for later
+                pd['type'] = 'isyportal'
+                snames[sname] = pd
+                # Check for duplicates
+                address = self.get_service_node_address(sname)
+                if not address in unames:
+                    unames[address] = list()
+                unames[address].append(sname)
             for address in unames:
                 if len(unames[address]) > 1:
                     err_list.append("Duplicate isyportal names for {} items {} from {}".format(len(unames[address]),address,",".join(unames[address])))
@@ -758,10 +850,9 @@ class Controller(Node):
             telegramub = None
         else:
             for pd in telegramub:
-                if 'name' in pd:
-                    sname = pd['name']
-                else:
-                    sname = 'telegramub'
+                sname = _typed_node_name('telegramub', pd)
+                if sname is None:
+                    continue
                 # Save info for later
                 pd['type'] = 'telegramub'
                 snames[sname] = pd
@@ -783,17 +874,38 @@ class Controller(Node):
             # First check that notify_nodes are valid before we try to add them
             mnames = dict()
             for node in notify_nodes:
-                address = self.get_message_node_address(node['id'])
+                if not isinstance(node, dict):
+                    err_list.append(
+                        f"Invalid notify node entry {node!r}. Delete this node or fix id/name."
+                    )
+                    continue
+                node_id = str(node.get('id', '')).strip()
+                if not node_id:
+                    err_list.append(
+                        f"Invalid notify node entry {node}. Missing/empty id. Delete this node or fix id."
+                    )
+                    continue
+                node_name = str(node.get('name', '')).strip()
+                if not node_name:
+                    err_list.append(
+                        f"Invalid notify node entry {node}. Missing/empty name. Delete this node or fix the name."
+                    )
+                    continue
+                address = self.get_message_node_address(node_id)
                 if not address in mnames:
                     mnames[address] = list()
-                mnames[address].append(node['id'])
+                mnames[address].append(node_id)
                 # And check that service node name is known
                 if 'service_node_name' in node:
                     sname = node['service_node_name']
                     if not sname in snames:
                         err_list.append("Unknown service node name {} in notify node {} must be one of {}".format(sname,node,",".join(snames)))
                 else:
-                    err_list.append("No service node name in notify node {} must be one of {}".format(sname,node,",".join(snames)))
+                    err_list.append(
+                        "No service node name in notify node {} must be one of {}. Delete this node or set a valid service node name.".format(
+                            node, ",".join(snames)
+                        )
+                    )
             for address in mnames:
                 if len(mnames[address]) > 1:
                     err_list.append("Duplicate Notify ids for {} items {} from {}".format(len(mnames[address]),address,",".join(mnames[address])))
@@ -806,7 +918,9 @@ class Controller(Node):
                 LOGGER.error(msg)
                 self.Notices[f'msg{cnt}'] = msg
                 cnt += 1
-            self.Notices['typed_data'] = f'There are {len(err_list)} errors found please fix Errors and restart.'
+            self.Notices['typed_data'] = (
+                f'There are {len(err_list)} typed data errors. Delete invalid nodes or fix names/ids, then restart.'
+            )
             self.handler_typed_data_st = False
             return
 
@@ -874,6 +988,22 @@ class Controller(Node):
             st = True
             profile_nodes_written = set()
             pending_profile_nodes = set()
+            failed_profile_node_names = []
+            self._clear_profile_init_notices()
+
+            child_nodes = self._profile_child_nodes()
+            node_init_states = []
+            for node in child_nodes:
+                node_init_states.append((node, self._wait_for_node_init(node)))
+
+            preserve_profile_files = set()
+            for node, init_state in node_init_states:
+                if init_state is False:
+                    failed_profile_node_names.append(node.name)
+                    self._notice_profile_node_init_failed(node)
+                    for path in self._profile_asset_paths(node):
+                        if os.path.isfile(path):
+                            preserve_profile_files.add(os.path.basename(path))
 
             for dir in ['profile/editor', 'profile/nodedef']:
                 if os.path.exists(dir):
@@ -881,9 +1011,15 @@ class Controller(Node):
                     for file in os.listdir(dir):
                         LOGGER.debug(file)
                         path = dir+'/'+file
-                        if os.path.isfile(path) and file != 'editors.xml':
-                            LOGGER.debug('Removing: {}'.format(path))
-                            os.remove(path)
+                        if not os.path.isfile(path):
+                            continue
+                        if file == 'editors.xml':
+                            continue
+                        if file in preserve_profile_files:
+                            LOGGER.debug('Preserving failed node profile asset: {}'.format(path))
+                            continue
+                        LOGGER.debug('Removing: {}'.format(path))
+                        os.remove(path)
 
             if not os.path.exists('profile/nodedef'):
                 os.mkdir('profile/nodedef')
@@ -962,35 +1098,34 @@ class Controller(Node):
                     ]
                     nls.write("# Start: Custom Service Nodes:\n")
                     self.devices = list()
-                    for node in self.poly.nodes():
-                        if node.name == self.name:
-                            continue
-                        cnt = PROFILE_NODE_WAIT_MAX
-                        while node.init_st() is None and cnt > 0:
-                            if cnt == PROFILE_NODE_WAIT_MAX or cnt % 5 == 0:
-                                LOGGER.warning(f'Waiting for {node.name} to initialize, timeout in {cnt} seconds...')
-                            time.sleep(1)
-                            cnt -= 1
-                        init_state = node.init_st()
+                    for node, init_state in node_init_states:
                         if init_state is True:
-                            if cnt < PROFILE_NODE_WAIT_MAX:
-                                LOGGER.warning(f'{node.name} is initialized...')
                             LOGGER.info('node={} id={}'.format(node.name, node.id))
                             node.write_profile(nls)
                             profile_nodes_written.update([node.address, node.name, node.id])
                             config_info_nr.append(node.config_info_nr())
                             config_info_rest.append(node.config_info_rest())
                         elif init_state is None:
-                            LOGGER.warning('Node {} still initializing; deferring profile write'.format(node.name))
+                            LOGGER.warning(
+                                'Node {} still initializing; deferring profile write'.format(node.name)
+                            )
                             pending_profile_nodes.update([node.address, node.name, node.id])
                         else:
-                            LOGGER.error('Node {} failed to initialize init_st={}'.format(node.name, init_state))
+                            LOGGER.error(
+                                'Node {} failed to initialize init_st={}'.format(node.name, init_state)
+                            )
                     nls.write("\n# Start: End Service Nodes:\n")
 
             LOGGER.debug(f'st={st}')
             if st is False:
-                LOGGER.error('Not all nodes initialized, can not write profile')
+                LOGGER.error('Invalid custom message ids; can not write profile')
                 return False
+
+            if failed_profile_node_names:
+                self.Notices['profile_init_errors'] = (
+                    f'{len(failed_profile_node_names)} service node(s) failed to initialize; '
+                    f'profile was updated for healthy nodes. Fix credentials and save again.'
+                )
 
             config_info_rest.append('</ul>')
             self.config_info = config_info_nr + config_info_rest
