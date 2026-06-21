@@ -1,6 +1,6 @@
 """ Node classes used by the Notification Node Server. """
 
-NSVERSION = "3.6.22"
+NSVERSION = "3.6.23"
 
 from .Notify import Notify
 from .Pushover import Pushover

@@ -54,10 +54,10 @@ class TelegramUB(Node):
         """
         LOGGER.info('')
         vstat = self.validate()
-        if vstat['status'] is False:
+        if vstat.get('status') is not True:
             self.authorized = False
         else:
-            self.authorized = True if vstat['status'] == 1 else False
+            self.authorized = True
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             self.set_error(ERROR_NONE)
@@ -66,24 +66,102 @@ class TelegramUB(Node):
             self.set_error(ERROR_APP_AUTH)
             self._init_st = False
 
+    def _telegram_ok(self, res):
+        return (
+            isinstance(res, dict)
+            and res.get('status') is True
+            and isinstance(res.get('data'), dict)
+            and res['data'].get('ok') is True
+        )
+
+    def _telegram_description(self, res):
+        if isinstance(res, dict):
+            data = res.get('data')
+            if isinstance(data, dict) and data.get('description'):
+                return data['description']
+            if res.get('errorMessage'):
+                return res['errorMessage']
+        return 'Unknown Telegram error'
+
+    def _coerce_chat_id(self, val):
+        if val is None:
+            return None
+        if isinstance(val, int):
+            return val
+        s = str(val).strip()
+        if s.lstrip('-').isdigit():
+            return int(s)
+        return val
+
+    def _chat_id_from_updates(self, data):
+        if not isinstance(data, dict) or not data.get('ok'):
+            return None
+        result = data.get('result')
+        if not isinstance(result, list):
+            return None
+        for update in reversed(result):
+            for key in ('message', 'edited_message', 'channel_post'):
+                msg = update.get(key)
+                if not isinstance(msg, dict):
+                    continue
+                chat = msg.get('chat') or msg.get('from')
+                if isinstance(chat, dict) and 'id' in chat:
+                    return chat['id']
+        return None
+
+    def _resolve_user_id(self):
+        if self.user_id is not None:
+            return self._coerce_chat_id(self.user_id)
+        if self.users:
+            return self._coerce_chat_id(self.users[0])
+        return None
+
+    def _notice_key(self):
+        return f'telegramub_{self.iname}'
+
     def validate(self):
         LOGGER.debug('Authorizing Telegram app {}'.format(self.http_api_key))
         res = self.session.get(f"bot{self.http_api_key}/getUpdates")
         LOGGER.debug('got: {}'.format(res))
         self.user_id = None
-        if 'status' in res and res['status']:
-            # Send a message to the user that we started up
-            if len(self.users) == 0:
-                self.controller.Notices['telegramub'] = f"Please configure {self.iname} user"
-            else:
-                self.user_id = self.users[0]
-                # TODO: Need to wait for confirmation that send actually completed, or do this one non-threaded?
-                send_st = self.do_send({ 'text': f'{self.name} has started up'})
-                self.controller.Notices.delete('telegramub')
-        else:
-            self.controller.Notices['telegramub'] = "Failed to authorize Telegram User Bot, see ERROR in log"
+        notice_key = self._notice_key()
 
-        return res
+        if not self._telegram_ok(res):
+            msg = f"Failed to authorize Telegram bot {self.iname}: {self._telegram_description(res)}"
+            LOGGER.error(msg)
+            self.controller.Notices[notice_key] = msg
+            return {'status': False, 'data': res.get('data') if isinstance(res, dict) else False}
+
+        self.controller.Notices.delete(notice_key)
+        self.controller.Notices.delete('telegramub')
+
+        if len(self.users) == 0:
+            discovered = self._chat_id_from_updates(res.get('data'))
+            if discovered is not None:
+                self.user_id = self._coerce_chat_id(discovered)
+                notice = (
+                    f"Telegram {self.iname}: using chat_id {self.user_id} from bot updates. "
+                    f"Add this userid to Configuration to persist."
+                )
+                LOGGER.warning(notice)
+                self.controller.Notices[notice_key] = notice
+            else:
+                self.controller.Notices[notice_key] = (
+                    f"Please configure {self.iname} user id, or send /start to your bot "
+                    f"so getUpdates can discover it."
+                )
+                return {'status': False, 'data': res.get('data')}
+        else:
+            self.user_id = self._coerce_chat_id(self.users[0])
+
+        if self.user_id is None:
+            msg = f"Telegram {self.iname}: invalid user id in configuration"
+            LOGGER.error(msg)
+            self.controller.Notices[notice_key] = msg
+            return {'status': False, 'data': res.get('data')}
+
+        self.do_send({'text': f'{self.name} has started up'})
+        return {'status': True, 'data': res.get('data')}
 
 
 
@@ -198,19 +276,27 @@ class TelegramUB(Node):
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
-        # These may all eventually be passed in or pulled from drivers.
+        params = dict(params)
+        title = params.pop('title', None)
         if 'message' in params:
             params['text'] = params['message']
             del params['message']
-        elif not 'text' in params:
+        if 'text' not in params:
             params['text'] = "NOT_SPECIFIED"
-        if self.user_id is None:
-            LOGGER.error(f"user {self.user_id} not defined for {self.iname}")
+        if title:
+            if params['text'] and params['text'] != "NOT_SPECIFIED":
+                params['text'] = f"{title}\n{params['text']}"
+            else:
+                params['text'] = title
+        chat_id = self._resolve_user_id()
+        if chat_id is None:
+            LOGGER.error(f"user not defined for {self.iname}")
             self.set_error(ERROR_USER_AUTH)
             return False
-        params['chat_id'] = self.user_id
+        self.user_id = chat_id
+        params['chat_id'] = chat_id
         # Telegram doesn't support any of these...
-        for key in ('device','priority','format','retry','expire','sound'):
+        for key in ('device','priority','format','retry','expire','sound','subject'):
             if key in params:
                 del params[key]
         #
@@ -235,18 +321,24 @@ class TelegramUB(Node):
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
             LOGGER.debug('try #{}'.format(cnt))
-            res = self.session.post(f"bot{self.http_api_key}/sendmessage",params)
+            res = self.session.post(
+                f"bot{self.http_api_key}/sendMessage",
+                params,
+                content="urlencode",
+            )
             LOGGER.debug('res={}'.format(res))
-            if 'status' in res and res['status'] is True:
+            if self._telegram_ok(res):
                 sent = True
                 self.set_error(ERROR_NONE)
             else:
-                if 'data' in res:
-                    if 'errors' in res['data']:
-                        LOGGER.error('From Telegram: {}'.format(res['data']['errors']))
-                # No status code or not 4xx code is
-                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                LOGGER.error('From Telegram sendMessage: {}'.format(self._telegram_description(res)))
+                data = res.get('data') if isinstance(res, dict) else None
+                if isinstance(data, dict) and data.get('error_code') in (400, 401, 403, 404):
+                    retry = False
+                elif isinstance(res, dict) and res.get('code') is not None and 400 <= res['code'] < 500:
                     LOGGER.warning('Previous error can not be fixed, will not retry')
+                    retry = False
+                elif isinstance(res, dict) and res.get('retryable') is False:
                     retry = False
                 else:
                     LOGGER.warning('Previous error is retryable...')

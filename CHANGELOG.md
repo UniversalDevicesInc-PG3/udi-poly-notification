@@ -7,6 +7,12 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.23] - 2026-06-20
+
+### Fixed
+
+- **Telegram notifications (Fixes #56):** Use Bot API `sendMessage` (urlencoded POST), parse Telegram `ok`/`description` responses, merge/strip invalid parameters, coerce `chat_id`, and discover chat id from `getUpdates` when users list is empty. Notify nodes guard against out-of-range NMESSAGE indices.
+
 ## [3.6.22] - 2026-06-20
 
 ### Fixed

@@ -274,10 +274,16 @@ class Notify(Node):
 
     def send_msg(self,mi):
         LOGGER.info("m={}".format(mi))
-        if int(mi) == 0:
+        mi = int(mi)
+        if mi == 0:
             LOGGER.info("m={} so not sending anything".format(mi))
             return
-        msg = get_messages()[mi]
+        messages = get_messages()
+        if mi < 0 or mi >= len(messages):
+            LOGGER.error("message index {} out of range 0-{}".format(mi, len(messages) - 1))
+            self.set_error(1)
+            return
+        msg = messages[mi]
         # md will contain title and message
         LOGGER.info("mi={} msg={}".format(mi,msg))
         st = self.service_node['node'].do_send(
