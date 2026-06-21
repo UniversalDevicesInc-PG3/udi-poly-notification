@@ -21,7 +21,7 @@
               <p id="" editor="MESSAGE" init="GV2"/>
             </cmd>
             <cmd id="SET_SYS_CUSTOM">
-              <p id="" editor="{0}" init="GV3"/>
+              <p id="" editor="{0}"/>
             </cmd>
             <cmd id="QUERY" />
             <cmd id="BUILD_PROFILE" />

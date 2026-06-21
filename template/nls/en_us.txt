@@ -11,7 +11,6 @@ CMD-ctl-INSTALL_PROFILE-NAME = Install Profile
 ST-ctl-ST-NAME = NodeServer Online
 ST-ctl-GV1-NAME = REST Status
 ST-ctl-GV2-NAME = Message
-ST-ctl-GV3-NAME = System Custom Content
 
 CMD-SET_MESSAGE-NAME = Message
 CMD-SET_SYS_CUSTOM-NAME = System Custom Content

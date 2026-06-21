@@ -7,6 +7,12 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.22] - 2026-06-20
+
+### Fixed
+
+- **Controller GV3 sync (#60):** Stop reporting undefined GV3 on the controller node. System custom content remains in-memory via `SET_SYS_CUSTOM`; controller nodeDef no longer references a nonexistent GV3 status.
+
 ## [3.6.21] - 2026-06-20
 
 ### Fixed

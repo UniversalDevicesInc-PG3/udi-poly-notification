@@ -49,14 +49,12 @@ class Controller(Node):
                 )
             ) else False
         self.sys_notify_editor = '_sys_notify_full' if self.has_sys_editor_full else '_sys_notify_short'
-        self.sys_notify_uom_d  = 148 if self.has_sys_editor_full else 146
         self.sys_notify_uom_t  = 147 if self.has_sys_editor_full else 145
         LOGGER.warning(f'has_sys_editor_full={self.has_sys_editor_full} editor={self.sys_notify_editor}')
         self.drivers = [
             {'driver': 'ST',  'value': 1,  'uom': 25, 'name': "Nodeserver Status"},
             {'driver': 'GV1', 'value': 0,  'uom': 25, 'name': 'REST Status'},
             {'driver': 'GV2', 'value': 0,  'uom': 25, 'name': 'Message'},
-            {'driver': 'GV3', 'value': 0,  'uom': self.sys_notify_uom_d, 'name': 'Custom Content'},
         ]
         self.uuid    = self.poly.pg3init['uuid']
         self.nodename = os.uname().nodename
@@ -1200,7 +1198,6 @@ class Controller(Node):
         self.setDriver('GV2', val)
 
     def set_sys_short(self,val):
-        #self.setDriver('GV3', val)
         self._sys_short_msg = val
         
     def get_sys_short(self):
