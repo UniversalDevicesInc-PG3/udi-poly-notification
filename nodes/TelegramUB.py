@@ -8,6 +8,15 @@ import time
 import logging
 import collections
 from node_funcs import make_file_dir,is_int,get_default_sound_index
+from telegram_funcs import (
+    telegram_ok,
+    telegram_description,
+    coerce_chat_id,
+    chat_id_from_updates,
+    sanitize_users,
+    bot_link_from_get_me,
+    external_link,
+)
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
@@ -41,7 +50,7 @@ class TelegramUB(Node):
         self.http_api_key  = self.info['http_api_key']
         # Initial releases didn't have this
         if 'users' in self.info:
-            self.users         = self.info['users']
+            self.users         = sanitize_users(self.info['users'])
         else:
             self.users         = list()
         self.user_id       = None
@@ -56,109 +65,105 @@ class TelegramUB(Node):
         vstat = self.validate()
         if vstat.get('status') is not True:
             self.authorized = False
+            self.set_ready(False)
+            self.set_error(vstat.get('error', ERROR_APP_AUTH))
+            self._init_st = False
         else:
             self.authorized = True
-        LOGGER.info("Authorized={}".format(self.authorized))
-        if self.authorized:
+            self.set_ready(True)
             self.set_error(ERROR_NONE)
             self._init_st = True
-        else:
-            self.set_error(ERROR_APP_AUTH)
-            self._init_st = False
-
-    def _telegram_ok(self, res):
-        return (
-            isinstance(res, dict)
-            and res.get('status') is True
-            and isinstance(res.get('data'), dict)
-            and res['data'].get('ok') is True
-        )
-
-    def _telegram_description(self, res):
-        if isinstance(res, dict):
-            data = res.get('data')
-            if isinstance(data, dict) and data.get('description'):
-                return data['description']
-            if res.get('errorMessage'):
-                return res['errorMessage']
-        return 'Unknown Telegram error'
-
-    def _coerce_chat_id(self, val):
-        if val is None:
-            return None
-        if isinstance(val, int):
-            return val
-        s = str(val).strip()
-        if s.lstrip('-').isdigit():
-            return int(s)
-        return val
-
-    def _chat_id_from_updates(self, data):
-        if not isinstance(data, dict) or not data.get('ok'):
-            return None
-        result = data.get('result')
-        if not isinstance(result, list):
-            return None
-        for update in reversed(result):
-            for key in ('message', 'edited_message', 'channel_post'):
-                msg = update.get(key)
-                if not isinstance(msg, dict):
-                    continue
-                chat = msg.get('chat') or msg.get('from')
-                if isinstance(chat, dict) and 'id' in chat:
-                    return chat['id']
-        return None
+        LOGGER.info("Authorized={}".format(self.authorized))
 
     def _resolve_user_id(self):
         if self.user_id is not None:
             return self._coerce_chat_id(self.user_id)
         if self.users:
-            return self._coerce_chat_id(self.users[0])
+            return coerce_chat_id(self.users[0])
         return None
+
+    def _coerce_chat_id(self, val):
+        return coerce_chat_id(val)
 
     def _notice_key(self):
         return f'telegramub_{self.iname}'
 
     def validate(self):
         LOGGER.debug('Authorizing Telegram app {}'.format(self.http_api_key))
-        res = self.session.get(f"bot{self.http_api_key}/getUpdates")
-        LOGGER.debug('got: {}'.format(res))
+        self.users = sanitize_users(self.users)
         self.user_id = None
         notice_key = self._notice_key()
+        token = self.http_api_key
 
-        if not self._telegram_ok(res):
-            msg = f"Failed to authorize Telegram bot {self.iname}: {self._telegram_description(res)}"
+        me_res = self.session.get(f"bot{token}/getMe")
+        LOGGER.debug('getMe: {}'.format(me_res))
+        if not telegram_ok(me_res):
+            msg = (
+                f"Failed to authorize Telegram bot {self.iname}: "
+                f"{telegram_description(me_res)}"
+            )
             LOGGER.error(msg)
             self.controller.Notices[notice_key] = msg
-            return {'status': False, 'data': res.get('data') if isinstance(res, dict) else False}
+            return {
+                'status': False,
+                'error': ERROR_APP_AUTH,
+                'data': me_res.get('data') if isinstance(me_res, dict) else False,
+            }
+
+        res = self.session.get(f"bot{token}/getUpdates")
+        LOGGER.debug('getUpdates: {}'.format(res))
+        if not telegram_ok(res):
+            msg = (
+                f"Telegram {self.iname} getUpdates failed: "
+                f"{telegram_description(res)}"
+            )
+            LOGGER.error(msg)
+            self.controller.Notices[notice_key] = msg
+            return {
+                'status': False,
+                'error': ERROR_APP_AUTH,
+                'data': res.get('data') if isinstance(res, dict) else False,
+            }
 
         self.controller.Notices.delete(notice_key)
         self.controller.Notices.delete('telegramub')
 
-        if len(self.users) == 0:
-            discovered = self._chat_id_from_updates(res.get('data'))
+        if not self.users:
+            discovered = chat_id_from_updates(res.get('data'))
             if discovered is not None:
-                self.user_id = self._coerce_chat_id(discovered)
-                notice = (
-                    f"Telegram {self.iname}: using chat_id {self.user_id} from bot updates. "
-                    f"Add this userid to Configuration to persist."
-                )
-                LOGGER.warning(notice)
-                self.controller.Notices[notice_key] = notice
+                self.user_id = coerce_chat_id(discovered)
+                self.users = [str(self.user_id)]
+                self.controller.persist_telegram_users(self.iname, self.users)
             else:
-                self.controller.Notices[notice_key] = (
-                    f"Please configure {self.iname} user id, or send /start to your bot "
-                    f"so getUpdates can discover it."
-                )
-                return {'status': False, 'data': res.get('data')}
+                bot_link = bot_link_from_get_me(me_res.get('data'))
+                if bot_link:
+                    self.controller.Notices[notice_key] = (
+                        f"Telegram {self.iname}: send /start to your bot at "
+                        f'{external_link(bot_link, bot_link)}, '
+                        f"then restart the nodeserver."
+                    )
+                else:
+                    self.controller.Notices[notice_key] = (
+                        f"Telegram {self.iname}: send /start to your bot, then "
+                        f"restart the nodeserver."
+                    )
+                return {
+                    'status': False,
+                    'error': ERROR_USER_AUTH,
+                    'data': res.get('data'),
+                }
         else:
-            self.user_id = self._coerce_chat_id(self.users[0])
+            self.user_id = coerce_chat_id(self.users[0])
 
         if self.user_id is None:
             msg = f"Telegram {self.iname}: invalid user id in configuration"
             LOGGER.error(msg)
             self.controller.Notices[notice_key] = msg
-            return {'status': False, 'data': res.get('data')}
+            return {
+                'status': False,
+                'error': ERROR_USER_AUTH,
+                'data': res.get('data'),
+            }
 
         self.do_send({'text': f'{self.name} has started up'})
         return {'status': True, 'data': res.get('data')}
@@ -252,6 +257,16 @@ class TelegramUB(Node):
         LOGGER.info('Set ST to {}'.format(val))
         self.setDriver('ST', val)
 
+    def set_ready(self, val):
+        LOGGER.info('Set Ready to {}'.format(val))
+        if val is True:
+            val = 1
+        elif val is False or val is None:
+            val = 0
+        else:
+            val = int(val)
+        self.setDriver('GV1', val)
+
     def set_error(self,val):
         LOGGER.info(val)
         if val is False:
@@ -291,6 +306,7 @@ class TelegramUB(Node):
         chat_id = self._resolve_user_id()
         if chat_id is None:
             LOGGER.error(f"user not defined for {self.iname}")
+            self.set_ready(False)
             self.set_error(ERROR_USER_AUTH)
             return False
         self.user_id = chat_id
@@ -327,11 +343,12 @@ class TelegramUB(Node):
                 content="urlencode",
             )
             LOGGER.debug('res={}'.format(res))
-            if self._telegram_ok(res):
+            if telegram_ok(res):
                 sent = True
                 self.set_error(ERROR_NONE)
+                self.set_ready(True)
             else:
-                LOGGER.error('From Telegram sendMessage: {}'.format(self._telegram_description(res)))
+                LOGGER.error('From Telegram sendMessage: {}'.format(telegram_description(res)))
                 data = res.get('data') if isinstance(res, dict) else None
                 if isinstance(data, dict) and data.get('error_code') in (400, 401, 403, 404):
                     retry = False
@@ -400,6 +417,7 @@ class TelegramUB(Node):
     drivers = [
         {'driver': 'ST',  'value': 0, 'uom': 2, 'name': 'Last Status'},
         {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
+        {'driver': 'GV1', 'value': 0, 'uom': 2,  'name': 'Ready'},
     ]
     commands = {
                 #'DON': setOn, 'DOF': setOff

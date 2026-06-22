@@ -53,7 +53,18 @@ These send messages to the UD Portal which are received by the UD Mobile app.  Y
 
 ## Telegram
 
-TODO: More info about telegram
+1. Open <a href="https://telegram.me/botfather" target="_blank">BotFather</a> and log in to Telegram if prompted
+2. Click **Start** at the bottom of the chat
+3. Send `/newbot` and follow BotFather's prompts (bot name and username)
+4. Copy the HTTP API token BotFather returns and paste it into a **Telegram User Bot Service Node** row
+
+- **HTTP API Key:** BotFather token (required)
+- **Users:** optional; leave empty for auto-discovery after you send `/start` to your bot
+- After Save, PG3 shows a notice with your bot link if chat id is not known yet
+- After `/start`, **Restart** the nodeserver to auto-fill **Users** (PG3x has no Discover button, and Save Changes only works when config changed)
+- The Telegram service node **Ready** status (`GV1`) is true when token and chat id are valid
+
+Optional fallback: paste your numeric Telegram user id from <a href="https://t.me/RawDataBot" target="_blank">@RawDataBot</a> into **Users**.
 
 ## Notify Nodes
 

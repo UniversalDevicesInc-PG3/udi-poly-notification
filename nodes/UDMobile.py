@@ -13,6 +13,7 @@ from copy import deepcopy
 from node_funcs import make_file_dir,is_int,SendQueue
 from constants import SOUNDS_LIST
 from datetime import datetime
+from dev_settings import custom_data_log_label
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
@@ -71,7 +72,7 @@ class UDMobile(Node):
         LOGGER.info('')
         self.groups_list = self.controller.get_data(GROUP_LIST,[])
         self.sounds_list  = SOUNDS_LIST
-        LOGGER.debug("controller.data={}".format(self.controller.Data))
+        LOGGER.debug('controller.%s', custom_data_log_label(dict(self.controller.Data)))
         LOGGER.info("{}={}".format(GROUP_LIST,self.groups_list))
         LOGGER.debug('Authorizing UDMobile api {}'.format(self.api_key))
         validation = self.validate()

@@ -101,4 +101,5 @@ zip_exclude_free_full.lst
 .installed
 .local/
 mysettings.txt
+dev_edition.txt
 udi_interface.lnk

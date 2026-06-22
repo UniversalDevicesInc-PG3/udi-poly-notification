@@ -1,0 +1,6 @@
+# Copy to mysettings.txt (gitignored; excluded from release zips).
+#
+# Local dev edition override: copy dev_edition.example.txt to dev_edition.txt
+# and set the edition on the first non-comment line (local dev install only).
+#
+# Other sections (Pushover, Telegram, etc.) follow the existing mysettings layout.

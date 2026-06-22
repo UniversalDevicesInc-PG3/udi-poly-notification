@@ -7,6 +7,24 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.24] - 2026-06-20
+
+### Added
+
+- **Telegram auto-discovery:** Optional **Users** field — leave empty and send `/start` to your bot; chat id is discovered from `getMe`/`getUpdates` on save or nodeserver restart. PG3 notices include a link to your bot when chat id is not yet known.
+- **Telegram DISCOVER:** Controller handles `poly.DISCOVER` to re-run chat-id discovery without editing configuration (PG3 only; PG3x has no Discover button).
+- **Telegram Ready status (`GV1`):** Service node reports Ready when token and chat id are valid; exposed in nodeDef and NLS.
+- **`telegram_funcs.py`:** Shared Bot API helpers (response parsing, chat-id coercion, placeholder sanitization, bot link formatting).
+
+### Changed
+
+- **Telegram setup docs:** `README.md` and `POLYGLOT_CONFIG.md` updated for optional Users, auto-discovery flow, Ready/ERR monitoring, and restart-after-`/start` guidance.
+
+### Fixed
+
+- **Pushover validate (ERR=2 vs ERR=3):** Treat Pushover `data.status == 1` as success (not HTTP status alone), parse `errors[]` from the API body, map user/account failures (e.g. no active devices) to `ERR=3` instead of misleading `ERR=2`, and surface Pushover’s error text via `init_error_message`. Validate and `messages.json` POSTs use urlencoded form bodies.
+- **Profile init notices:** When a service node fails init, the `profile_init_*` notice includes the node’s `init_error_message` when available instead of always suggesting bad API keys.
+
 ## [3.6.23] - 2026-06-20
 
 ### Fixed

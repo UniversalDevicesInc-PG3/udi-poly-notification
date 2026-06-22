@@ -33,6 +33,7 @@ CMD-tgub-SEND_SYS_CUSTOM-NAME = Send Sys Custom
 
 ST-tgub-ST-NAME = Last Status
 ST-tgub-ERR-NAME = Error
+ST-tgub-GV1-NAME = Ready
 
 # Pushover Node
 ND-pushover-NAME = Pushover Default Node

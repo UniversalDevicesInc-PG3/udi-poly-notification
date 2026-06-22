@@ -6,6 +6,7 @@
     <sts>
       <st id="ST"  editor="bool" />
       <st id="ERR" editor="PO_ERR" />
+      <st id="GV1" editor="bool" />
     </sts>
     <cmds>
       <sends />

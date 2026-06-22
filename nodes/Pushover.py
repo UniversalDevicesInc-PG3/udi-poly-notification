@@ -70,10 +70,15 @@ class Pushover(Node):
         LOGGER.info("devices_list={}".format(self.devices_list))
         LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
-        if vstat['status'] is False:
-            self.authorized = False
+        self.init_error_message = None
+        if self._validate_ok(vstat):
+            self.authorized = True
         else:
-            self.authorized = True if vstat['status'] == 1 else False
+            self.authorized = False
+            errors = self._validate_errors(vstat)
+            if errors:
+                self.init_error_message = '; '.join(errors)
+                LOGGER.error('Pushover validate failed: %s', self.init_error_message)
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             LOGGER.info("got devices={}".format(vstat['data']['devices']))
@@ -84,15 +89,40 @@ class Pushover(Node):
             self.set_error(ERROR_NONE)
             self._init_st = True
         else:
-            self.set_error(ERROR_APP_AUTH)
+            self.set_error(self._validate_error_code(vstat))
             self._init_st = False
 
+    def _validate_errors(self, res):
+        if not isinstance(res, dict):
+            return []
+        data = res.get('data')
+        if isinstance(data, dict) and data.get('errors'):
+            return data['errors']
+        if res.get('errorMessage'):
+            return [res['errorMessage']]
+        return []
+
+    def _validate_ok(self, res):
+        data = res.get('data') if isinstance(res, dict) else None
+        return isinstance(data, dict) and data.get('status') == 1
+
+    def _validate_error_code(self, res):
+        errors = ' '.join(self._validate_errors(res)).lower()
+        if 'application token' in errors or 'invalid token' in errors:
+            return ERROR_APP_AUTH
+        if errors:
+            return ERROR_USER_AUTH
+        return ERROR_APP_AUTH
+
     def validate(self):
-        res = self.session.post("1/users/validate.json",
+        res = self.session.post(
+            "1/users/validate.json",
             {
                 'user':  self.user_key,
                 'token': self.app_key,
-            })
+            },
+            content="urlencode",
+        )
         LOGGER.debug('got: {}'.format(res))
         return res
 
@@ -636,11 +666,6 @@ class Pushover(Node):
                 params['monospace'] = 1
         params['user'] = self.user_key
         params['token'] = self.app_key
-        #timestamp=None
-        #url=None
-        #url_title=None
-        #callback=None
-        #sound=None
         #
         # Send the message in a thread with retries
         #
@@ -661,7 +686,7 @@ class Pushover(Node):
         while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
             cnt += 1
             LOGGER.info('try #{}'.format(cnt))
-            res = self.session.post("1/messages.json",params)
+            res = self.session.post("1/messages.json", params, content="urlencode")
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
                 self.set_error(ERROR_NONE)

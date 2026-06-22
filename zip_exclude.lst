@@ -15,6 +15,7 @@ profile/*/telegram.xml
 profile/*/isyp.xml
 pics/*
 mysettings.txt
+dev_edition.txt
 zip_exclude*
 *.cert
 *.pid

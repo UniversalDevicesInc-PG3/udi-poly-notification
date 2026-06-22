@@ -1,0 +1,3 @@
+# Local dev only (devMode nodeserver). Copy to dev_edition.txt and restart the nodeserver.
+# Allowed values: Free, Standard, Professional, Production, Test
+Standard

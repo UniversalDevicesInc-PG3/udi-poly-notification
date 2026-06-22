@@ -62,34 +62,30 @@ Describe out to setup Pushover here...
 
 ### Telegram
 
-There is a very simple method to setup your own Telegram Bot.  This is initially a semi-manual process to create your own bot.  I will be researching and testing better ways to do this in the future.
+There is a simple method to setup your own Telegram Bot. PG3 can auto-discover your chat id after you send `/start` to the bot — you no longer need @RawDataBot unless auto-discovery fails.
 
-First create your User Bot
+First create your bot in BotFather:
 1. Install Telegram on your computer or phone
-    1. Will need to copy/paste a long key to PG3
-1. Go to https://telegram.me/botfather
+1. Go to <a href="https://telegram.me/botfather" target="_ blank">https://telegram.me/botfather</a>
 1. Command: /newbot
-1. Answer questions:
-    1. Bot Name: Any name you want
-    1. User Name: Any username you want. 
-1. botfather prints a line saying: Use this token to access the HTTP API:
-    1. Copy and save that, you will need it for the configuring the nodeserver 
-    1. Also save a permenant record of it somewhere, along with the link in the next step
-1. You will also be given a link to your bot like t.me/{yourBotUsername}, click on it.
-1. The "Start" will be shown, click that
-1. Go to: [@RawDataBot](https://t.me/RawDataBot) on your phone
-    1. Click Start
-    1. This will give your user id listed under message -> from -> id
-    1. Copy that to use in Nodeserver configuration
+1. Answer the bot name and username questions
+1. Copy the **HTTP API token** BotFather prints (`Use this token to access the HTTP API:`)
 
-The tell the Notification Nodserver about it.
-1. PG3 UI
-1. Go to Notification Nodeserver Configuration
-1. Click "Add Telegram User Bot Service Node"
-1. Set the name
-1. Paste the HTTP API Key from above
-1. Paste your userid into the users (currently only one user is supported)
-1. Click Save Changes
+Configure the Notification nodeserver:
+1. PG3 UI → Notification Nodeserver **Configuration**
+1. Click **Add Telegram User Bot Service Node**
+1. Set the **Name** (8 characters or less)
+1. Paste the BotFather token into **HTTP API Key**
+1. Leave **Users** empty (recommended) — chat id is auto-discovered
+1. Click **Save Changes**
+1. Open the bot link shown in the PG3 notice (or from BotFather) and tap **Start**
+1. **Restart** the nodeserver (PG3x has no Discover button, and Save Changes only works when config changed)
+
+When discovery succeeds, the user chat id is saved automatically and the Telegram service node **Ready** driver (`GV1`) becomes true.
+
+Optional fallback: if auto-discovery does not work, get your numeric user id from <a href="https://t.me/RawDataBot" target="_ blank">@RawDataBot</a> and paste it into **Users**.
+
+Monitor in ISY programs with `${sys.node...tu_...GV1}` (Ready) and `${sys.node...tu_...ERR}` (Error).
 
 
 ## Nodes

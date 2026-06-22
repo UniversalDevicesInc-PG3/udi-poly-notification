@@ -15,6 +15,25 @@ import fnmatch
 import os
 import markdown2
 from distutils.version import StrictVersion
+from telegram_funcs import (
+    sanitize_telegram_row,
+    sanitize_users,
+    telegram_ok,
+    telegram_description,
+    chat_id_from_updates,
+    coerce_chat_id,
+    bot_link_from_get_me,
+    external_link,
+)
+from dev_settings import (
+    resolve_edition,
+    DevSafeCustom,
+    custom_data_log_label,
+    dev_edition_override_active,
+    licensed_edition,
+)
+
+_DEV_EDITION_NOTICE_KEYS = ('dev_edition_override', 'dev_edition_mismatch')
 
 PROFILE_NODE_WAIT_MAX = 180
 _SLOT_PREFIX_RE = re.compile(r'^n\d+_(.+)$')
@@ -35,7 +54,7 @@ class Controller(Node):
         #  'logLevel': 'DEBUG', 'token': 'vuXtqI5ILW**A&Zf', 'mqttHost': 'localhost', 'mqttPort': 1888, 'secure': 1, 
         #  'pg3Version': '3.1.21', 'isyVersion': '5.6.2', 'edition': 'Free'}
         LOGGER.warning(f'init={self.poly.pg3init}')
-        self.edition = self.poly.pg3init['edition']
+        self.edition = self.poly.pg3init.get('edition', 'Free')
         self.has_sys_editor_full = True if (
             StrictVersion(self.poly.pg3init['isyVersion']) >= StrictVersion('5.6.2')
             # All versions since isPG3x was added to PG3 and PG3x works with sys_notify_full
@@ -71,7 +90,7 @@ class Controller(Node):
         self.driver = {}
         self.Notices         = Custom(poly, 'notices')
         self.Params          = Custom(poly, 'customparams')
-        self.Data            = Custom(poly, 'customdata')
+        self.Data            = DevSafeCustom(poly, 'customdata')
         self.TypedParams     = Custom(poly, 'customtypedparams')
         self.TypedData       = Custom(poly, 'customtypeddata')
         poly.subscribe(poly.START,                  self.handler_start, address) 
@@ -83,12 +102,16 @@ class Controller(Node):
         poly.subscribe(poly.CUSTOMTYPEDDATA,        self.handler_typed_data)
         poly.subscribe(poly.LOGLEVEL,               self.handler_log_level)
         poly.subscribe(poly.STOP,                   self.handler_stop)
+        poly.subscribe(poly.DISCOVER,               self.handler_discover_telegram)
         self.handler_start_st      = None
         self.handler_params_st     = None
         self.handler_data_st       = None
         self.handler_typed_data_st = None
         self.handler_config_st     = None
         self.write_profile_lock = Lock() # Lock for syncronizing acress threads
+        self._telegram_typed_save_in_progress = False
+        self._pending_typed_data = None
+        self.telegramub_session = None
         self.init_typed()
         poly.ready()
         self.Notices.clear()
@@ -212,6 +235,8 @@ class Controller(Node):
         config = self.poly.getConfig()
         if config:
             self.link_config_node_aliases(config)
+        self._update_edition()
+        self._flush_pending_typed_data()
         LOGGER.debug("exit")
 
     def add_node_done(self):
@@ -441,8 +466,12 @@ class Controller(Node):
                 err_code = None
         msg = (
             f'{node.name} failed to initialize and was skipped in this profile rebuild. '
-            f'Fix its configuration (API keys/credentials) and save again.'
         )
+        hint = getattr(node, 'init_error_message', None)
+        if hint:
+            msg += hint
+        else:
+            msg += 'Fix its configuration (API keys/credentials) and save again.'
         if err_code is not None:
             try:
                 if int(err_code) != 0:
@@ -493,6 +522,174 @@ class Controller(Node):
 
     def get_service_node_address_telegramub(self,id):
         return get_valid_node_address('tu_'+id)
+
+    def _typed_data_dict(self):
+        out = {}
+        try:
+            for k in self.TypedData.keys():
+                out[k] = self.TypedData[k]
+        except Exception:
+            pass
+        return out
+
+    def _telegram_notice_key(self, name):
+        return f'telegramub_{name}'
+
+    def _ensure_telegram_session(self):
+        if self.telegramub_session is None:
+            self.telegramub_session = polyglotSession(
+                self, "https://api.telegram.org", LOGGER
+            )
+        return self.telegramub_session
+
+    def persist_telegram_users(self, name, users):
+        td = self._typed_data_dict()
+        rows = td.get('telegramub')
+        if not isinstance(rows, list):
+            return False
+        clean_users = sanitize_users(users)
+        new_rows = []
+        updated = False
+        for row in rows:
+            if not isinstance(row, dict):
+                new_rows.append(row)
+                continue
+            row = dict(row)
+            if str(row.get('name', '')).strip() == name:
+                if row.get('users') != clean_users:
+                    row['users'] = clean_users
+                    updated = True
+            new_rows.append(row)
+        if not updated:
+            return False
+        td['telegramub'] = new_rows
+        self._telegram_typed_save_in_progress = True
+        self.TypedData.load(td, save=True)
+        return True
+
+    def _sync_telegram_node_users(self, name, users):
+        clean_users = sanitize_users(users)
+        for item in self.service_nodes:
+            node = item.get('node')
+            if item.get('name') != name:
+                continue
+            if hasattr(node, 'users'):
+                node.users = list(clean_users)
+                if clean_users:
+                    node.user_id = coerce_chat_id(clean_users[0])
+                if hasattr(node, 'set_ready'):
+                    node.set_ready(True)
+                if hasattr(node, 'set_error'):
+                    node.set_error(0)
+                break
+
+    def _discover_telegram_chat_id(self, row):
+        session = self._ensure_telegram_session()
+        token = row['http_api_key']
+        name = row['name']
+        notice_key = self._telegram_notice_key(name)
+
+        me_res = session.get(f"bot{token}/getMe")
+        if not telegram_ok(me_res):
+            msg = (
+                f"Telegram {name}: invalid bot token: "
+                f"{telegram_description(me_res)}"
+            )
+            LOGGER.error(msg)
+            self.Notices[notice_key] = msg
+            return None
+
+        updates_res = session.get(f"bot{token}/getUpdates")
+        if not telegram_ok(updates_res):
+            msg = (
+                f"Telegram {name}: getUpdates failed: "
+                f"{telegram_description(updates_res)}"
+            )
+            LOGGER.error(msg)
+            self.Notices[notice_key] = msg
+            return None
+
+        chat_id = chat_id_from_updates(updates_res.get('data'))
+        if chat_id is not None:
+            self.Notices.delete(notice_key)
+            return coerce_chat_id(chat_id)
+
+        bot_link = bot_link_from_get_me(me_res.get('data'))
+        if bot_link:
+            self.Notices[notice_key] = (
+                f"Telegram {name}: send /start to your bot at "
+                f'{external_link(bot_link, bot_link)}, '
+                f"then restart the nodeserver."
+            )
+        else:
+            self.Notices[notice_key] = (
+                f"Telegram {name}: send /start to your bot, then restart "
+                f"the nodeserver."
+            )
+        return None
+
+    def _auto_discover_telegram(self, telegramub):
+        if getattr(self, '_telegram_typed_save_in_progress', False):
+            return False
+        persisted = False
+        for row in telegramub:
+            if not isinstance(row, dict):
+                continue
+            row['users'] = sanitize_users(row.get('users', []))
+            if row['users']:
+                self.Notices.delete(self._telegram_notice_key(row['name']))
+                continue
+            chat_id = self._discover_telegram_chat_id(row)
+            if chat_id is None:
+                continue
+            if self.persist_telegram_users(row['name'], [str(chat_id)]):
+                row['users'] = [str(chat_id)]
+                self.Notices[f"telegramub_ok_{row['name']}"] = (
+                    f"Telegram {row['name']}: discovered and saved chat_id {chat_id}."
+                )
+                persisted = True
+        return persisted
+
+    def handler_discover_telegram(self, _data=None):
+        LOGGER.info('Telegram DISCOVER')
+        td = self._typed_data_dict()
+        rows = td.get('telegramub') or []
+        if not rows:
+            self.Notices['telegram_discover'] = 'No Telegram service nodes configured.'
+            return
+
+        ready = 0
+        waiting = []
+        for row in rows:
+            cleaned = sanitize_telegram_row(row)
+            if cleaned is None:
+                continue
+            if cleaned.get('users'):
+                ready += 1
+                continue
+            chat_id = self._discover_telegram_chat_id(cleaned)
+            if chat_id is None:
+                waiting.append(cleaned['name'])
+                continue
+            if self.persist_telegram_users(cleaned['name'], [str(chat_id)]):
+                self._sync_telegram_node_users(cleaned['name'], [str(chat_id)])
+                ready += 1
+                self.Notices[f"telegramub_ok_{cleaned['name']}"] = (
+                    f"Telegram {cleaned['name']}: discovered and saved chat_id {chat_id}."
+                )
+
+        if waiting:
+            self.Notices['telegram_discover'] = (
+                f"Still waiting for /start on: {', '.join(waiting)}."
+            )
+        elif ready:
+            self.Notices['telegram_discover'] = (
+                f"Telegram discover: {ready} node(s) ready."
+            )
+        else:
+            self.Notices['telegram_discover'] = (
+                'Telegram discover: no valid bot tokens configured.'
+            )
 
     def init_typed(self):
         LOGGER.debug('enter')
@@ -627,7 +824,7 @@ class Controller(Node):
                 {
                     'name': 'telegramub',
                     'title': 'Telegram User Bot Service Node',
-                    'desc': 'Config for https://github.com/greghesp/assistant-relay',
+                    'desc': 'Telegram Bot API notifications. Paste BotFather token; user chat id is auto-discovered after /start.',
                     'isList': True,
                     'params': [
                         {
@@ -637,16 +834,15 @@ class Controller(Node):
                         },
                         {
                             'name': 'http_api_key',
-                            'title': 'HTTP API Key',
+                            'title': 'HTTP API Key (BotFather token)',
                             'defaultValue': 'your_http_api_key',
                             'isRequired': True
                         },
                         {
                             'name': 'users',
-                            'title': 'Users',
-                            'isRequired': True,
+                            'title': 'User chat id (optional — auto-discovered after /start)',
+                            'isRequired': False,
                             'isList': True,
-                            'defaultValue': ['someuserid'],
                         },
                     ]
                 }
@@ -656,12 +852,66 @@ class Controller(Node):
         LOGGER.debug('exit')
 
     def handler_data(self,data):
-        LOGGER.debug(f'Enter data={data}')
+        LOGGER.debug('Enter %s', custom_data_log_label(data))
         if data is None:
             self.handler_data_st = False
         else:
             self.Data.load(data)
             self.handler_data_st = True
+        self._flush_pending_typed_data()
+
+    def _params_dict(self):
+        out = {}
+        try:
+            for k in self.Params.keys():
+                out[k] = self.Params[k]
+        except Exception:
+            pass
+        return out or None
+
+    def _update_edition(self, params=None):
+        self.edition = resolve_edition(self.poly, LOGGER)
+        self._sync_dev_edition_notice()
+
+    def _clear_service_notices(self):
+        preserved = {
+            key: self.Notices[key]
+            for key in _DEV_EDITION_NOTICE_KEYS
+            if key in self.Notices
+        }
+        self.Notices.clear()
+        for key, message in preserved.items():
+            self.Notices[key] = message
+
+    def _sync_dev_edition_notice(self):
+        override_key = 'dev_edition_override'
+        mismatch_key = 'dev_edition_mismatch'
+        licensed = licensed_edition(self.poly)
+
+        if dev_edition_override_active(self.poly, self.edition):
+            notice = (
+                f'Edition override active (local dev only): licensed {licensed}, '
+                f'running as {self.edition} via dev_edition.txt.'
+            )
+            self.Notices[override_key] = notice
+            self.Notices.delete(mismatch_key)
+            LOGGER.warning(notice)
+        else:
+            self.Notices.delete(override_key)
+            self.Notices.delete(mismatch_key)
+
+    def _flush_pending_typed_data(self):
+        pending = self._pending_typed_data
+        if pending is None:
+            return
+        if (
+            self.handler_params_st is None
+            or self.handler_data_st is None
+            or self.handler_config_st is None
+        ):
+            return
+        self._pending_typed_data = None
+        self.handler_typed_data(pending)
 
     def get_data(self,param,default):
         if param in self.Data:
@@ -693,8 +943,9 @@ class Controller(Node):
             self.Notices['rest'] = msg;
 
     def handler_params(self, data):
-        LOGGER.debug("Enter data={}".format(data))
+        LOGGER.debug('Enter %s', custom_data_log_label(data))
         self.Params.load(data)
+        self._update_edition(params=data)
         if not 'rest_port' in data:
             self.Params['rest_port'] = '8199'
             return
@@ -734,6 +985,7 @@ class Controller(Node):
                 LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         self.handler_params_st = st
+        self._flush_pending_typed_data()
         # Dont' start on first run cause we need handler_typed_data to be completed
         # add_node_done will do it on first start 
         if not self.first_run:
@@ -743,14 +995,35 @@ class Controller(Node):
 
     def handler_typed_data(self, data):
         LOGGER.debug("Enter data={}".format(data))
+        completing_persist = getattr(self, '_telegram_typed_save_in_progress', False)
+        if completing_persist:
+            self._telegram_typed_save_in_progress = False
+
         self.TypedData.load(data)
         if data is None:
             self.handler_typed_data_st = False
             return False
 
-        # If we have already been run on startup, clear any notices.
+        if (
+            self.handler_params_st is None
+            or self.handler_data_st is None
+            or self.handler_config_st is None
+        ):
+            self._pending_typed_data = data
+            LOGGER.warning(
+                'Deferring typed_data until config loaded '
+                '(params=%s data=%s config=%s)',
+                self.handler_params_st,
+                self.handler_data_st,
+                self.handler_config_st,
+            )
+            return False
+
+        self._update_edition()
+
+        # If we have already been run on startup, clear service notices.
         if self.handler_config_st is not None:
-            self.Notices.clear()
+            self._clear_service_notices()
 
         el = list()
 
@@ -862,6 +1135,22 @@ class Controller(Node):
             for address in tnames:
                 if len(tnames[address]) > 1:
                     err_list.append("Duplicate names for {} items {} from {}".format(len(tnames[address]),address,",".join(tnames[address])))
+            sanitized_telegram = []
+            for pd in telegramub:
+                cleaned = sanitize_telegram_row(pd)
+                if cleaned is None:
+                    label = pd.get('name', pd) if isinstance(pd, dict) else pd
+                    err_list.append(
+                        f"Telegram {label}: missing/invalid name or bot token. "
+                        f"See README Telegram section for BotFather setup."
+                    )
+                    continue
+                pd.update(cleaned)
+                sanitized_telegram.append(pd)
+            if sanitized_telegram:
+                telegramub = sanitized_telegram
+            else:
+                telegramub = None
         #
         # Check the notify nodes are all good
         #
@@ -920,7 +1209,12 @@ class Controller(Node):
                 f'There are {len(err_list)} typed data errors. Delete invalid nodes or fix names/ids, then restart.'
             )
             self.handler_typed_data_st = False
+            self._sync_dev_edition_notice()
             return
+
+        if telegramub and not completing_persist:
+            if self._auto_discover_telegram(telegramub):
+                return
 
         if pushover is not None:
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
@@ -972,6 +1266,7 @@ class Controller(Node):
                 self.add_node(Notify(self, self.address, self.get_message_node_address(node['id']), 'Notify '+get_valid_node_name(node['name']), node))
 
         self.handler_typed_data_st = True
+        self._sync_dev_edition_notice()
 
         # When data changes build the profile, except when first starting up since
         # that will be done by the config handler
