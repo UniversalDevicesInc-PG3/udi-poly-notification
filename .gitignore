@@ -92,6 +92,9 @@ profile/*/custom.xml
 profile/*/homeisy.xml
 profile/nodedef
 profile/editor/udmobile.xml
+profile/editor/whatsapp.xml
+profile/editor/po.xml
+*.lock
 zip_exclude_free_full.lst
 
 # Local Polyglot / runtime artifacts (do not commit)
