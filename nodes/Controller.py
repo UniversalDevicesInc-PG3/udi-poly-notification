@@ -501,17 +501,38 @@ class Controller(Node):
     def get_current_message(self):
         return(self.get_message_by_id(self.getDriver('GV2')))
 
-    def get_message_by_id(self,id):
-        LOGGER.info(f'id={id}')
+    def _empty_message(self):
+        return {'id': 0, 'title': '', 'message': ''}
+
+    def get_message_by_id(self, id):
+        LOGGER.debug('id=%s', id)
         if id is None:
             id = 0
         else:
             id = int(id)
+        if id == 0:
+            return self._empty_message()
+        if not self.messages:
+            LOGGER.warning('id=%s not found: no messages configured', id)
+            return {
+                'id': id,
+                'title': 'Unknown',
+                'message': 'Undefined message {}'.format(id),
+            }
         for msg in self.messages:
-            if int(msg['id']) == id:
+            if not isinstance(msg, dict):
+                continue
+            mid = msg.get('id')
+            if mid is None:
+                continue
+            if int(mid) == id:
                 return msg
-        LOGGER.error('id={} not found in: {}'.format(id,self.messages))
-        return { id: 0, 'title': 'Unknown', 'message': 'Undefined message {}'.format(id)}
+        LOGGER.warning('id=%s not found in configured messages', id)
+        return {
+            'id': id,
+            'title': 'Unknown',
+            'message': 'Undefined message {}'.format(id),
+        }
 
     def get_typed_name(self,name):
         typedConfig = self.polyConfig.get('typedCustomData')
@@ -1072,16 +1093,40 @@ class Controller(Node):
         #We are not getting this returned in data??? Report to Bob.
         #self.rest_port = data.get('rest_port',None)
 
-        self.messages = data.get('messages',el)
+        #
+        # List of errors to print at the end in a Notice
+        err_list = list()
+
+        self.messages = data.get('messages', el)
         LOGGER.info('messages={}'.format(self.messages))
+        validated_messages = []
+        for msg in self.messages:
+            if not isinstance(msg, dict):
+                err_list.append(
+                    f"Invalid message entry {msg!r}. Delete or fix id/title/message."
+                )
+                continue
+            mid = msg.get('id')
+            if mid is None or str(mid).strip() == '':
+                err_list.append(
+                    f"Invalid message entry {msg}. Missing/empty id."
+                )
+                continue
+            try:
+                int(mid)
+            except (TypeError, ValueError):
+                err_list.append(
+                    f"Invalid message entry {msg}. id must be numeric."
+                )
+                continue
+            validated_messages.append(msg)
+        self.messages = validated_messages
         if len(self.messages) == 0:
             LOGGER.info('No messages')
 
         #
         # List of all service node names
         snames   = { 'udmobile': { 'type': 'udmobile', 'name': 'udmobile'}}
-        # List of errors to print at the end in a Notice        
-        err_list = list()
 
         def _typed_node_name(node_type, node):
             if not isinstance(node, dict):

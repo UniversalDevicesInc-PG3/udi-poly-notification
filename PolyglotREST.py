@@ -415,23 +415,14 @@ class polyglotSession():
             self.logger.debug(' All good!')
             st = True
         elif response.status_code == 400:
-            self.logger.error("Bad request: %s: text: %s" % (response.url,response.text) )
             error_message = "Bad request"
         elif response.status_code == 404:
-            self.logger.error("Not Found: %s: text: %s" % (response.url,response.text) )
             error_message = "Not found"
         elif response.status_code == 401:
-            # Authentication error
-            self.logger.error("Unauthorized: %s: text: %s" % (response.url,response.text) )
             error_message = "Unauthorized"
         elif response.status_code == 403:
-            # Forbidden, ISY Portal returns this for bad api key
-            self.logger.error("Forbidden: %s: text: %s" % (response.url,response.text) )
             error_message = "Forbidden"
         elif response.status_code == 429:
-            self.logger.warning(
-                "Rate limited: %s: text: %s" % (response.url, response.text)
-            )
             error_message = "Rate limited"
         elif response.status_code == 500:
             self.logger.error("Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
@@ -442,7 +433,6 @@ class polyglotSession():
             error_message = "Timeout error"
             retryable = True
         else:
-            self.logger.error("Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
             error_message = "Unknown response"
             retryable = response.status_code >= 500
         try:
@@ -473,6 +463,26 @@ class polyglotSession():
                     )
             if not error_message:
                 error_message = response.text if response.text else f'HTTP {response.status_code}'
+            if response.status_code >= 500:
+                self.logger.error(
+                    'HTTP %s %s: %s',
+                    response.status_code,
+                    response.url,
+                    error_message,
+                )
+            elif response.status_code == 429:
+                self.logger.warning(
+                    'Rate limited %s: %s',
+                    response.url,
+                    error_message,
+                )
+            else:
+                self.logger.warning(
+                    'HTTP %s %s: %s',
+                    response.status_code,
+                    response.url,
+                    error_message,
+                )
         return {
             'status': st,
             'status_code': response.status_code,

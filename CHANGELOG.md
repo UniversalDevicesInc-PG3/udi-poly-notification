@@ -7,6 +7,16 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.27] - 2026-06-21
+
+### Fixed
+
+- **Pushover response crash (Fixes #44):** `post()` and `get()` use safe `_pushover_ok()` checks instead of assuming `res['data']` is always a dict with `status`.
+- **Message id=0 (Fixes #45):** `get_message_by_id()` treats `id=0` as no message selected without ERROR logs; Pushover `SEND` / `SEND_MY_MESSAGE` reject empty messages with `ERR=4`.
+- **Message validation (Fixes #53):** `handler_typed_data` validates `messages[]` entries; `get_message_by_id()` skips malformed rows safely.
+- **Pushover error UX (Fixes #26):** `PolyglotREST` logs parsed API errors for 4xx at WARNING; Pushover send failures set PG3 notices with Pushover error text (not only quota/rate).
+- **WhatsApp startup validation:** CallMeBot rate limit (HTTP 503) during startup no longer blocks profile rebuild or marks the node unauthorized; the startup test message is queued and retried after the existing cooldown.
+
 ## [3.6.26] - 2026-06-21
 
 ### Added

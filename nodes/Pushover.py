@@ -93,7 +93,7 @@ class Pushover(Node):
             self._init_st = True
         else:
             self.set_error(self._validate_error_code(vstat))
-            self._update_limit_notice(vstat)
+            self._update_send_notice(vstat)
             self._init_st = False
 
     def _validate_errors(self, res):
@@ -109,6 +109,9 @@ class Pushover(Node):
     def _validate_ok(self, res):
         data = res.get('data') if isinstance(res, dict) else None
         return isinstance(data, dict) and data.get('status') == 1
+
+    def _pushover_ok(self, res):
+        return self._validate_ok(res)
 
     def _pushover_error_text(self, res):
         if not isinstance(res, dict):
@@ -160,25 +163,36 @@ class Pushover(Node):
             return ERROR_RATE_LIMIT
         return ERROR_MESSAGE_SEND
 
-    def _send_notice_key(self):
-        return f'pushover_limit_{self.iname}'
-
-    def _update_limit_notice(self, res):
-        key = self._send_notice_key()
+    def _send_error_code(self, res):
         if self._is_limit_error(res):
-            detail = self._pushover_error_text(res)
-            if not detail:
-                if self._is_quota_exceeded(res):
-                    detail = 'Pushover monthly message quota exceeded'
-                else:
-                    detail = 'Pushover rate limit exceeded'
+            return self._limit_error_code(res)
+        errors = ' '.join(self._validate_errors(res)).lower()
+        if 'application token' in errors or 'invalid token' in errors:
+            return ERROR_APP_AUTH
+        if errors:
+            return ERROR_USER_AUTH
+        return ERROR_MESSAGE_SEND
+
+    def _send_notice_key(self):
+        return f'pushover_send_{self.iname}'
+
+    def _update_send_notice(self, res):
+        key = self._send_notice_key()
+        detail = self._pushover_error_text(res)
+        if detail:
+            self.controller.Notices[key] = f'Pushover {self.iname}: {detail}'
+        elif self._is_limit_error(res):
+            if self._is_quota_exceeded(res):
+                detail = 'Pushover monthly message quota exceeded'
+            else:
+                detail = 'Pushover rate limit exceeded'
             self.controller.Notices[key] = f'Pushover {self.iname}: {detail}'
         else:
             self.controller.Notices.delete(key)
 
     def _handle_send_failure(self, res):
-        self.set_error(self._limit_error_code(res))
-        self._update_limit_notice(res)
+        self.set_error(self._send_error_code(res))
+        self._update_send_notice(res)
 
     def _validate_error_code(self, res):
         if self._is_limit_error(res):
@@ -653,10 +667,15 @@ class Pushover(Node):
 
     def cmd_send_message(self,command):
         LOGGER.info('')
-        # Default create message params
         md = self.controller.get_current_message()
-        # md will contain title and message
-        return self.do_send({ 'title': md['title'], 'message': md['message']})
+        if not str(md.get('message', '')).strip():
+            LOGGER.error(
+                'Pushover {}: no controller message selected (GV2=0)'
+                .format(self.iname)
+            )
+            self.set_error(ERROR_MESSAGE_CREATE)
+            return False
+        return self.do_send({'title': md['title'], 'message': md['message']})
 
     def cmd_send_sys_short(self,command):
         LOGGER.info('')
@@ -664,10 +683,16 @@ class Pushover(Node):
 
     def cmd_send_my_message(self,command):
         LOGGER.info('')
-        # Default create message params
-        md = self.controller.get_message_by_id(self.get_message())
-        # md will contain title and message
-        return self.do_send({ 'title': md['title'], 'message': md['message']})
+        msg_id = self.get_message()
+        md = self.controller.get_message_by_id(msg_id)
+        if msg_id == 0 or not str(md.get('message', '')).strip():
+            LOGGER.error(
+                'Pushover {}: no user message selected (GV7=0)'
+                .format(self.iname)
+            )
+            self.set_error(ERROR_MESSAGE_CREATE)
+            return False
+        return self.do_send({'title': md['title'], 'message': md['message']})
 
     def cmd_send_my_sys_short(self,command):
         LOGGER.info('')
@@ -763,17 +788,19 @@ class Pushover(Node):
             cnt += 1
             LOGGER.info('try #{}'.format(cnt))
             res = self.session.post("1/messages.json", params, content="urlencode")
-            if res['status'] is True and res['data']['status'] == 1:
+            if self._pushover_ok(res):
                 sent = True
                 self.set_error(ERROR_NONE)
                 self.controller.Notices.delete(self._send_notice_key())
             else:
                 LOGGER.debug('res={}'.format(res))
-                if 'data' in res:
-                    if res['data'] is False:
-                        LOGGER.error('From Pushover: {}'.format(res))
-                    elif 'errors' in res['data']:
-                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
+                detail = self._pushover_error_text(res)
+                if detail:
+                    LOGGER.error('From Pushover: {}'.format(detail))
+                elif isinstance(res, dict):
+                    LOGGER.error('From Pushover: {}'.format(
+                        res.get('errorMessage') or res
+                    ))
                 if self._is_client_error(res):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
@@ -799,14 +826,14 @@ class Pushover(Node):
             LOGGER.info('try {} #{}'.format(url,cnt))
             res = self.session.get(url,params)
             LOGGER.info('got {}'.format(res))
-            if res['status'] is True and res['data']['status'] == 1:
+            if self._pushover_ok(res):
                 sent = True
                 self.set_error(ERROR_NONE)
                 self.controller.Notices.delete(self._send_notice_key())
             else:
-                if 'data' in res:
-                    if 'errors' in res['data']:
-                        LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
+                detail = self._pushover_error_text(res)
+                if detail:
+                    LOGGER.error('From Pushover: {}'.format(detail))
                 LOGGER.debug('res={}'.format(res))
                 if self._is_client_error(res):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
@@ -814,11 +841,7 @@ class Pushover(Node):
                 else:
                     LOGGER.warning('Previous error is retryable...')
             if (not sent):
-                if self._is_limit_error(res):
-                    self.set_error(self._limit_error_code(res))
-                    self._update_limit_notice(res)
-                else:
-                    self.set_error(ERROR_UNKNOWN)
+                self._handle_send_failure(res)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
                     LOGGER.error('Giving up after {} tries'.format(cnt))
                     retry = False

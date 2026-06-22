@@ -268,9 +268,11 @@ class WhatsApp(Node):
             msg = f"WhatsApp {self.iname}: at least one recipient is required"
             LOGGER.error(msg)
             self.controller.Notices[notice_key] = msg
-            return {'status': False}
+            return {'status': False, 'error': msg}
 
         errors = []
+        rate_limited = False
+        startup_text = f'{self.name} has started up'
         for recipient in self.recipients:
             phone = recipient['phone']
             apikey = recipient['apikey']
@@ -280,17 +282,26 @@ class WhatsApp(Node):
             if not apikey:
                 errors.append(f"{phone}: missing CallMeBot apikey")
                 continue
-            sent, res = self._send_sync(phone, apikey, f'{self.name} has started up')
-            if not sent:
-                errors.append(f"{phone}: {self._callmebot_error(res)}")
+            sent, res = self._send_sync(phone, apikey, startup_text)
+            if sent:
+                continue
+            if self._callmebot_rate_limited(res):
+                rate_limited = True
+                self.enqueue_send(
+                    startup_text,
+                    [{'phone': phone, 'apikey': apikey}],
+                    'startup validation (rate limited)',
+                )
+                continue
+            errors.append(f"{phone}: {self._callmebot_error(res)}")
 
         if errors:
             msg = f"WhatsApp {self.iname}: " + "; ".join(errors)
             LOGGER.error(msg)
             self.controller.Notices[notice_key] = msg
-            return {'status': False}
+            return {'status': False, 'error': msg}
 
-        return {'status': True}
+        return {'status': True, 'rate_limited': rate_limited}
 
     def handler_start(self):
         LOGGER.info('')
@@ -299,14 +310,24 @@ class WhatsApp(Node):
         self.set_phone(self.get_phone_index())
         self.set_message(self.get_message())
         vstat = self.validate()
+        self.init_error_message = None
         if vstat.get('status') is not True:
             self.authorized = False
+            self.init_error_message = vstat.get('error')
         else:
             self.authorized = True
         LOGGER.info("Authorized={}".format(self.authorized))
         if self.authorized:
             self.set_error(ERROR_NONE)
             self._init_st = True
+            if vstat.get('rate_limited'):
+                LOGGER.warning(
+                    'WhatsApp %s startup validation rate limited; startup test message queued',
+                    self.iname,
+                )
+                self.controller.Notices[self._notice_key()] = (
+                    f'WhatsApp {self.iname}: startup test message queued (CallMeBot rate limit)'
+                )
             self.controller.on_service_node_ready(self)
         else:
             self.set_error(ERROR_APP_AUTH)
