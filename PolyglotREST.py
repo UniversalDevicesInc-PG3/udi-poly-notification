@@ -428,6 +428,11 @@ class polyglotSession():
             # Forbidden, ISY Portal returns this for bad api key
             self.logger.error("Forbidden: %s: text: %s" % (response.url,response.text) )
             error_message = "Forbidden"
+        elif response.status_code == 429:
+            self.logger.warning(
+                "Rate limited: %s: text: %s" % (response.url, response.text)
+            )
+            error_message = "Rate limited"
         elif response.status_code == 500:
             self.logger.error("Server Error: %s %s: text: %s" % (response.status_code,response.url,response.text) )
             error_message = "Server error"
@@ -456,12 +461,16 @@ class polyglotSession():
                 json_data = False
         if not st:
             if isinstance(json_data, dict):
-                error_message = (
-                    json_data.get('errorMessage')
-                    or json_data.get('message')
-                    or json_data.get('error')
-                    or error_message
-                )
+                errors = json_data.get('errors')
+                if isinstance(errors, list) and errors:
+                    error_message = '; '.join(str(e) for e in errors)
+                else:
+                    error_message = (
+                        json_data.get('errorMessage')
+                        or json_data.get('message')
+                        or json_data.get('error')
+                        or error_message
+                    )
             if not error_message:
                 error_message = response.text if response.text else f'HTTP {response.status_code}'
         return {

@@ -7,6 +7,17 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.26] - 2026-06-21
+
+### Added
+
+- **Pushover ERR=7/8 (quota vs rate):** Monthly message quota (`ERR=7`) and transient API rate limiting (`ERR=8`) are reported separately from generic `ERR=5`, with PG3 notices showing Pushover's error text (Fixes #33).
+
+### Fixed
+
+- **PolyglotREST HTTP 429:** Pushover (and other APIs) returning `429` are logged as rate-limited warnings, not unknown-response errors; JSON `errors[]` is surfaced in `errorMessage`.
+- **Pushover 4xx retry:** Client errors (`400`–`499`) no longer misclassified as retryable due to a broken range check.
+
 ## [3.6.25] - 2026-06-21
 
 ### Added

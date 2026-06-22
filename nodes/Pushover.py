@@ -21,6 +21,8 @@ ERROR_USER_AUTH  = 3
 ERROR_MESSAGE_CREATE = 4
 ERROR_MESSAGE_SEND   = 5
 ERROR_PARAM          = 6
+ERROR_QUOTA_LIMIT    = 7
+ERROR_RATE_LIMIT     = 8
 
 REM_PREFIX = "REMOVED-"
 
@@ -87,9 +89,11 @@ class Pushover(Node):
             self.controller.Data['devices_list'] = self.devices_list
             self.controller.Data['sounds_list']  = self.sounds_list
             self.set_error(ERROR_NONE)
+            self.controller.Notices.delete(self._send_notice_key())
             self._init_st = True
         else:
             self.set_error(self._validate_error_code(vstat))
+            self._update_limit_notice(vstat)
             self._init_st = False
 
     def _validate_errors(self, res):
@@ -106,7 +110,79 @@ class Pushover(Node):
         data = res.get('data') if isinstance(res, dict) else None
         return isinstance(data, dict) and data.get('status') == 1
 
+    def _pushover_error_text(self, res):
+        if not isinstance(res, dict):
+            return ''
+        data = res.get('data')
+        if isinstance(data, dict) and data.get('errors'):
+            return '; '.join(str(e) for e in data['errors'])
+        if res.get('errorMessage') and res['errorMessage'] != 'Unknown response':
+            return str(res['errorMessage'])
+        return ''
+
+    def _is_client_error(self, res):
+        code = res.get('code') if isinstance(res, dict) else None
+        return code is not None and 400 <= code < 500
+
+    def _is_quota_exceeded(self, res):
+        text = self._pushover_error_text(res).lower()
+        quota_markers = (
+            'exceeded its monthly limit',
+            'monthly message limit',
+            'monthly limit',
+            'over its quota',
+            'message limit',
+        )
+        if any(marker in text for marker in quota_markers):
+            return True
+        # Pushover documents HTTP 429 for monthly quota; use when body is not rate-specific.
+        if isinstance(res, dict) and res.get('code') == 429:
+            rate_markers = ('rate limit', 'too many requests', 'concurrent')
+            return not any(marker in text for marker in rate_markers)
+        return False
+
+    def _is_rate_limited(self, res):
+        text = self._pushover_error_text(res).lower()
+        rate_markers = (
+            'rate limit',
+            'too many requests',
+            'concurrent',
+        )
+        return any(marker in text for marker in rate_markers)
+
+    def _is_limit_error(self, res):
+        return self._is_quota_exceeded(res) or self._is_rate_limited(res)
+
+    def _limit_error_code(self, res):
+        if self._is_quota_exceeded(res):
+            return ERROR_QUOTA_LIMIT
+        if self._is_rate_limited(res):
+            return ERROR_RATE_LIMIT
+        return ERROR_MESSAGE_SEND
+
+    def _send_notice_key(self):
+        return f'pushover_limit_{self.iname}'
+
+    def _update_limit_notice(self, res):
+        key = self._send_notice_key()
+        if self._is_limit_error(res):
+            detail = self._pushover_error_text(res)
+            if not detail:
+                if self._is_quota_exceeded(res):
+                    detail = 'Pushover monthly message quota exceeded'
+                else:
+                    detail = 'Pushover rate limit exceeded'
+            self.controller.Notices[key] = f'Pushover {self.iname}: {detail}'
+        else:
+            self.controller.Notices.delete(key)
+
+    def _handle_send_failure(self, res):
+        self.set_error(self._limit_error_code(res))
+        self._update_limit_notice(res)
+
     def _validate_error_code(self, res):
+        if self._is_limit_error(res):
+            return self._limit_error_code(res)
         errors = ' '.join(self._validate_errors(res)).lower()
         if 'application token' in errors or 'invalid token' in errors:
             return ERROR_APP_AUTH
@@ -690,6 +766,7 @@ class Pushover(Node):
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
                 self.set_error(ERROR_NONE)
+                self.controller.Notices.delete(self._send_notice_key())
             else:
                 LOGGER.debug('res={}'.format(res))
                 if 'data' in res:
@@ -697,14 +774,13 @@ class Pushover(Node):
                         LOGGER.error('From Pushover: {}'.format(res))
                     elif 'errors' in res['data']:
                         LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
-                # No status code or not 4xx code is
-                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                if self._is_client_error(res):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
                 else:
                     LOGGER.warning('Previous error is retryable...')
             if (not sent):
-                self.set_error(ERROR_MESSAGE_SEND)
+                self._handle_send_failure(res)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
                     LOGGER.error('Giving up after {} tries'.format(cnt))
                     retry = False
@@ -726,19 +802,23 @@ class Pushover(Node):
             if res['status'] is True and res['data']['status'] == 1:
                 sent = True
                 self.set_error(ERROR_NONE)
+                self.controller.Notices.delete(self._send_notice_key())
             else:
                 if 'data' in res:
                     if 'errors' in res['data']:
                         LOGGER.error('From Pushover: {}'.format(res['data']['errors']))
-                # No status code or not 4xx code is
                 LOGGER.debug('res={}'.format(res))
-                if 'code' in res and (res['code'] is not None and (res['code'] >= 400 or res['code'] < 500)):
+                if self._is_client_error(res):
                     LOGGER.warning('Previous error can not be fixed, will not retry')
                     retry = False
                 else:
                     LOGGER.warning('Previous error is retryable...')
             if (not sent):
-                self.set_error(ERROR_UNKNOWN)
+                if self._is_limit_error(res):
+                    self.set_error(self._limit_error_code(res))
+                    self._update_limit_notice(res)
+                else:
+                    self.set_error(ERROR_UNKNOWN)
                 if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
                     LOGGER.error('Giving up after {} tries'.format(cnt))
                     retry = False

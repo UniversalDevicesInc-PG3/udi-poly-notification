@@ -88,6 +88,8 @@ POVE-3 = User Auth
 POVE-4 = Create Message
 POVE-5 = Send Message
 POVE-6 = Bad Parameter
+POVE-7 = Monthly Quota
+POVE-8 = Rate Limited
 
 # AssistantRelay Node
 ND-assistantrelay-NAME = Assistant Relay Node
