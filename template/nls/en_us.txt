@@ -147,6 +147,36 @@ CMD-tgubnfy-SET_NODE-NAME = Set Service Node
 
 # End Telegram Node
 
+# WhatsApp Node
+ND-wa-NAME = WhatsApp Node
+CMD-wa-SEND-NAME = Send Message (old from controller)
+CMD-wa-SEND_SYS_CUSTOM-NAME = Send Sys Custom (old from controller)
+CMD-wa-SEND_MY_MESSAGE-NAME = Send Message
+CMD-wa-SEND_MY_SYS_CUSTOM-NAME = Send Sys Custom
+CMD-wa-SET_MESSAGE-NAME = Message
+CMD-wa-SET_SYS_CUSTOM-NAME = System Custom Content
+CMD-wa-SET_PHONE-NAME = Phone
+
+ST-wa-ST-NAME = Last Status
+ST-wa-ERR-NAME = Error
+ST-wa-GV1-NAME = Phone
+ST-wa-GV3-NAME = User Message
+
+CMD-wa-GV10-NAME = Send Sys Custom With Params
+PGM-CMD-wa-GV10-FMT = /Phone/${c}/${c} To ${vo}/ /Content// Content ${v} (ID=${vo})/
+CMDP-Phone-NAME = Phone
+CMDP-Content-NAME = Content
+
+#
+# WhatsApp Notify Node
+#
+ST-wanfy-GV1-NAME = Device On Message
+ST-wanfy-GV2-NAME = Device Off Message
+CMD-wanfy-SET_MESSAGE_DON-NAME = Set Device On Message
+CMD-wanfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
+
+# End WhatsApp Node
+
 # ISY Portal Node
 ND-isyportal-NAME = ISY Portal Default Node
 

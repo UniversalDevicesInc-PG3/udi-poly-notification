@@ -333,9 +333,17 @@ class Controller(Node):
         else:
             return super(Controller, self).getDriver(driver)
 
+    def _query_content(self, query, uom):
+        if not query or not isinstance(query, dict):
+            return None
+        msg = query.get(f'Content.uom{uom}')
+        if msg is None:
+            msg = query.get(f'.uom{uom}')
+        return msg
+
     def _notice_missing_notification_content(self, query):
         LOGGER.error(
-            'Notification content missing in command query (expected Content.uom147 or Content.uom145): %s',
+            'Notification content missing in command query (expected Content.uom147, .uom147, Content.uom145, or .uom145): %s',
             query,
         )
         self.Notices['missing_notification_content'] = (
@@ -353,7 +361,7 @@ class Controller(Node):
     def get_message_short(self, query):
         if not query or not isinstance(query, dict):
             return None
-        msg = query.get('Content.uom145')
+        msg = self._query_content(query, 145)
         if msg is None or str(msg).strip() == '':
             return None
         # Entire message and title is first line, body is the rest
@@ -367,7 +375,7 @@ class Controller(Node):
 
     # New: 'message': {'notification': {'formatted': {'mimetype': 'text/plain', 'from': '', 'subject': 'program[0]: node[#]=node[#] null null received', 'body': ''}, '@_id': '1'}
     def get_message_long(self,query):
-        msg = query.get(f'Content.uom147')
+        msg = self._query_content(query, 147)
         if msg is None:
             return msg
         # Contains subject & body
@@ -522,6 +530,9 @@ class Controller(Node):
 
     def get_service_node_address_telegramub(self,id):
         return get_valid_node_address('tu_'+id)
+
+    def get_service_node_address_whatsapp(self,id):
+        return get_valid_node_address('wa_'+id)
 
     def _typed_data_dict(self):
         out = {}
@@ -845,6 +856,37 @@ class Controller(Node):
                             'isList': True,
                         },
                     ]
+                },
+                {
+                    'name': 'whatsapp',
+                    'title': 'WhatsApp Service Nodes (CallMeBot)',
+                    'desc': 'Free personal WhatsApp notifications via https://www.callmebot.com/',
+                    'isList': True,
+                    'params': [
+                        {
+                            'name': 'name',
+                            'title': 'Name for reference, used as node name. Must be 8 characters or less.',
+                            'isRequired': True
+                        },
+                        {
+                            'name': 'recipients',
+                            'title': 'Recipients (each person activates CallMeBot on their own phone)',
+                            'isRequired': True,
+                            'isList': True,
+                            'params': [
+                                {
+                                    'name': 'phone',
+                                    'title': 'Phone with country code (e.g. +1234567890)',
+                                    'isRequired': True
+                                },
+                                {
+                                    'name': 'apikey',
+                                    'title': 'CallMeBot API key for this phone',
+                                    'isRequired': True
+                                },
+                            ],
+                        },
+                    ]
                 }
             ],
             True
@@ -1152,6 +1194,53 @@ class Controller(Node):
             else:
                 telegramub = None
         #
+        # Check the whatsapp configs are all good
+        #
+        whatsapp = data.get('whatsapp', el)
+        wnames = dict()
+        LOGGER.info('whatsapp={}'.format(whatsapp))
+        if len(whatsapp) == 0:
+            LOGGER.warning("No WhatsApp Entries in the config: {}".format(whatsapp))
+            whatsapp = None
+        else:
+            for pd in whatsapp:
+                sname = _typed_node_name('whatsapp', pd)
+                if sname is None:
+                    continue
+                pd['type'] = 'whatsapp'
+                snames[sname] = pd
+                address = self.get_service_node_address_whatsapp(sname)
+                if not address in wnames:
+                    wnames[address] = list()
+                wnames[address].append(sname)
+                recipients = pd.get('recipients')
+                if not isinstance(recipients, list) or len(recipients) == 0:
+                    err_list.append(
+                        f"WhatsApp {sname}: at least one recipient (phone + apikey) is required."
+                    )
+                    continue
+                for idx, recipient in enumerate(recipients):
+                    if not isinstance(recipient, dict):
+                        err_list.append(
+                            f"WhatsApp {sname}: invalid recipient entry at index {idx}."
+                        )
+                        continue
+                    phone = str(recipient.get('phone', '')).strip()
+                    apikey = str(recipient.get('apikey', '')).strip()
+                    if not phone.startswith('+'):
+                        err_list.append(
+                            f"WhatsApp {sname}: recipient phone {phone or '(empty)'} must include country code and start with +."
+                        )
+                    if not apikey:
+                        err_list.append(
+                            f"WhatsApp {sname}: recipient {phone or '(empty)'} is missing CallMeBot apikey."
+                        )
+            for address in wnames:
+                if len(wnames[address]) > 1:
+                    err_list.append("Duplicate whatsapp names for {} items {} from {}".format(
+                        len(wnames[address]), address, ",".join(wnames[address])
+                    ))
+        #
         # Check the notify nodes are all good
         #
         notify_nodes    = data.get('notify',el)
@@ -1256,6 +1345,25 @@ class Controller(Node):
                     self.service_nodes.append({ 'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
                     LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
+        if whatsapp is not None:
+            self.whatsapp_session = polyglotSession(self, "https://api.callmebot.com", LOGGER)
+            for pd in whatsapp:
+                if self.edition == "Free":
+                    err = f"Can't add WhatsApp node {pd['name']} in {self.edition} Edition"
+                    LOGGER.error(err)
+                    self.Notices[pd['name']] = err
+                else:
+                    snode = self.add_node(WhatsApp(
+                        self,
+                        self.address,
+                        self.get_service_node_address_whatsapp(pd['name']),
+                        get_valid_node_name('Service WhatsApp ' + pd['name']),
+                        self.whatsapp_session,
+                        pd,
+                    ))
+                    self.service_nodes.append({'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})
+                    LOGGER.info('service_nodes={}'.format(self.service_nodes))
+
         # TODO: Save service_nodes names in customParams
         if notify_nodes is not None:
             save = True
@@ -1277,6 +1385,7 @@ class Controller(Node):
         LOGGER.info('enter')
         self.write_profile_lock.acquire()
         try:
+            self.Notices['profile_rebuild'] = 'Profile rebuild in progress'
             self.profile_installed = False
             st = True
             profile_nodes_written = set()
@@ -1412,6 +1521,9 @@ class Controller(Node):
             LOGGER.debug(f'st={st}')
             if st is False:
                 LOGGER.error('Invalid custom message ids; can not write profile')
+                self.Notices['profile_rebuild'] = (
+                    'Profile rebuild failed: fix invalid custom message ids and save again'
+                )
                 return False
 
             if failed_profile_node_names:
@@ -1446,6 +1558,7 @@ class Controller(Node):
             self.profile_installed = True
             self.profile_nodes_written = profile_nodes_written
             self.pending_profile_nodes = pending_profile_nodes
+            self.Notices['profile_rebuild'] = 'Profile rebuilt, restart admin console'
             if len(pending_profile_nodes) > 0:
                 LOGGER.warning('Profile installed with pending nodes: {}'.format(",".join(sorted(pending_profile_nodes))))
             for node in self.poly.nodes():
@@ -1517,7 +1630,11 @@ class Controller(Node):
 
     def cmd_set_sys_short(self,command):
         LOGGER.debug(f'command={command}')
-        self.set_sys_short(command.get('value'))
+        msg = command.get('value')
+        if msg is None:
+            parsed = self.get_message_from_query(command.get('query'))
+            msg = parsed['message']
+        self.set_sys_short(msg)
 
     def rest_ghandler(self,command,params,data=None):
         if not self.handler_params_st:

@@ -7,6 +7,20 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.25] - 2026-06-21
+
+### Added
+
+- **WhatsApp (CallMeBot):** New service node type for free personal WhatsApp text notifications via the CallMeBot HTTP API. Supports multiple recipients per service node (each person activates CallMeBot on their own phone with phone + apikey). Standard edition only; uses existing `polyglotSession` (no new dependencies).
+- **WhatsApp ISY commands:** `GV10`, `SET_SYS_CUSTOM`, `SEND`, `SEND_SYS_CUSTOM`, `SEND_MY_MESSAGE`, `SEND_MY_SYS_CUSTOM`, and multi-recipient phone picker (`All Recipients` or a single phone).
+- **Profile rebuild notices:** Controller reports profile rebuild start/success/failure in PG3 notices.
+
+### Fixed
+
+- **CallMeBot HTTP responses:** `PolyglotREST` treats CallMeBot `200`/`201`/`210` HTML responses as success (no JSON parse ERROR/traceback); removed unrelated ecobee status URL from generic unknown-response logging.
+- **System custom content:** Controller `_query_content` accepts both `Content.uom147` and `.uom147` keys from ISY program queries.
+- **WhatsApp send reliability:** Accept CallMeBot `201`/`210` queued responses; guard empty/ERROR placeholder messages; rate-limit queue with cooldown for CallMeBot `503` responses.
+
 ## [3.6.24] - 2026-06-20
 
 ### Added

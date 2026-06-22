@@ -2,7 +2,7 @@
 
 # udi-poly-notification
 
-This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with Polyglot V3 to support sending many types of notifications for Pushover, Telegram, ISY Portal.
+This is the Notification Poly for the [Universal Devices ISY994i](https://www.universal-devices.com/residential/ISY) [Polyglot Interface](http://www.universal-devices.com/developers/polyglot/docs/) with Polyglot V3 to support sending many types of notifications for Pushover, Telegram, WhatsApp, ISY Portal.
 
 (c) JimBoCA aka Jim Searle
 MIT license.
@@ -86,6 +86,23 @@ When discovery succeeds, the user chat id is saved automatically and the Telegra
 Optional fallback: if auto-discovery does not work, get your numeric user id from <a href="https://t.me/RawDataBot" target="_ blank">@RawDataBot</a> and paste it into **Users**.
 
 Monitor in ISY programs with `${sys.node...tu_...GV1}` (Ready) and `${sys.node...tu_...ERR}` (Error).
+
+### WhatsApp (CallMeBot)
+
+Free personal WhatsApp notifications via the [CallMeBot API](https://www.callmebot.com/blog/free-api-whatsapp-messages/). CallMeBot does not support WhatsApp groups — add multiple **Recipients** on one service node to notify several people (each gets an individual message).
+
+*Per recipient:*
+1. Add **+34 684 73 40 44** to WhatsApp contacts
+2. Send: `I allow callmebot to send me messages`
+3. Save the API key from the bot reply (or send `Recover APIKey` if lost)
+
+*Configure in PG3:*
+1. **Add WhatsApp Service Nodes (CallMeBot)**
+2. Set **Name** (8 characters or less)
+3. Add **Recipients** rows: **Phone** with country code (e.g. `+1234567890`) and **CallMeBot API key**
+4. **Save Changes** and **Restart** — a startup test message is sent to each recipient
+
+Use like other service nodes in programs, REST (`/send?node=wa_...`), System Customizations, and Notify nodes.
 
 
 ## Nodes

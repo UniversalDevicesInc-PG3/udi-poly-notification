@@ -1,0 +1,8 @@
+<editors>
+
+    <!-- WhatsApp recipient phone -->
+    <editor id="WA_P_{0}">
+      <range uom="25" subset="{1}" nls="WAP_{0}" />
+    </editor>
+
+</editors>

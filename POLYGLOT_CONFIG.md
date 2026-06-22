@@ -34,6 +34,7 @@ The Service nodes allow you to send messages to a service, currently the only su
 - Pushover
 - UD Portal
 - Telegram
+- WhatsApp (CallMeBot)
 
 ### Pushover
 
@@ -65,6 +66,23 @@ These send messages to the UD Portal which are received by the UD Mobile app.  Y
 - The Telegram service node **Ready** status (`GV1`) is true when token and chat id are valid
 
 Optional fallback: paste your numeric Telegram user id from <a href="https://t.me/RawDataBot" target="_blank">@RawDataBot</a> into **Users**.
+
+## WhatsApp (CallMeBot)
+
+Free personal WhatsApp text notifications via the <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">CallMeBot API</a>. Setup is done entirely in PG3x configuration — no extra Python libraries required.
+
+**Limitations:** CallMeBot does not support WhatsApp group chats. Each recipient must activate CallMeBot on their own phone; one API key sends only to that phone number. To notify multiple people, add multiple recipient rows on one service node (each gets the same message as an individual DM).
+
+*Per recipient (repeat for each person):*
+1. Add CallMeBot contact **+34 684 73 40 44** in WhatsApp
+2. Send: `I allow callmebot to send me messages`
+3. Receive API key in WhatsApp reply (or send `Recover APIKey` if lost)
+
+*In PG3x:*
+4. Click **Add WhatsApp Service Nodes (CallMeBot)** below
+5. Set **Name** (8 characters or less, used as ISY node id)
+6. Add one or more **Recipients** rows with **Phone** (include country code, e.g. `+1234567890`) and **CallMeBot API key**
+7. Save and Restart — the nodeserver sends a startup test message to each recipient
 
 ## Notify Nodes
 

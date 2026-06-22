@@ -410,7 +410,8 @@ class polyglotSession():
         st = False
         retryable = False
         error_message = None
-        if response.status_code == 200:
+        # 200/201/210: CallMeBot accepts and queues WhatsApp messages with HTML bodies.
+        if response.status_code in (200, 201, 210):
             self.logger.debug(' All good!')
             st = True
         elif response.status_code == 400:
@@ -437,16 +438,22 @@ class polyglotSession():
             retryable = True
         else:
             self.logger.error("Unknown response %s: %s %s" % (response.status_code, response.url, response.text) )
-            self.logger.error("Check system status: https://status.ecobee.com/")
             error_message = "Unknown response"
             retryable = response.status_code >= 500
         try:
             json_data = json.loads(response.text)
-        except (Exception) as err:
-            # Only complain about this error if we didn't have an error above
+        except (Exception):
+            text = response.text or ''
             if st:
-                self.logger.error('Failed to convert to json {0}: {1}'.format(response.text,err), exc_info=True)
-            json_data = False
+                # CallMeBot and some other APIs return HTML on success.
+                self.logger.debug(
+                    'Response body is not JSON (HTTP %s): %s',
+                    response.status_code,
+                    text[:200],
+                )
+                json_data = text if text else False
+            else:
+                json_data = False
         if not st:
             if isinstance(json_data, dict):
                 error_message = (
