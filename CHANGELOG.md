@@ -7,6 +7,16 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.28] - 2026-06-21
+
+### Changed
+
+- **Configuration docs:** Renamed `POLYGLOT_CONFIG.md` to `CONFIG.md`; updated controller, README, and GitHub links.
+
+### Fixed
+
+- **Pushover device list per node (Fixes #28):** Each Pushover service node stores its own `devices_list` and `sounds_list` (keyed by node name), so multiple applications or user keys no longer corrupt shared device indices. Legacy global lists are used as a one-time migration seed when per-node data is missing. Controller shows an informational notice when multiple Pushover rows use different user keys.
+
 ## [3.6.27] - 2026-06-21
 
 ### Fixed
@@ -53,7 +63,7 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ### Changed
 
-- **Telegram setup docs:** `README.md` and `POLYGLOT_CONFIG.md` updated for optional Users, auto-discovery flow, Ready/ERR monitoring, and restart-after-`/start` guidance.
+- **Telegram setup docs:** `README.md` and `CONFIG.md` updated for optional Users, auto-discovery flow, Ready/ERR monitoring, and restart-after-`/start` guidance.
 
 ### Fixed
 

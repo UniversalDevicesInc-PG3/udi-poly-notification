@@ -241,7 +241,7 @@ class Controller(Node):
 
     def add_node_done(self):
         LOGGER.debug("enter")
-        configurationHelp = './POLYGLOT_CONFIG.md';
+        configurationHelp = './CONFIG.md';
         if os.path.isfile(configurationHelp):
             cfgdoc = markdown2.markdown_path(configurationHelp)
             self.poly.setCustomParamsDoc(cfgdoc)        
@@ -1038,7 +1038,7 @@ class Controller(Node):
         if st:
             val = "portal_api_key"
             if self.Params[val] == 'PleaseDefine':
-                self.Notices[val] = 'Please Define <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md#portal_api_key">portal_api_key</a> or review configuration help section below.'
+                self.Notices[val] = 'Please Define <a href="https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md#portal_api_key">portal_api_key</a> or review configuration help section below.'
             else:
                 self.Notices.delete(val)
                 # Start the UDMobile node
@@ -1350,6 +1350,24 @@ class Controller(Node):
             if self._auto_discover_telegram(telegramub):
                 return
 
+        if pushover is not None and len(pushover) > 1:
+            user_keys = set()
+            for pd in pushover:
+                if not isinstance(pd, dict):
+                    continue
+                user_key = str(pd.get('user_key', '')).strip()
+                if user_key:
+                    user_keys.add(user_key)
+            if len(user_keys) > 1:
+                self.Notices['pushover_multi_user'] = (
+                    'Multiple Pushover service nodes use different user keys; '
+                    'each node keeps its own device list.'
+                )
+            else:
+                self.Notices.delete('pushover_multi_user')
+        else:
+            self.Notices.delete('pushover_multi_user')
+
         if pushover is not None:
             self.pushover_session = polyglotSession(self,"https://api.pushover.net",LOGGER)
             for pd in pushover:
@@ -1579,7 +1597,7 @@ class Controller(Node):
 
             config_info_rest.append('</ul>')
             self.config_info = config_info_nr + config_info_rest
-            config_doc_file = "POLYGLOT_CONFIG.md"
+            config_doc_file = "CONFIG.md"
             LOGGER.debug("Reading {}".format(config_doc_file))
             with open(config_doc_file, "r") as myfile:
                 data = myfile.read()

@@ -65,10 +65,8 @@ class Pushover(Node):
         self.set_retry(self.get_retry())
         self.set_expire(self.get_expire())
         self.set_sound(self.get_sound())
-        # TODO: This should be stored at the node level, but PG2 didn't allow
-        # that so eventually it should be moved to the node?
-        self.devices_list = self.controller.get_data('devices_list',[])
-        self.sounds_list  = self.controller.get_data('sounds_list',[])
+        self.devices_list = self._load_devices_list()
+        self.sounds_list = self._load_sounds_list()
         LOGGER.info("devices_list={}".format(self.devices_list))
         LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
@@ -86,8 +84,7 @@ class Pushover(Node):
             LOGGER.info("got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
             self.build_sound_list()
-            self.controller.Data['devices_list'] = self.devices_list
-            self.controller.Data['sounds_list']  = self.sounds_list
+            self._save_device_sound_lists()
             self.set_error(ERROR_NONE)
             self.controller.Notices.delete(self._send_notice_key())
             self._init_st = True
@@ -216,6 +213,31 @@ class Pushover(Node):
         LOGGER.debug('got: {}'.format(res))
         return res
 
+    def _devices_list_key(self):
+        return f'devices_list_{self.iname}'
+
+    def _sounds_list_key(self):
+        return f'sounds_list_{self.iname}'
+
+    def _load_devices_list(self):
+        key = self._devices_list_key()
+        if key in self.controller.Data:
+            stored = self.controller.Data[key]
+            return list(stored) if isinstance(stored, list) else []
+        legacy = self.controller.get_data('devices_list', [])
+        return list(legacy) if isinstance(legacy, list) else []
+
+    def _load_sounds_list(self):
+        key = self._sounds_list_key()
+        if key in self.controller.Data:
+            stored = self.controller.Data[key]
+            return list(stored) if isinstance(stored, list) else []
+        legacy = self.controller.get_data('sounds_list', [])
+        return list(legacy) if isinstance(legacy, list) else []
+
+    def _save_device_sound_lists(self):
+        self.controller.Data[self._devices_list_key()] = self.devices_list
+        self.controller.Data[self._sounds_list_key()] = self.sounds_list
 
     # Add items in second list to first if they don't exist
     #  self.controler.add_to_list(self.devices_list,vstat['devices'])

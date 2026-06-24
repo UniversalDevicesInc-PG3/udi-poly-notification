@@ -48,6 +48,8 @@ You may create multiple Applications on Pushover, just list each one with a uniq
   - Add the Application Key
 - Save and Restart the Nodeserver
 
+Each Pushover service node keeps its own device and sound lists (keyed by node name), so multiple applications or different user keys no longer share or corrupt device indices. If you use multiple Pushover rows with **different user keys**, PG3 shows an informational notice; each node still maintains its own device picker after restart.
+
 ## UD Portal
 
 These send messages to the UD Portal which are received by the UD Mobile app.  You crease service nodes, or use the UD Mobile node which is always created and uses the main portal_api_key Custom Config Parameter.

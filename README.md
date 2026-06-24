@@ -37,7 +37,7 @@ There are 2 Editions available.  Free only supports the UDMobile node which will
 
 ## Configuration
 
-All information is on the [Configuration Page](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md) which is the same as information included on the Polyglot Notification Nodeserver Configuration Page.
+All information is on the [Configuration Page](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md) which is the same as information included on the Polyglot Notification Nodeserver Configuration Page.
 
 ## How it works
 
@@ -118,7 +118,7 @@ This is the main node which contains the Status of the nodeserver and provides a
       - Debug level
         - This sets the amount of info that shows up in the log file, to minimize file size you should set this to warning, but if you are debugging issues or want to watch what is going on then change to info or debug.
   - Message
-        -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/POLYGLOT_CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
+        -  This will contain the list of the short messages that you add in the configuration described on the [Configuration Page](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md).  The message chosen here or in a program, will be sent when you call Send on a Service or node.
   - [System Customizations](#system-customizations)
 
 ### Service Nodes
@@ -127,6 +127,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
   - These are the nodes you can add to a program to configure and send any of your short message previously defined in Config which show in the Notification Controller node above.
     - Pushover Service Node
       - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
+      - As of 3.6.28, each Pushover service node stores its own device/sound lists, so multiple applications or user keys no longer corrupt shared device indices (see [CONFIG.md](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md#pushover)).
       - Status
         - Last Status
           - This will be True if the last message was sent successfully
