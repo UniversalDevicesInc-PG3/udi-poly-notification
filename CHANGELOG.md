@@ -7,6 +7,21 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.29] - 2026-06-21
+
+### Added
+
+- **Pushover delivery groups (Fixes #52):** Each Pushover service node fetches `groups.json` at startup and adds delivery groups to the DeviceOrGroup picker (`Group: …` entries). Sends to a group use the group key as the Pushover `user` parameter (no `device`). Registered device indices are unchanged; new groups append after devices.
+
+### Changed
+
+- **Pushover picker label:** GV1 and program Device parameter renamed to **DeviceOrGroup** in NLS (devices and delivery groups in one list).
+
+### Fixed
+
+- **Pushover groups not appearing in profile:** `groups.json` returns each group's key in the `group` field, not `key`; earlier 3.6.29 builds parsed the wrong field and silently omitted all groups.
+- **Stable group indices:** Saved per-node group order is preserved across restarts (Pushover API return order is ignored). New groups append at the end sorted by name; deleted groups become `REMOVED-Group: …` so program indices do not shift.
+
 ## [3.6.28] - 2026-06-21
 
 ### Changed

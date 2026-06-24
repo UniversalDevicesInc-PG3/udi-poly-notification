@@ -127,7 +127,7 @@ These are the Services such as Pushover that are called when a Send is issued.  
   - These are the nodes you can add to a program to configure and send any of your short message previously defined in Config which show in the Notification Controller node above.
     - Pushover Service Node
       - These nodes will be named "Service Pushover" plus the "Name" you used in the Pushover keys configuration.
-      - As of 3.6.28, each Pushover service node stores its own device/sound lists, so multiple applications or user keys no longer corrupt shared device indices (see [CONFIG.md](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md#pushover)).
+      - As of 3.6.28, each Pushover service node stores its own device/sound lists; as of 3.6.29, delivery groups appear in the same DeviceOrGroup picker (see [CONFIG.md](https://github.com/UniversalDevicesInc-PG3/udi-poly-notification/blob/master/CONFIG.md#pushover)).
       - Status
         - Last Status
           - This will be True if the last message was sent successfully
@@ -140,8 +140,8 @@ These are the Services such as Pushover that are called when a Send is issued.  
             - Create Message
             - Send Message
       - Control
-        - Device
-          - This is the Pushover Device as configured on the pushover site.
+        - DeviceOrGroup
+          - Registered Pushover devices and delivery groups (`Group: …`) from your account. Index 0 is all devices; device indices are unchanged from 3.6.28; groups follow. Group indices are stable across restarts (saved order, not API order). Rebuild and install the profile after upgrading so group entries appear in programs.
         - Priority
           - This is the <a href="https://pushover.net/api#priority" target="_blank">Pushover Priority</a>
             - Lowest

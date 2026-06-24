@@ -50,6 +50,10 @@ You may create multiple Applications on Pushover, just list each one with a uniq
 
 Each Pushover service node keeps its own device and sound lists (keyed by node name), so multiple applications or different user keys no longer share or corrupt device indices. If you use multiple Pushover rows with **different user keys**, PG3 shows an informational notice; each node still maintains its own device picker after restart.
 
+After restart, each node also loads Pushover **delivery groups** into the same DeviceOrGroup picker (shown as `Group: …`). Pick a registered device, a delivery group, or **all** (index 0). Rebuild/install the profile after upgrading so new group entries appear in programs.
+
+**DeviceOrGroup index layout:** index 0 = all devices; next indices = registered devices (stable order, same as before 3.6.29); then delivery groups (`Group: …`). Group indices stay fixed across restarts—the plugin keeps saved order and ignores random API ordering. New groups are added at the end (sorted by name on first discovery). Deleted groups remain as `REMOVED-Group: …` so existing program indices do not shift.
+
 ## UD Portal
 
 These send messages to the UD Portal which are received by the UD Mobile app.  You crease service nodes, or use the UD Mobile node which is always created and uses the main portal_api_key Custom Config Parameter.

@@ -1,11 +1,5 @@
 """
   Notification Pushover Node
-
-  TODO:
-    - Make sure pushover name is get_valid_node_name, and Length
-    - Clean out profile directory?
-    - Make list of sounds
-    - Allow groups of devices in configuration
 """
 from udi_interface import Node,LOGGER
 from threading import Thread,Event
@@ -25,6 +19,7 @@ ERROR_QUOTA_LIMIT    = 7
 ERROR_RATE_LIMIT     = 8
 
 REM_PREFIX = "REMOVED-"
+GROUP_LABEL_PREFIX = "Group: "
 
 # How many tries to get or post, -1 is forever
 RETRY_MAX = -1
@@ -67,6 +62,7 @@ class Pushover(Node):
         self.set_sound(self.get_sound())
         self.devices_list = self._load_devices_list()
         self.sounds_list = self._load_sounds_list()
+        self.devices_list = self._normalize_devices_list(self.devices_list)
         LOGGER.info("devices_list={}".format(self.devices_list))
         LOGGER.debug('Authorizing pushover app {}'.format(self.app_key))
         vstat = self.validate()
@@ -83,6 +79,7 @@ class Pushover(Node):
         if self.authorized:
             LOGGER.info("got devices={}".format(vstat['data']['devices']))
             self.build_device_list(vstat['data']['devices'])
+            self.build_group_list()
             self.build_sound_list()
             self._save_device_sound_lists()
             self.set_error(ERROR_NONE)
@@ -239,23 +236,173 @@ class Pushover(Node):
         self.controller.Data[self._devices_list_key()] = self.devices_list
         self.controller.Data[self._sounds_list_key()] = self.sounds_list
 
+    def _normalize_device_entry(self, item):
+        if isinstance(item, dict):
+            entry = dict(item)
+            if 'type' not in entry:
+                if entry.get('key'):
+                    entry['type'] = 'group'
+                elif entry.get('name') == 'all' or entry.get('label') == 'all':
+                    entry['type'] = 'all'
+                else:
+                    entry['type'] = 'device'
+            if 'label' not in entry:
+                if entry['type'] == 'group':
+                    name = entry.get('name', entry.get('key', ''))
+                    entry['label'] = GROUP_LABEL_PREFIX + name
+                elif entry['type'] == 'all':
+                    entry['label'] = 'all'
+                else:
+                    entry['label'] = entry.get('name', '')
+            return entry
+        if not isinstance(item, str):
+            return {'type': 'device', 'label': str(item), 'name': str(item)}
+        if item == 'all':
+            return {'type': 'all', 'label': 'all'}
+        return {'type': 'device', 'label': item, 'name': item}
+
+    def _normalize_devices_list(self, items):
+        if not isinstance(items, list):
+            return [{'type': 'all', 'label': 'all'}]
+        return [self._normalize_device_entry(item) for item in items]
+
+    def _entry_label(self, entry):
+        return self._normalize_device_entry(entry)['label']
+
+    def _entry_removed(self, entry):
+        entry = self._normalize_device_entry(entry)
+        label = entry.get('label', '')
+        return label.startswith(REM_PREFIX) or entry.get('removed') is True
+
+    def _split_devices_groups(self):
+        normalized = self._normalize_devices_list(self.devices_list)
+        base = [e for e in normalized if e.get('type') != 'group']
+        groups = [e for e in normalized if e.get('type') == 'group']
+        return base, groups
+
+    def _group_entry_key(self, group_data):
+        if not isinstance(group_data, dict):
+            return ''
+        return str(group_data.get('group', group_data.get('key', ''))).strip()
+
+    def _fetch_api_data(self, url, params=None):
+        req = dict(params or {})
+        req['token'] = self.app_key
+        res = self.session.get(url, req)
+        if self._pushover_ok(res):
+            data = res.get('data') if isinstance(res, dict) else None
+            return data if isinstance(data, dict) else None
+        detail = self._pushover_error_text(res)
+        if detail:
+            LOGGER.warning('Pushover %s: %s', url, detail)
+        return None
+
     # Add items in second list to first if they don't exist
-    #  self.controler.add_to_list(self.devices_list,vstat['devices'])
-    def build_device_list(self,vlist):
-        if len(self.devices_list) == 0:
-            self.devices_list.append('all')
-        self.devices_list[0] = 'all'
-        # Add new items
+    def build_device_list(self, vlist):
+        if not isinstance(vlist, list):
+            vlist = []
+        base, groups = self._split_devices_groups()
+        devices_part = []
+        devices_part.append({'type': 'all', 'label': 'all'})
+        device_names = []
+        for entry in base:
+            if entry.get('type') != 'device':
+                continue
+            name = entry.get('name', entry.get('label', ''))
+            if name and name not in device_names:
+                devices_part.append(entry)
+                device_names.append(name)
         for item in vlist:
-            # If it's not in the saved list, append it
-            if self.devices_list.count(item) == 0:
-                self.devices_list.append(item)
-        # Make sure items are in the passed in list, otherwise prefix it
-        # in devices_list
-        for item in self.devices_list:
-            if item != 'all' and not item.startswith(REM_PREFIX) and vlist.count(item) == 0:
-                self.devices_list[self.devices_list.index(item)] = REM_PREFIX + item
+            if item not in device_names:
+                devices_part.append({'type': 'device', 'label': item, 'name': item})
+                device_names.append(item)
+        for idx, entry in enumerate(devices_part):
+            if entry.get('type') != 'device':
+                continue
+            name = entry.get('name', entry.get('label', ''))
+            if name.startswith(REM_PREFIX):
+                continue
+            if name not in vlist:
+                devices_part[idx] = {
+                    'type': 'device',
+                    'label': REM_PREFIX + name,
+                    'name': REM_PREFIX + name,
+                }
+        self.devices_list = devices_part + groups
         LOGGER.info("devices_list={}".format(self.devices_list))
+
+    def build_group_list(self):
+        data = self._fetch_api_data("1/groups.json")
+        base, existing_groups = self._split_devices_groups()
+        api_groups = {}
+        if isinstance(data, dict):
+            raw_groups = data.get('groups', [])
+            if isinstance(raw_groups, list):
+                for g in raw_groups:
+                    if not isinstance(g, dict):
+                        continue
+                    key = self._group_entry_key(g)
+                    name = str(g.get('name', '')).strip() or key
+                    if key:
+                        api_groups[key] = name
+            elif raw_groups:
+                LOGGER.warning(
+                    'Pushover %s: unexpected groups payload type %s',
+                    self.iname, type(raw_groups).__name__)
+        elif data is not None:
+            LOGGER.warning(
+                'Pushover %s: groups.json returned no groups array', self.iname)
+
+        groups_part = []
+        seen_keys = set()
+        # Keep saved group order so program indices stay stable even if
+        # Pushover returns groups in a different order on each call.
+        for entry in existing_groups:
+            key = entry.get('key')
+            if not key or key not in api_groups:
+                continue
+            name = api_groups[key]
+            groups_part.append({
+                'type': 'group',
+                'label': GROUP_LABEL_PREFIX + name,
+                'key': key,
+                'name': name,
+            })
+            seen_keys.add(key)
+
+        # New groups append at end in stable name order.
+        for key in sorted(
+                (k for k in api_groups if k not in seen_keys),
+                key=lambda k: api_groups[k].lower()):
+            name = api_groups[key]
+            groups_part.append({
+                'type': 'group',
+                'label': GROUP_LABEL_PREFIX + name,
+                'key': key,
+                'name': name,
+            })
+            seen_keys.add(key)
+
+        # Removed groups keep trailing slots (same pattern as devices).
+        for entry in existing_groups:
+            key = entry.get('key')
+            if not key or key in seen_keys:
+                continue
+            label = entry.get('label', GROUP_LABEL_PREFIX + entry.get('name', key))
+            if not label.startswith(REM_PREFIX):
+                label = REM_PREFIX + label
+            groups_part.append({
+                'type': 'group',
+                'label': label,
+                'key': key,
+                'name': entry.get('name', key),
+                'removed': True,
+            })
+
+        self.devices_list = base + groups_part
+        LOGGER.info(
+            'Pushover %s: devices_list with %d group(s)=%s',
+            self.iname, len(groups_part), self.devices_list)
 
     # Build the list of sounds, make sure the order of the list never changes.
     # sounds_list is a list of 2 element lists with shortname, longname
@@ -367,7 +514,7 @@ class Pushover(Node):
         i = 0
         t = 'device'
         for item in self.devices_list:
-            info.append('<tr><td>{}<td>{}<td>{}'.format(t,i,item))
+            info.append('<tr><td>{}<td>{}<td>{}'.format(t, i, self._entry_label(item)))
             i += 1
             t = '&nbsp;'
         t = 'sound'
@@ -422,9 +569,9 @@ class Pushover(Node):
         idx = 0
         subst = []
         for item in self.devices_list:
-            nls.write("POD_{}-{} = {}\n".format(self.iname,idx,item))
-            # Don't include REMOVED's in list
-            if not item.startswith(REM_PREFIX):
+            label = self._entry_label(item)
+            nls.write("POD_{}-{} = {}\n".format(self.iname, idx, label))
+            if not self._entry_removed(item):
                 subst.append(str(idx))
             idx += 1
         # Make sure it has at lease one
@@ -471,26 +618,59 @@ class Pushover(Node):
             return 0
         return int(cval)
 
-    def get_device_name_by_index(self,dev=None):
+    def resolve_target_by_index(self, dev=None):
         LOGGER.debug('dev={}'.format(dev))
         if dev is None:
             dev = self.get_device()
-            LOGGER.debug('dev={}'.format(dev))
-        else:
-            if not is_int(dev):
-                LOGGER.error('Passed in {} is not an integer'.format(dev))
-                return False
-            dev = int(dev)
-        dev_name = None
-        try:
-            # 0 is all, so return none, otherwise look up the name
-            if dev > 0:
-                dev_name = self.devices_list[dev]
-        except:
-            LOGGER.error('Bad device index {}'.format(dev),exc_info=True)
+        elif not is_int(dev):
+            LOGGER.error('Passed in {} is not an integer'.format(dev))
             self.set_error(ERROR_PARAM)
             return False
-        return dev_name
+        else:
+            dev = int(dev)
+        try:
+            entry = self._normalize_devices_list(self.devices_list)[dev]
+        except (IndexError, TypeError):
+            LOGGER.error('Bad device index {}'.format(dev), exc_info=True)
+            self.set_error(ERROR_PARAM)
+            return False
+        if self._entry_removed(entry):
+            LOGGER.error('Target index {} is removed ({})'.format(
+                dev, self._entry_label(entry)))
+            self.set_error(ERROR_PARAM)
+            return False
+        entry = self._normalize_device_entry(entry)
+        if entry['type'] == 'all':
+            return {'user': self.user_key}
+        if entry['type'] == 'group':
+            return {'user': entry['key']}
+        name = entry.get('name', entry.get('label', ''))
+        return {'user': self.user_key, 'device': name}
+
+    def get_device_name_by_index(self, dev=None):
+        LOGGER.debug('dev={}'.format(dev))
+        if dev is None:
+            dev = self.get_device()
+        elif not is_int(dev):
+            LOGGER.error('Passed in {} is not an integer'.format(dev))
+            return False
+        else:
+            dev = int(dev)
+        try:
+            entry = self._normalize_devices_list(self.devices_list)[dev]
+        except (IndexError, TypeError):
+            LOGGER.error('Bad device index {}'.format(dev), exc_info=True)
+            self.set_error(ERROR_PARAM)
+            return False
+        if self._entry_removed(entry):
+            self.set_error(ERROR_PARAM)
+            return False
+        entry = self._normalize_device_entry(entry)
+        if entry['type'] == 'all':
+            return None
+        if entry['type'] == 'group':
+            return entry.get('key')
+        return entry.get('name', entry.get('label'))
 
     def set_st(self,val):
         LOGGER.info(val)
@@ -747,18 +927,23 @@ class Pushover(Node):
 
     def do_send(self,params):
         LOGGER.info('params={}'.format(params))
-        # These may all eventually be passed in or pulled from drivers.
         if not 'message' in params:
             params['message'] = "NOT_SPECIFIED"
         if 'device' in params:
             if is_int(params['device']):
-                # It's an index, so getthe name
-                params['device'] = self.get_device_name_by_index(params['device'])
-                if params['device'] is False:
-                    # Bad param, can't send
+                target = self.resolve_target_by_index(params['device'])
+                if target is False:
                     return
+            else:
+                target = {'user': self.user_key, 'device': params['device']}
+            del params['device']
         else:
-            params['device'] = self.get_device_name_by_index()
+            target = self.resolve_target_by_index()
+            if target is False:
+                return
+        params['user'] = target['user']
+        if 'device' in target:
+            params['device'] = target['device']
         if 'priority' in params:
             params['priority'] = self.get_pushover_priority(params['priority'])
         else:
@@ -787,18 +972,12 @@ class Pushover(Node):
                 params['html'] = 1
             elif p == 2:
                 params['monospace'] = 1
-        params['user'] = self.user_key
         params['token'] = self.app_key
-        #
-        # Send the message in a thread with retries
-        #
-        # Just keep serving until we are killed
-        self.thread = Thread(target=self.post,args=(params,))
+        self.thread = Thread(target=self.post, args=(params,))
         self.thread.daemon = True
         LOGGER.debug('Starting Thread')
         st = self.thread.start()
         LOGGER.debug('Thread start st={}'.format(st))
-        # Always have to return true case we don't know..
         return True
 
     def post(self,params):
@@ -835,7 +1014,6 @@ class Pushover(Node):
                     retry = False
             if (not sent and retry):
                 time.sleep(RETRY_WAIT)
-        #LOGGER.info('is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
         return sent
 
     def get(self,url,params={}):
@@ -888,7 +1066,7 @@ class Pushover(Node):
     drivers = [
         {'driver': 'ST',  'value': 0, 'uom': 2, 'name': 'Last Status'},
         {'driver': 'ERR', 'value': 0, 'uom': 25, 'name': 'Error'},
-        {'driver': 'GV1', 'value': 0, 'uom': 25, 'name': 'Device'},
+        {'driver': 'GV1', 'value': 0, 'uom': 25, 'name': 'DeviceOrGroup'},
         {'driver': 'GV2', 'value': 2, 'uom': 25, 'name': 'Priority'},
         {'driver': 'GV3', 'value': 0, 'uom': 25, 'name': 'Format'},
         {'driver': 'GV4', 'value': 30, 'uom': 56, 'name': 'Retry'},

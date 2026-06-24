@@ -40,7 +40,7 @@ ND-pushover-NAME = Pushover Default Node
 
 ST-pov-ST-NAME = Last Status
 ST-pov-ERR-NAME = Error
-ST-pov-GV1-NAME = Device
+ST-pov-GV1-NAME = DeviceOrGroup
 ST-pov-GV2-NAME = Priority
 ST-pov-GV3-NAME = Format
 ST-pov-GV4-NAME = Retry
@@ -48,7 +48,7 @@ ST-pov-GV5-NAME = Expire
 ST-pov-GV6-NAME = Sound
 ST-pov-GV7-NAME = User Message
 
-CMD-SET_DEVICE-NAME = Device
+CMD-SET_DEVICE-NAME = DeviceOrGroup
 CMD-SET_PRIORITY-NAME = Priority
 CMD-SET_FORMAT-NAME = Format
 CMD-SET_RETRY-NAME = Retry
@@ -62,7 +62,7 @@ CMD-pov-SEND_MY_SYS_CUSTOM-NAME = Send Sys Custom
 
 CMD-pov-GV10-NAME = Send Sys Custom With Params
 PGM-CMD-pov-GV10-FMT = /Device/${c}/${c} To ${vo}/ /Priority// Priority=${vo}/ /Format// Format=${vo}/ /Sound// Sound=${vo}/ /Retry// Retry=${vo}/ /Expire// Expire=${vo}/ /Content// Content ${v} (ID=${vo})/
-CMDP-Device-NAME = Device
+CMDP-Device-NAME = DeviceOrGroup
 CMDP-Priority-NAME = Priority
 CMDP-Format-NAME = Format
 CMDP-Sound-NAME = Sound
@@ -111,7 +111,7 @@ ND-notify-NAME = Notify
 ST-povnfy-GV1-NAME = Device On Message
 ST-povnfy-GV2-NAME = Device Off Message
 ST-povnfy-GV3-NAME = Service Node
-ST-povnfy-GV4-NAME = Pushover Device
+ST-povnfy-GV4-NAME = Pushover DeviceOrGroup
 ST-povnfy-GV5-NAME = Pushover Priority
 ST-povnfy-GV6-NAME = Pushover Format
 ST-povnfy-GV7-NAME = Pushover Retry
@@ -120,7 +120,7 @@ ST-povnfy-GV9-NAME = Pushover Sound
 CMD-povnfy-SET_MESSAGE_DON-NAME = Set Device On Message
 CMD-povnfy-SET_MESSAGE_DOF-NAME = Set Device Off Message
 CMD-povnfy-SET_NODE-NAME = Set Service Node
-CMD-povnfy-SET_DEVICE-NAME = Set Pushover Device
+CMD-povnfy-SET_DEVICE-NAME = Set Pushover DeviceOrGroup
 CMD-povnfy-SET_PRIORIY-NAME = Set Pushover Priority
 CMD-povnfy-SET_FORMAT-NAME = Set Pushover Format
 CMD-povnfy-SET_RETRY-NAME = Set Pushover Retry
