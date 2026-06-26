@@ -10,7 +10,14 @@ from udi_interface import Node,LOGGER
 from threading import Thread
 import time
 from copy import deepcopy
-from node_funcs import make_file_dir,is_int,SendQueue
+from node_funcs import (
+    make_file_dir,
+    is_int,
+    SendQueue,
+    send_queue_storage_key,
+    load_send_queue,
+    persist_send_queue,
+)
 from constants import SOUNDS_LIST
 
 ERROR_NONE       = 0
@@ -72,6 +79,7 @@ class ISYPortal(Node):
         """
         """
         LOGGER.info('')
+        self._load_persisted_send_queue()
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
@@ -111,17 +119,30 @@ class ISYPortal(Node):
             and self.controller.is_profile_node_written(self)
         )
 
+    def _send_queue_key(self):
+        return send_queue_storage_key('isyp', self.iname)
+
+    def _load_persisted_send_queue(self):
+        load_send_queue(self.controller, self._send_queue_key(), self.send_queue, LOGGER)
+
+    def _persist_send_queue(self, immediate=False):
+        persist_send_queue(
+            self.controller, self._send_queue_key(), self.send_queue, immediate=immediate
+        )
+
     def enqueue_send(self,params,reason):
         qparams = deepcopy(params)
         dropped = self.send_queue.enqueue(qparams)
         if dropped is not None:
             LOGGER.warning('ISY Portal queue full ({}), dropped oldest notification'.format(SEND_QUEUE_MAX))
         LOGGER.warning('Queued ISY Portal notification ({} pending): {}'.format(self.send_queue.size(), reason))
+        self._persist_send_queue()
 
     def flush_send_queue(self):
         if not self.can_deliver():
             return 0
         items = self.send_queue.pop_all()
+        self._persist_send_queue(immediate=True)
         if len(items) == 0:
             return 0
         payloads, stale = self.send_queue.keep_fresh(items)

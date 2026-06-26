@@ -1,5 +1,5 @@
 """
-  Notification WhatsApp Node (CallMeBot)
+  Notification WhatsApp Node (CallMeBot / TextMeBot)
 """
 
 from udi_interface import Node, LOGGER
@@ -7,7 +7,48 @@ from threading import Thread, Lock
 from copy import deepcopy
 import time
 
-from node_funcs import make_file_dir, is_int, SendQueue
+from node_funcs import (
+    make_file_dir,
+    is_int,
+    SendQueue,
+    send_queue_storage_key,
+    load_send_queue,
+    persist_send_queue,
+    get_send_queue_debouncer,
+)
+
+PROVIDER_CALLMEBOT = 'callmebot'
+PROVIDER_TEXTMEBOT = 'textmebot'
+WHATSAPP_PROVIDERS = (PROVIDER_CALLMEBOT, PROVIDER_TEXTMEBOT)
+
+WHATSAPP_PROVIDER_CONFIG = {
+    PROVIDER_CALLMEBOT: {
+        'label': 'CallMeBot',
+        'base_url': 'https://api.callmebot.com',
+        'path': 'whatsapp.php',
+        'phone_param': 'phone',
+    },
+    PROVIDER_TEXTMEBOT: {
+        'label': 'TextMeBot',
+        'base_url': 'https://api.textmebot.com',
+        'path': 'send.php',
+        'phone_param': 'recipient',
+    },
+}
+
+
+def normalize_whatsapp_provider(raw, default=PROVIDER_CALLMEBOT):
+    if raw is None or str(raw).strip() == '':
+        return default
+    key = str(raw).strip().lower().replace(' ', '').replace('_', '').replace('-', '')
+    aliases = {
+        'callmebot': PROVIDER_CALLMEBOT,
+        'callme': PROVIDER_CALLMEBOT,
+        'textmebot': PROVIDER_TEXTMEBOT,
+        'textme': PROVIDER_TEXTMEBOT,
+    }
+    return aliases.get(key, key)
+
 
 ERROR_NONE = 0
 ERROR_UNKNOWN = 1
@@ -19,6 +60,7 @@ ERROR_MESSAGE_SEND = 5
 RETRY_MAX = -1
 RETRY_WAIT = 5
 RECIPIENT_DELAY = 3
+TEXTMEBOT_SEND_INTERVAL = 5
 SEND_QUEUE_MAX = 128
 SEND_QUEUE_MAX_AGE = 3600
 FAILED_REQUEUE_MAX = 5
@@ -35,6 +77,7 @@ class WhatsApp(Node):
         self.iname = info['name']
         self.oid = self.id
         self.id = 'whatsapp_' + self.iname
+        self.provider = normalize_whatsapp_provider(info.get('provider'))
         self.recipients = self._normalize_recipients(info.get('recipients'))
         self.phones_list = self._build_phones_list()
         self._sys_short = None
@@ -42,6 +85,9 @@ class WhatsApp(Node):
         self._flush_timer_lock = Lock()
         self._flush_timer = None
         self._rate_limited_until = 0
+        self._last_textmebot_send_at = 0
+        self.authorized = False
+        self._init_st = None
         self.send_queue = SendQueue(SEND_QUEUE_MAX, SEND_QUEUE_MAX_AGE)
         self.driver = {}
         LOGGER.debug('{} {}'.format(address, name))
@@ -94,6 +140,10 @@ class WhatsApp(Node):
     def _notice_key(self):
         return f'whatsapp_{self.iname}'
 
+    def _provider_label(self):
+        cfg = WHATSAPP_PROVIDER_CONFIG.get(self.provider, {})
+        return cfg.get('label', self.provider)
+
     def _callmebot_ok(self, res):
         # CallMeBot returns HTML (not JSON). 200/201/210 all mean accepted/queued.
         if not isinstance(res, dict):
@@ -110,14 +160,75 @@ class WhatsApp(Node):
                 return False
         return True
 
+    def _textmebot_ok(self, res):
+        if not isinstance(res, dict):
+            return False
+        if res.get('code') != 200:
+            return False
+        data = res.get('data')
+        if isinstance(data, str):
+            lower = data.lower()
+            if 'result:' in lower and 'success' in lower:
+                return True
+            if 'success!' in lower:
+                return True
+            if 'error' in lower:
+                return False
+        return True
+
+    def _send_ok(self, res):
+        if self.provider == PROVIDER_TEXTMEBOT:
+            return self._textmebot_ok(res)
+        return self._callmebot_ok(res)
+
     def _callmebot_rate_limited(self, res):
         return isinstance(res, dict) and res.get('code') == 503
+
+    def _textmebot_rate_limited(self, res):
+        return isinstance(res, dict) and res.get('code') in (429, 503)
+
+    def _send_rate_limited(self, res):
+        if self.provider == PROVIDER_TEXTMEBOT:
+            return self._textmebot_rate_limited(res)
+        return self._callmebot_rate_limited(res)
 
     def _is_rate_limited(self):
         return time.time() < self._rate_limited_until
 
     def _mark_rate_limited(self):
         self._rate_limited_until = time.time() + RATE_LIMIT_COOLDOWN
+        self._persist_rate_limited_until()
+
+    def _rate_limit_key(self):
+        return f'rate_limited_until_whatsapp_{self.iname}_{self.provider}'
+
+    def _load_rate_limited_until(self):
+        raw = self.controller.get_data(self._rate_limit_key(), None)
+        if raw is None and self.provider == PROVIDER_CALLMEBOT:
+            raw = self.controller.get_data(f'rate_limited_until_whatsapp_{self.iname}', 0)
+        try:
+            until = float(raw or 0)
+        except (TypeError, ValueError):
+            until = 0
+        if until > time.time():
+            self._rate_limited_until = until
+            LOGGER.info(
+                'WhatsApp %s (%s): restored rate-limit cooldown (~%ss remaining)',
+                self.iname,
+                self._provider_label(),
+                int(until - time.time()),
+            )
+        else:
+            self._rate_limited_until = 0
+
+    def _persist_rate_limited_until(self):
+        key = self._rate_limit_key()
+        if self._rate_limited_until > time.time():
+            get_send_queue_debouncer().write_now(
+                self.controller, key, self._rate_limited_until
+            )
+        else:
+            get_send_queue_debouncer().write_now(self.controller, key, 0)
 
     def _callmebot_error(self, res):
         if isinstance(res, dict):
@@ -131,6 +242,23 @@ class WhatsApp(Node):
                 return data.strip()
         return 'Unknown CallMeBot error'
 
+    def _textmebot_error(self, res):
+        if isinstance(res, dict):
+            code = res.get('code')
+            if code in (429, 503):
+                return 'TextMeBot rate limit (too many requests) — wait and try again'
+            if res.get('errorMessage') and res['errorMessage'] != 'Unknown response':
+                return res['errorMessage']
+            data = res.get('data')
+            if isinstance(data, str) and data.strip():
+                return data.strip()
+        return 'Unknown TextMeBot error'
+
+    def _send_error(self, res):
+        if self.provider == PROVIDER_TEXTMEBOT:
+            return self._textmebot_error(res)
+        return self._callmebot_error(res)
+
     def _valid_text(self, text):
         if text is None:
             return False
@@ -143,34 +271,69 @@ class WhatsApp(Node):
         s = str(msg).strip()
         return s == 'ERROR' or s.startswith('ERROR\n')
 
+    def _wait_textmebot_interval(self):
+        if self.provider != PROVIDER_TEXTMEBOT:
+            return
+        wait = TEXTMEBOT_SEND_INTERVAL - (time.time() - self._last_textmebot_send_at)
+        if wait > 0:
+            LOGGER.debug(
+                'TextMeBot %s: waiting %.1fs before next message',
+                self.iname,
+                wait,
+            )
+            time.sleep(wait)
+
+    def _note_textmebot_send(self):
+        if self.provider == PROVIDER_TEXTMEBOT:
+            self._last_textmebot_send_at = time.time()
+
     def _send_sync(self, phone, apikey, text):
-        params = {
-            'phone': phone,
-            'text': text,
-            'apikey': apikey,
-        }
-        sent = False
-        retry = True
-        cnt = 0
-        last_res = None
-        while not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX):
-            cnt += 1
-            LOGGER.debug('CallMeBot try #{} phone={}'.format(cnt, phone))
-            last_res = self.session.get('whatsapp.php', params=params)
-            LOGGER.debug('CallMeBot res={}'.format(last_res))
-            if self._callmebot_ok(last_res):
-                sent = True
-            elif self._callmebot_rate_limited(last_res):
-                self._mark_rate_limited()
-                retry = False
-            else:
-                if isinstance(last_res, dict) and last_res.get('code') is not None and 400 <= last_res['code'] < 500:
+        with self._send_lock:
+            self._wait_textmebot_interval()
+            cfg = WHATSAPP_PROVIDER_CONFIG[self.provider]
+            params = {
+                cfg['phone_param']: phone,
+                'text': text,
+                'apikey': apikey,
+            }
+            sent = False
+            retry = True
+            cnt = 0
+            last_res = None
+            label = self._provider_label()
+            while not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX):
+                cnt += 1
+                LOGGER.debug('%s try #%s phone=%s', label, cnt, phone)
+                last_res = self.session.get(cfg['path'], params=params)
+                self._note_textmebot_send()
+                LOGGER.debug('%s res=%s', label, last_res)
+                if self._send_ok(last_res):
+                    sent = True
+                elif self._send_rate_limited(last_res):
+                    self._mark_rate_limited()
                     retry = False
-                elif isinstance(last_res, dict) and last_res.get('retryable') is False:
-                    retry = False
-                if not sent and retry:
-                    time.sleep(RETRY_WAIT)
-        return sent, last_res
+                else:
+                    if isinstance(last_res, dict) and last_res.get('code') is not None and 400 <= last_res['code'] < 500:
+                        retry = False
+                    elif isinstance(last_res, dict) and last_res.get('retryable') is False:
+                        retry = False
+                    if not sent and retry:
+                        time.sleep(RETRY_WAIT)
+            return sent, last_res
+
+    def _send_queue_key(self):
+        return send_queue_storage_key('whatsapp', self.iname)
+
+    def _load_persisted_send_queue(self):
+        self._load_rate_limited_until()
+        load_send_queue(self.controller, self._send_queue_key(), self.send_queue, LOGGER)
+        if self.send_queue.size() > 0:
+            self._update_send_queue_notice()
+
+    def _persist_send_queue(self, immediate=False):
+        persist_send_queue(
+            self.controller, self._send_queue_key(), self.send_queue, immediate=immediate
+        )
 
     def enqueue_send(self, text, recipients, reason, retry_count=0):
         payload = {
@@ -188,6 +351,7 @@ class WhatsApp(Node):
             'Queued WhatsApp {} message ({} pending): {}'
             .format(self.iname, self.send_queue.size(), reason)
         )
+        self._persist_send_queue()
         self._update_send_queue_notice()
 
     def requeue_failed_send(self, text, recipients, reason, retry_count=0):
@@ -207,7 +371,7 @@ class WhatsApp(Node):
         if n > 0:
             wait = max(0, int(self._rate_limited_until - time.time()))
             self.controller.Notices[key] = (
-                f'WhatsApp {self.iname}: {n} message(s) queued for CallMeBot '
+                f'WhatsApp {self.iname}: {n} message(s) queued for {self._provider_label()} '
                 f'(rate limit). Retrying in ~{wait}s.'
             )
         elif not self._is_rate_limited():
@@ -235,6 +399,7 @@ class WhatsApp(Node):
             self._schedule_flush_queue()
             return 0
         items = self.send_queue.pop_all()
+        self._persist_send_queue(immediate=True)
         if len(items) == 0:
             return 0
         payloads, stale = self.send_queue.keep_fresh(items)
@@ -280,12 +445,26 @@ class WhatsApp(Node):
                 errors.append(f"{phone or '(empty)'}: phone must include country code and start with +")
                 continue
             if not apikey:
-                errors.append(f"{phone}: missing CallMeBot apikey")
+                errors.append(f"{phone}: missing {self._provider_label()} apikey")
+                continue
+            if self._is_rate_limited():
+                rate_limited = True
+                self.enqueue_send(
+                    startup_text,
+                    [{'phone': phone, 'apikey': apikey}],
+                    'startup validation (rate limit cooldown)',
+                )
                 continue
             sent, res = self._send_sync(phone, apikey, startup_text)
             if sent:
+                LOGGER.info(
+                    'WhatsApp %s (%s): startup test message sent to %s',
+                    self.iname,
+                    self._provider_label(),
+                    phone,
+                )
                 continue
-            if self._callmebot_rate_limited(res):
+            if self._send_rate_limited(res):
                 rate_limited = True
                 self.enqueue_send(
                     startup_text,
@@ -293,7 +472,11 @@ class WhatsApp(Node):
                     'startup validation (rate limited)',
                 )
                 continue
-            errors.append(f"{phone}: {self._callmebot_error(res)}")
+            errors.append(f"{phone}: {self._send_error(res)}")
+
+        if rate_limited:
+            self._persist_send_queue(immediate=True)
+            self._schedule_flush_queue()
 
         if errors:
             msg = f"WhatsApp {self.iname}: " + "; ".join(errors)
@@ -305,6 +488,7 @@ class WhatsApp(Node):
 
     def handler_start(self):
         LOGGER.info('')
+        self._load_persisted_send_queue()
         self.driver = {}
         self.phones_list = self._build_phones_list()
         self.set_phone(self.get_phone_index())
@@ -326,7 +510,7 @@ class WhatsApp(Node):
                     self.iname,
                 )
                 self.controller.Notices[self._notice_key()] = (
-                    f'WhatsApp {self.iname}: startup test message queued (CallMeBot rate limit)'
+                    f'WhatsApp {self.iname}: startup test message queued ({self._provider_label()} rate limit)'
                 )
             self.controller.on_service_node_ready(self)
         else:
@@ -357,10 +541,10 @@ class WhatsApp(Node):
             rest_ip = self.controller.rest.ip
             rest_port = self.controller.rest.listen_port
         return (
-            '<h4>Example Network Resource for WhatsApp (CallMeBot)</h4>'
-            '<ul><li>http<li>POST<li>Host:{0}<li>Port:{1}<li>Path: /send?node={2}'
+            '<h4>Example Network Resource for WhatsApp ({0})</h4>'
+            '<ul><li>http<li>POST<li>Host:{1}<li>Port:{2}<li>Path: /send?node={3}'
             '<li>Encode URL: not checked<li>Timeout: 5000<li>Mode: Raw Text</ul>'
-        ).format(rest_ip, rest_port, self.address)
+        ).format(self._provider_label(), rest_ip, rest_port, self.address)
 
     def write_profile(self, nls):
         LOGGER.debug('')
@@ -563,7 +747,7 @@ class WhatsApp(Node):
             self.set_error(ERROR_MESSAGE_CREATE)
             return False
         if self._is_rate_limited():
-            self.enqueue_send(text, recipients, 'CallMeBot rate limit active')
+            self.enqueue_send(text, recipients, f'{self._provider_label()} rate limit active')
             self._schedule_flush_queue()
             return True
         if self.authorized:
@@ -579,55 +763,60 @@ class WhatsApp(Node):
             recipients = self._recipients_for_index()
         if self._is_rate_limited():
             if not from_queue:
-                self.enqueue_send(text, recipients, 'CallMeBot rate limit active')
+                self.enqueue_send(text, recipients, f'{self._provider_label()} rate limit active')
             else:
                 self.enqueue_send(
-                    text, recipients, 'CallMeBot still rate limited', retry_count=retry_count
+                    text, recipients, f'{self._provider_label()} still rate limited', retry_count=retry_count
                 )
             self._schedule_flush_queue()
             return False
         phones = [r.get('phone', '') for r in recipients]
         LOGGER.info(
-            'WhatsApp {}: sending to {} recipient(s): {}'
-            .format(self.iname, len(recipients), ', '.join(phones))
+            'WhatsApp %s (%s): sending to %s recipient(s): %s',
+            self.iname,
+            self._provider_label(),
+            len(recipients),
+            ', '.join(phones),
         )
-        with self._send_lock:
-            all_sent = True
-            self.set_error(ERROR_NONE)
-            for i, recipient in enumerate(recipients):
-                if i > 0:
-                    time.sleep(RECIPIENT_DELAY)
-                phone = recipient['phone']
-                apikey = recipient['apikey']
-                if not phone.startswith('+') or not apikey:
-                    LOGGER.error(f"Invalid recipient config for {self.iname}: {recipient}")
-                    all_sent = False
-                    continue
-                sent, res = self._send_sync(phone, apikey, text)
-                if not sent:
-                    LOGGER.error(
-                        'CallMeBot send failed for {}: {}'.format(phone, self._callmebot_error(res))
+        all_sent = True
+        self.set_error(ERROR_NONE)
+        for i, recipient in enumerate(recipients):
+            if i > 0 and self.provider != PROVIDER_TEXTMEBOT:
+                time.sleep(RECIPIENT_DELAY)
+            phone = recipient['phone']
+            apikey = recipient['apikey']
+            if not phone.startswith('+') or not apikey:
+                LOGGER.error(f"Invalid recipient config for {self.iname}: {recipient}")
+                all_sent = False
+                continue
+            sent, res = self._send_sync(phone, apikey, text)
+            if not sent:
+                LOGGER.error(
+                    '%s send failed for %s: %s',
+                    self._provider_label(),
+                    phone,
+                    self._send_error(res),
+                )
+                all_sent = False
+                if self._send_rate_limited(res):
+                    remaining = recipients[i:]
+                    self.enqueue_send(
+                        text,
+                        remaining,
+                        f'{self._provider_label()} rate limit on {phone}',
+                        retry_count=retry_count,
                     )
-                    all_sent = False
-                    if self._callmebot_rate_limited(res):
-                        remaining = recipients[i:]
-                        self.enqueue_send(
-                            text,
-                            remaining,
-                            f'CallMeBot rate limit on {phone}',
-                            retry_count=retry_count,
-                        )
-                        self._schedule_flush_queue()
-                        break
-                    if from_queue and retry_count < FAILED_REQUEUE_MAX:
-                        remaining = recipients[i:]
-                        self.requeue_failed_send(
-                            text,
-                            remaining,
-                            self._callmebot_error(res),
-                            retry_count=retry_count,
-                        )
-                        break
+                    self._schedule_flush_queue()
+                    break
+                if from_queue and retry_count < FAILED_REQUEUE_MAX:
+                    remaining = recipients[i:]
+                    self.requeue_failed_send(
+                        text,
+                        remaining,
+                        self._send_error(res),
+                        retry_count=retry_count,
+                    )
+                    break
         if all_sent:
             self._update_send_queue_notice()
             self.set_error(ERROR_NONE)
@@ -646,7 +835,6 @@ class WhatsApp(Node):
             del params['message']
         return self.do_send(params)
 
-    _init_st = None
     id = 'WhatsApp'
     drivers = [
         {'driver': 'ST', 'value': 0, 'uom': 2, 'name': 'Last Status'},

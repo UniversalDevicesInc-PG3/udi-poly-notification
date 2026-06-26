@@ -7,6 +7,33 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.31] - 2026-06-26
+
+### Added
+
+- **WhatsApp provider choice:** Each WhatsApp service node can use **CallMeBot** (default) or **TextMeBot** via a new **WhatsApp API provider** config field. TextMeBot uses `https://api.textmebot.com/send.php` with `recipient`, `text`, and `apikey` parameters.
+
+### Changed
+
+- **WhatsApp rate-limit persistence:** Cooldown customdata key now includes provider (`rate_limited_until_whatsapp_{name}_{provider}`); legacy CallMeBot keys are still read on upgrade.
+- **TextMeBot send pacing:** WhatsApp nodes using TextMeBot enforce a 5 second minimum delay between API calls (startup test, program sends, multi-recipient, and queued flush).
+
+### Fixed
+
+- **Telegram startup validation:** Initialize `authorized` before validate startup test to avoid AttributeError on nodeserver restart.
+
+## [3.6.30] - 2026-06-21
+
+### Added
+
+- **Persistent send queues (Fixes #31):** UD Mobile, ISY Portal, WhatsApp, Pushover, and Telegram queue failed or deferred notifications in PG3 customdata so they survive nodeserver restarts (up to 128 items, 1 hour TTL, 5 requeue attempts per message).
+- **WhatsApp rate-limit persistence:** CallMeBot cooldown state is restored after restart so queued messages do not immediately hit the API again.
+
+### Changed
+
+- **Pushover / Telegram delivery:** In-thread infinite retry loops replaced with persisted queue + requeue on transient failure (same model as UD Mobile and ISY Portal).
+- **Queue persistence writes:** Rapid enqueue bursts coalesce into debounced customdata saves (~1s); flush/pop uses immediate save.
+
 ## [3.6.29] - 2026-06-21
 
 ### Added

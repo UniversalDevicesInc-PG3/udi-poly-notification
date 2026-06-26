@@ -47,6 +47,10 @@ The nodeserver allows you to
 3. LARGE MESSAGES WITH SYSTEM VARIABLES: Send ISY Network resources to the nodeserver REST interface where recipients are controlled by a program which can include a large message body with system variables!
 4. [System Customizations](#system-customizations)
 
+### Queued delivery
+
+If a service is not ready or the remote API is temporarily unavailable, notifications are queued (up to 128 items, 1 hour TTL) and persisted across nodeserver restarts. Applies to UD Mobile, ISY Portal, WhatsApp, Pushover, and Telegram.
+
 
 ## Notification Services
 
@@ -87,20 +91,23 @@ Optional fallback: if auto-discovery does not work, get your numeric user id fro
 
 Monitor in ISY programs with `${sys.node...tu_...GV1}` (Ready) and `${sys.node...tu_...ERR}` (Error).
 
-### WhatsApp (CallMeBot)
+### WhatsApp (CallMeBot / TextMeBot)
 
-Free personal WhatsApp notifications via the [CallMeBot API](https://www.callmebot.com/blog/free-api-whatsapp-messages/). CallMeBot does not support WhatsApp groups — add multiple **Recipients** on one service node to notify several people (each gets an individual message).
+Personal WhatsApp notifications via [CallMeBot](https://www.callmebot.com/blog/free-api-whatsapp-messages/) (free) or [TextMeBot](https://textmebot.com/). Each service node selects a provider. Neither supports WhatsApp groups — add multiple **Recipients** on one service node to notify several people (each gets an individual message).
 
-*Per recipient:*
+**CallMeBot** — *per recipient:*
 1. Add **+34 684 73 40 44** to WhatsApp contacts
 2. Send: `I allow callmebot to send me messages`
 3. Save the API key from the bot reply (or send `Recover APIKey` if lost)
 
+**TextMeBot** — request an API key at textmebot.com and follow the email link to connect your WhatsApp number. The nodeserver enforces a **5 second minimum delay** between TextMeBot API calls.
+
 *Configure in PG3:*
-1. **Add WhatsApp Service Nodes (CallMeBot)**
+1. **Add WhatsApp Service Nodes**
 2. Set **Name** (8 characters or less)
-3. Add **Recipients** rows: **Phone** with country code (e.g. `+1234567890`) and **CallMeBot API key**
-4. **Save Changes** and **Restart** — a startup test message is sent to each recipient
+3. Set **WhatsApp API provider** to `callmebot` or `textmebot`
+4. Add **Recipients** rows: **Phone** with country code (e.g. `+1234567890`) and **API key** from your provider
+5. **Save Changes** and **Restart** — a startup test message is sent to each recipient
 
 Use like other service nodes in programs, REST (`/send?node=wa_...`), System Customizations, and Notify nodes.
 

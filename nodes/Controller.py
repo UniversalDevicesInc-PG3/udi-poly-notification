@@ -25,6 +25,11 @@ from telegram_funcs import (
     bot_link_from_get_me,
     external_link,
 )
+from nodes.WhatsApp import (
+    WHATSAPP_PROVIDERS,
+    WHATSAPP_PROVIDER_CONFIG,
+    normalize_whatsapp_provider,
+)
 from dev_settings import (
     resolve_edition,
     DevSafeCustom,
@@ -567,6 +572,16 @@ class Controller(Node):
     def _telegram_notice_key(self, name):
         return f'telegramub_{name}'
 
+    def _ensure_whatsapp_session(self, provider):
+        if not hasattr(self, 'whatsapp_sessions') or self.whatsapp_sessions is None:
+            self.whatsapp_sessions = {}
+        if provider not in self.whatsapp_sessions:
+            cfg = WHATSAPP_PROVIDER_CONFIG[provider]
+            self.whatsapp_sessions[provider] = polyglotSession(
+                self, cfg['base_url'], LOGGER
+            )
+        return self.whatsapp_sessions[provider]
+
     def _ensure_telegram_session(self):
         if self.telegramub_session is None:
             self.telegramub_session = polyglotSession(
@@ -880,8 +895,8 @@ class Controller(Node):
                 },
                 {
                     'name': 'whatsapp',
-                    'title': 'WhatsApp Service Nodes (CallMeBot)',
-                    'desc': 'Free personal WhatsApp notifications via https://www.callmebot.com/',
+                    'title': 'WhatsApp Service Nodes',
+                    'desc': 'Personal WhatsApp notifications via CallMeBot or TextMeBot',
                     'isList': True,
                     'params': [
                         {
@@ -890,8 +905,14 @@ class Controller(Node):
                             'isRequired': True
                         },
                         {
+                            'name': 'provider',
+                            'title': 'WhatsApp API provider (callmebot or textmebot)',
+                            'defaultValue': 'callmebot',
+                            'isRequired': True
+                        },
+                        {
                             'name': 'recipients',
-                            'title': 'Recipients (each person activates CallMeBot on their own phone)',
+                            'title': 'Recipients (each person activates the chosen provider on their phone)',
                             'isRequired': True,
                             'isList': True,
                             'params': [
@@ -902,7 +923,7 @@ class Controller(Node):
                                 },
                                 {
                                     'name': 'apikey',
-                                    'title': 'CallMeBot API key for this phone',
+                                    'title': 'API key from your WhatsApp provider for this phone',
                                     'isRequired': True
                                 },
                             ],
@@ -1253,6 +1274,13 @@ class Controller(Node):
                 if sname is None:
                     continue
                 pd['type'] = 'whatsapp'
+                provider = normalize_whatsapp_provider(pd.get('provider'))
+                if provider not in WHATSAPP_PROVIDERS:
+                    err_list.append(
+                        f"WhatsApp {sname}: provider must be callmebot or textmebot (got {pd.get('provider')!r})."
+                    )
+                    continue
+                pd['provider'] = provider
                 snames[sname] = pd
                 address = self.get_service_node_address_whatsapp(sname)
                 if not address in wnames:
@@ -1278,7 +1306,7 @@ class Controller(Node):
                         )
                     if not apikey:
                         err_list.append(
-                            f"WhatsApp {sname}: recipient {phone or '(empty)'} is missing CallMeBot apikey."
+                            f"WhatsApp {sname}: recipient {phone or '(empty)'} is missing API key."
                         )
             for address in wnames:
                 if len(wnames[address]) > 1:
@@ -1409,19 +1437,21 @@ class Controller(Node):
                     LOGGER.info('service_nodes={}'.format(self.service_nodes))
 
         if whatsapp is not None:
-            self.whatsapp_session = polyglotSession(self, "https://api.callmebot.com", LOGGER)
+            self.whatsapp_sessions = {}
             for pd in whatsapp:
                 if self.edition == "Free":
                     err = f"Can't add WhatsApp node {pd['name']} in {self.edition} Edition"
                     LOGGER.error(err)
                     self.Notices[pd['name']] = err
                 else:
+                    provider = normalize_whatsapp_provider(pd.get('provider'))
+                    session = self._ensure_whatsapp_session(provider)
                     snode = self.add_node(WhatsApp(
                         self,
                         self.address,
                         self.get_service_node_address_whatsapp(pd['name']),
                         get_valid_node_name('Service WhatsApp ' + pd['name']),
-                        self.whatsapp_session,
+                        session,
                         pd,
                     ))
                     self.service_nodes.append({'name': pd['name'], 'node': snode, 'index': len(self.service_nodes)})

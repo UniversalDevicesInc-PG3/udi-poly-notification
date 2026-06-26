@@ -7,7 +7,16 @@ from threading import Thread,Event
 import time
 import logging
 import collections
-from node_funcs import make_file_dir,is_int,get_default_sound_index
+from copy import deepcopy
+from node_funcs import (
+    make_file_dir,
+    is_int,
+    get_default_sound_index,
+    SendQueue,
+    send_queue_storage_key,
+    load_send_queue,
+    persist_send_queue,
+)
 from telegram_funcs import (
     telegram_ok,
     telegram_description,
@@ -31,6 +40,9 @@ REM_PREFIX = "REMOVED-"
 RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
+SEND_QUEUE_MAX = 128
+SEND_QUEUE_MAX_AGE = 3600
+FAILED_REQUEUE_MAX = 5
 
 class TelegramUB(Node):
     """
@@ -54,6 +66,9 @@ class TelegramUB(Node):
         else:
             self.users         = list()
         self.user_id       = None
+        self.authorized    = False
+        self._init_st      = None
+        self.send_queue = SendQueue(SEND_QUEUE_MAX, SEND_QUEUE_MAX_AGE)
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(TelegramUB, self).__init__(controller.poly, primary, address, name)
@@ -62,6 +77,7 @@ class TelegramUB(Node):
         """
         """
         LOGGER.info('')
+        self._load_persisted_send_queue()
         vstat = self.validate()
         if vstat.get('status') is not True:
             self.authorized = False
@@ -73,7 +89,69 @@ class TelegramUB(Node):
             self.set_ready(True)
             self.set_error(ERROR_NONE)
             self._init_st = True
+            self.controller.on_service_node_ready(self)
+            self.flush_send_queue()
         LOGGER.info("Authorized={}".format(self.authorized))
+
+    def _send_queue_key(self):
+        return send_queue_storage_key('telegram', self.iname)
+
+    def _load_persisted_send_queue(self):
+        load_send_queue(self.controller, self._send_queue_key(), self.send_queue, LOGGER)
+
+    def _persist_send_queue(self, immediate=False):
+        persist_send_queue(
+            self.controller, self._send_queue_key(), self.send_queue, immediate=immediate
+        )
+
+    def enqueue_send(self, params, reason):
+        qparams = deepcopy(params)
+        dropped = self.send_queue.enqueue(qparams)
+        if dropped is not None:
+            LOGGER.warning(
+                'Telegram {} queue full ({}), dropped oldest notification'
+                .format(self.iname, SEND_QUEUE_MAX)
+            )
+        LOGGER.warning(
+            'Queued Telegram {} notification ({} pending): {}'
+            .format(self.iname, self.send_queue.size(), reason)
+        )
+        self._persist_send_queue()
+
+    def flush_send_queue(self):
+        if not self.authorized:
+            return 0
+        items = self.send_queue.pop_all()
+        self._persist_send_queue(immediate=True)
+        if len(items) == 0:
+            return 0
+        payloads, stale = self.send_queue.keep_fresh(items)
+        if stale > 0:
+            LOGGER.warning(
+                'Dropped {} stale queued Telegram {} notifications'
+                .format(stale, self.iname)
+            )
+        for params in payloads:
+            self.post(params, retry_count=int(params.get('_retry_count', 0)))
+        LOGGER.warning(
+            'Flushed {} queued Telegram {} notifications'
+            .format(len(payloads), self.iname)
+        )
+        return len(payloads)
+
+    def requeue_failed_send(self, params, reason, retry_count=0):
+        retry_count = int(params.get('_retry_count', retry_count)) + 1
+        if retry_count > FAILED_REQUEUE_MAX:
+            LOGGER.error(
+                'Telegram {} failed message exceeded requeue max {}, dropping. reason={}'
+                .format(self.iname, FAILED_REQUEUE_MAX, reason)
+            )
+            return
+        qparams = deepcopy(params)
+        qparams['_retry_count'] = retry_count
+        self.enqueue_send(
+            qparams, 'failed delivery (attempt {}): {}'.format(retry_count, reason)
+        )
 
     def _resolve_user_id(self):
         if self.user_id is not None:
@@ -165,7 +243,7 @@ class TelegramUB(Node):
                 'data': res.get('data'),
             }
 
-        self.do_send({'text': f'{self.name} has started up'})
+        self.do_send({'text': f'{self.name} has started up'}, startup_test=True)
         return {'status': True, 'data': res.get('data')}
 
 
@@ -289,7 +367,7 @@ class TelegramUB(Node):
         LOGGER.info('')
         return self.do_send({ 'message': self.controller.get_sys_short()})
 
-    def do_send(self,params):
+    def do_send(self, params, startup_test=False):
         LOGGER.info('params={}'.format(params))
         params = dict(params)
         title = params.pop('title', None)
@@ -315,11 +393,13 @@ class TelegramUB(Node):
         for key in ('device','priority','format','retry','expire','sound','subject'):
             if key in params:
                 del params[key]
-        #
-        # Send the message in a thread with retries
-        #
-        # Just keep serving until we are killed
-        self.thread = Thread(target=self.post,args=(params,))
+        if startup_test:
+            return self.post(params)
+        if not self.authorized:
+            self.enqueue_send(params, 'Telegram not authorized')
+            return True
+        self.flush_send_queue()
+        self.thread = Thread(target=self.post, args=(params, 0))
         self.thread.daemon = True
         LOGGER.debug('Starting Thread')
         st = self.thread.start()
@@ -327,47 +407,34 @@ class TelegramUB(Node):
         # Always have to return true case we don't know..
         return True
 
-    def post(self,params):
-        sent = False
-        retry = True
-        cnt  = 0
-        # Clear error if there was one
+    def post(self, params, retry_count=0):
         self.set_error(ERROR_NONE)
         LOGGER.debug('params={}'.format(params))
-        while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
-            cnt += 1
-            LOGGER.debug('try #{}'.format(cnt))
-            res = self.session.post(
-                f"bot{self.http_api_key}/sendMessage",
-                params,
-                content="urlencode",
-            )
-            LOGGER.debug('res={}'.format(res))
-            if telegram_ok(res):
-                sent = True
-                self.set_error(ERROR_NONE)
-                self.set_ready(True)
-            else:
-                LOGGER.error('From Telegram sendMessage: {}'.format(telegram_description(res)))
-                data = res.get('data') if isinstance(res, dict) else None
-                if isinstance(data, dict) and data.get('error_code') in (400, 401, 403, 404):
-                    retry = False
-                elif isinstance(res, dict) and res.get('code') is not None and 400 <= res['code'] < 500:
-                    LOGGER.warning('Previous error can not be fixed, will not retry')
-                    retry = False
-                elif isinstance(res, dict) and res.get('retryable') is False:
-                    retry = False
-                else:
-                    LOGGER.warning('Previous error is retryable...')
-            if (not sent):
-                self.set_error(ERROR_MESSAGE_SEND)
-                if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
-                    LOGGER.error('Giving up after {} tries'.format(cnt))
-                    retry = False
-            if (not sent and retry):
-                time.sleep(RETRY_WAIT)
-        #LOGGER.info('is_sent={} id={} sent_at={}'.format(message.is_sent, message.id, str(message.sent_at)))
-        return sent
+        res = self.session.post(
+            f"bot{self.http_api_key}/sendMessage",
+            params,
+            content="urlencode",
+        )
+        LOGGER.debug('res={}'.format(res))
+        if telegram_ok(res):
+            self.set_error(ERROR_NONE)
+            self.set_ready(True)
+            return True
+        LOGGER.error('From Telegram sendMessage: {}'.format(telegram_description(res)))
+        data = res.get('data') if isinstance(res, dict) else None
+        if isinstance(data, dict) and data.get('error_code') in (400, 401, 403, 404):
+            self.set_error(ERROR_MESSAGE_SEND)
+            return False
+        if isinstance(res, dict) and res.get('code') is not None and 400 <= res['code'] < 500:
+            LOGGER.warning('Previous error can not be fixed, will not requeue')
+            self.set_error(ERROR_MESSAGE_SEND)
+            return False
+        if isinstance(res, dict) and res.get('retryable') is False:
+            self.set_error(ERROR_MESSAGE_SEND)
+            return False
+        self.set_error(ERROR_MESSAGE_SEND)
+        self.requeue_failed_send(params, telegram_description(res), retry_count)
+        return False
 
     def get(self,url,params={}):
         params['token'] = self.http_api_key

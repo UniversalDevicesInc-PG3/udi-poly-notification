@@ -73,22 +73,42 @@ These send messages to the UD Portal which are received by the UD Mobile app.  Y
 
 Optional fallback: paste your numeric Telegram user id from <a href="https://t.me/RawDataBot" target="_blank">@RawDataBot</a> into **Users**.
 
-## WhatsApp (CallMeBot)
+## WhatsApp (CallMeBot / TextMeBot)
 
-Free personal WhatsApp text notifications via the <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">CallMeBot API</a>. Setup is done entirely in PG3x configuration — no extra Python libraries required.
+Personal WhatsApp text notifications via <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">CallMeBot</a> (free) or <a href="https://textmebot.com/" target="_blank">TextMeBot</a>. Each service node selects one provider. Setup is done entirely in PG3x configuration — no extra Python libraries required.
 
-**Limitations:** CallMeBot does not support WhatsApp group chats. Each recipient must activate CallMeBot on their own phone; one API key sends only to that phone number. To notify multiple people, add multiple recipient rows on one service node (each gets the same message as an individual DM).
+**Limitations:** Neither provider supports WhatsApp group chats. Each recipient must activate the chosen provider on their own phone; one API key sends only to that phone number. To notify multiple people, add multiple recipient rows on one service node (each gets the same message as an individual DM).
+
+### CallMeBot setup
 
 *Per recipient (repeat for each person):*
 1. Add CallMeBot contact **+34 684 73 40 44** in WhatsApp
 2. Send: `I allow callmebot to send me messages`
 3. Receive API key in WhatsApp reply (or send `Recover APIKey` if lost)
 
-*In PG3x:*
-4. Click **Add WhatsApp Service Nodes (CallMeBot)** below
+### TextMeBot setup
+
+*Per account:*
+1. Request an API key at <a href="https://textmebot.com/" target="_blank">textmebot.com</a>
+2. Follow the email instructions to link your WhatsApp number with the API
+
+TextMeBot requires at least **5 seconds between messages**; the nodeserver enforces this automatically per service node.
+
+### In PG3x
+
+4. Click **Add WhatsApp Service Nodes** below
 5. Set **Name** (8 characters or less, used as ISY node id)
-6. Add one or more **Recipients** rows with **Phone** (include country code, e.g. `+1234567890`) and **CallMeBot API key**
-7. Save and Restart — the nodeserver sends a startup test message to each recipient
+6. Set **WhatsApp API provider** to `callmebot` or `textmebot`
+7. Add one or more **Recipients** rows with **Phone** (include country code, e.g. `+1234567890`) and **API key** from your provider
+8. Save and Restart — the nodeserver sends a startup test message to each recipient
+
+## Send queue reliability
+
+When a notification cannot be delivered immediately (service not ready, profile not installed, API rate limit, or transient network error), the nodeserver queues it in memory and in PG3 customdata. Queued messages survive a nodeserver restart and are retried when the service becomes ready.
+
+- **Services:** UD Mobile, ISY Portal, WhatsApp (CallMeBot / TextMeBot), Pushover, and Telegram
+- **Limits:** Up to 128 queued items per service node; items older than 1 hour are dropped; each message is requeued at most 5 times after failure
+- **WhatsApp:** Provider rate-limit cooldown is persisted per service node so a restart during cooldown does not immediately re-hit the API
 
 ## Notify Nodes
 

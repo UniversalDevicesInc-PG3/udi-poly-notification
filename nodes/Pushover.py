@@ -6,7 +6,16 @@ from threading import Thread,Event
 import time
 import logging
 import collections
-from node_funcs import make_file_dir,is_int,get_default_sound_index
+from copy import deepcopy
+from node_funcs import (
+    make_file_dir,
+    is_int,
+    get_default_sound_index,
+    SendQueue,
+    send_queue_storage_key,
+    load_send_queue,
+    persist_send_queue,
+)
 
 ERROR_NONE       = 0
 ERROR_UNKNOWN    = 1
@@ -25,6 +34,9 @@ GROUP_LABEL_PREFIX = "Group: "
 RETRY_MAX = -1
 # How long to wait between tries, in seconds
 RETRY_WAIT = 5
+SEND_QUEUE_MAX = 128
+SEND_QUEUE_MAX_AGE = 3600
+FAILED_REQUEUE_MAX = 5
 
 class Pushover(Node):
     """
@@ -44,6 +56,7 @@ class Pushover(Node):
         self.app_key  = self.info['app_key']
         self.user_key = self.info['user_key']
         self._sys_short = None
+        self.send_queue = SendQueue(SEND_QUEUE_MAX, SEND_QUEUE_MAX_AGE)
         LOGGER.debug('{} {}'.format(address,name))
         controller.poly.subscribe(controller.poly.START,                  self.handler_start, address)
         super(Pushover, self).__init__(controller.poly, primary, address, name)
@@ -52,6 +65,7 @@ class Pushover(Node):
         """
         """
         LOGGER.info('')
+        self._load_persisted_send_queue()
         # We track our driver values because we need the value before it's been pushed.
         self.driver = {}
         self.set_device(self.get_device())
@@ -85,10 +99,72 @@ class Pushover(Node):
             self.set_error(ERROR_NONE)
             self.controller.Notices.delete(self._send_notice_key())
             self._init_st = True
+            self.controller.on_service_node_ready(self)
+            self.flush_send_queue()
         else:
             self.set_error(self._validate_error_code(vstat))
             self._update_send_notice(vstat)
             self._init_st = False
+
+    def _send_queue_key(self):
+        return send_queue_storage_key('pushover', self.iname)
+
+    def _load_persisted_send_queue(self):
+        load_send_queue(self.controller, self._send_queue_key(), self.send_queue, LOGGER)
+
+    def _persist_send_queue(self, immediate=False):
+        persist_send_queue(
+            self.controller, self._send_queue_key(), self.send_queue, immediate=immediate
+        )
+
+    def enqueue_send(self, params, reason):
+        qparams = deepcopy(params)
+        dropped = self.send_queue.enqueue(qparams)
+        if dropped is not None:
+            LOGGER.warning(
+                'Pushover {} queue full ({}), dropped oldest notification'
+                .format(self.iname, SEND_QUEUE_MAX)
+            )
+        LOGGER.warning(
+            'Queued Pushover {} notification ({} pending): {}'
+            .format(self.iname, self.send_queue.size(), reason)
+        )
+        self._persist_send_queue()
+
+    def flush_send_queue(self):
+        if not self.authorized:
+            return 0
+        items = self.send_queue.pop_all()
+        self._persist_send_queue(immediate=True)
+        if len(items) == 0:
+            return 0
+        payloads, stale = self.send_queue.keep_fresh(items)
+        if stale > 0:
+            LOGGER.warning(
+                'Dropped {} stale queued Pushover {} notifications'
+                .format(stale, self.iname)
+            )
+        for params in payloads:
+            self.post(params, retry_count=int(params.get('_retry_count', 0)))
+        LOGGER.warning(
+            'Flushed {} queued Pushover {} notifications'
+            .format(len(payloads), self.iname)
+        )
+        return len(payloads)
+
+    def requeue_failed_send(self, params, reason, retry_count=0):
+        retry_count = int(params.get('_retry_count', retry_count)) + 1
+        if retry_count > FAILED_REQUEUE_MAX:
+            LOGGER.error(
+                'Pushover {} failed message exceeded requeue max {}, dropping. reason={}'
+                .format(self.iname, FAILED_REQUEUE_MAX, reason)
+            )
+            return
+        qparams = deepcopy(params)
+        qparams['_retry_count'] = retry_count
+        self.enqueue_send(
+            qparams, 'failed delivery (attempt {}): {}'.format(retry_count, reason)
+        )
 
     def _validate_errors(self, res):
         if not isinstance(res, dict):
@@ -973,48 +1049,39 @@ class Pushover(Node):
             elif p == 2:
                 params['monospace'] = 1
         params['token'] = self.app_key
-        self.thread = Thread(target=self.post, args=(params,))
+        if not self.authorized:
+            self.enqueue_send(params, 'Pushover not authorized')
+            return True
+        self.flush_send_queue()
+        self.thread = Thread(target=self.post, args=(params, 0))
         self.thread.daemon = True
         LOGGER.debug('Starting Thread')
         st = self.thread.start()
         LOGGER.debug('Thread start st={}'.format(st))
         return True
 
-    def post(self,params):
-        sent = False
-        retry = True
-        cnt  = 0
+    def post(self, params, retry_count=0):
         LOGGER.debug('params={}'.format(params))
-        while (not sent and retry and (RETRY_MAX < 0 or cnt < RETRY_MAX)):
-            cnt += 1
-            LOGGER.info('try #{}'.format(cnt))
-            res = self.session.post("1/messages.json", params, content="urlencode")
-            if self._pushover_ok(res):
-                sent = True
-                self.set_error(ERROR_NONE)
-                self.controller.Notices.delete(self._send_notice_key())
-            else:
-                LOGGER.debug('res={}'.format(res))
-                detail = self._pushover_error_text(res)
-                if detail:
-                    LOGGER.error('From Pushover: {}'.format(detail))
-                elif isinstance(res, dict):
-                    LOGGER.error('From Pushover: {}'.format(
-                        res.get('errorMessage') or res
-                    ))
-                if self._is_client_error(res):
-                    LOGGER.warning('Previous error can not be fixed, will not retry')
-                    retry = False
-                else:
-                    LOGGER.warning('Previous error is retryable...')
-            if (not sent):
-                self._handle_send_failure(res)
-                if (retry and (RETRY_MAX > 0 and cnt == RETRY_MAX)):
-                    LOGGER.error('Giving up after {} tries'.format(cnt))
-                    retry = False
-            if (not sent and retry):
-                time.sleep(RETRY_WAIT)
-        return sent
+        res = self.session.post("1/messages.json", params, content="urlencode")
+        if self._pushover_ok(res):
+            self.set_error(ERROR_NONE)
+            self.controller.Notices.delete(self._send_notice_key())
+            return True
+        LOGGER.debug('res={}'.format(res))
+        detail = self._pushover_error_text(res)
+        if detail:
+            LOGGER.error('From Pushover: {}'.format(detail))
+        elif isinstance(res, dict):
+            LOGGER.error('From Pushover: {}'.format(
+                res.get('errorMessage') or res
+            ))
+        self._handle_send_failure(res)
+        if self._is_client_error(res):
+            LOGGER.warning('Previous error can not be fixed, will not requeue')
+            return False
+        reason = detail or 'retryable Pushover error'
+        self.requeue_failed_send(params, reason, retry_count)
+        return False
 
     def get(self,url,params={}):
         params['token'] = self.app_key

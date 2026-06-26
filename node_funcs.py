@@ -3,8 +3,12 @@ import os
 import re
 import json
 import time
+import logging
 from collections import deque
-from threading import Lock
+from threading import Lock, Timer
+
+QUEUE_LOGGER = logging.getLogger(__name__)
+SEND_QUEUE_SAVE_DELAY = 1.0
 
 
 def get_messages():
@@ -216,9 +220,35 @@ class SendQueue:
             self.items.clear()
         return items
 
+    def clear(self):
+        with self.lock:
+            self.items.clear()
+
     def size(self):
         with self.lock:
             return len(self.items)
+
+    def snapshot(self):
+        with self.lock:
+            return [{'ts': item['ts'], 'payload': item['payload']} for item in self.items]
+
+    def restore(self, items):
+        validated = []
+        if isinstance(items, list):
+            for item in items:
+                if not isinstance(item, dict) or 'payload' not in item:
+                    continue
+                try:
+                    ts = float(item.get('ts', time.time()))
+                except (TypeError, ValueError):
+                    ts = time.time()
+                validated.append({'ts': ts, 'payload': item['payload']})
+        with self.lock:
+            self.items.clear()
+            for item in validated:
+                self.items.append(item)
+            while len(self.items) > self.max_items:
+                self.items.popleft()
 
     def keep_fresh(self, items):
         now = time.time()
@@ -231,3 +261,89 @@ class SendQueue:
             else:
                 stale += 1
         return fresh, stale
+
+    def filter_fresh_items(self, items):
+        now = time.time()
+        fresh = []
+        stale = 0
+        for item in items:
+            ts = item.get('ts', 0)
+            if now - ts <= self.max_age:
+                fresh.append(item)
+            else:
+                stale += 1
+        return fresh, stale
+
+
+class DebouncedCustomSaver:
+    """Coalesce rapid controller.Data writes for the same key."""
+
+    def __init__(self, delay=SEND_QUEUE_SAVE_DELAY):
+        self.delay = delay
+        self._lock = Lock()
+        self._timers = {}
+
+    def schedule(self, controller, key, value):
+        with self._lock:
+            timer = self._timers.pop(key, None)
+            if timer is not None:
+                timer.cancel()
+            timer = Timer(self.delay, self._write, args=(controller, key, value, key))
+            timer.daemon = True
+            self._timers[key] = timer
+            timer.start()
+
+    def write_now(self, controller, key, value):
+        with self._lock:
+            timer = self._timers.pop(key, None)
+            if timer is not None:
+                timer.cancel()
+        controller.Data[key] = value
+
+    def _write(self, controller, key, value, timer_key):
+        with self._lock:
+            if self._timers.get(timer_key) is not None:
+                self._timers.pop(timer_key, None)
+        controller.Data[key] = value
+
+
+_SEND_QUEUE_DEBOUNCER = DebouncedCustomSaver()
+
+
+def get_send_queue_debouncer():
+    return _SEND_QUEUE_DEBOUNCER
+
+
+def send_queue_storage_key(service, iname=None):
+    if iname:
+        return f'send_queue_{service}_{iname}'
+    return f'send_queue_{service}'
+
+
+def load_send_queue(controller, key, queue, logger=None):
+    log = logger or QUEUE_LOGGER
+    raw = controller.get_data(key, [])
+    if not isinstance(raw, list):
+        if raw not in (None, []):
+            log.warning('Ignoring corrupt send queue data for %s', key)
+        return 0, 0
+    fresh_items, stale = queue.filter_fresh_items(raw)
+    queue.restore(fresh_items)
+    if stale > 0:
+        log.warning('Dropped %s stale queued notification(s) for %s', stale, key)
+    loaded = queue.size()
+    if loaded > 0:
+        log.info('Restored %s queued notification(s) for %s', loaded, key)
+    if stale > 0 or loaded != len(raw):
+        persist_send_queue(controller, key, queue, immediate=True)
+    return loaded, stale
+
+
+def persist_send_queue(controller, key, queue, immediate=False, debouncer=None):
+    if debouncer is None:
+        debouncer = get_send_queue_debouncer()
+    snapshot = queue.snapshot()
+    if immediate:
+        debouncer.write_now(controller, key, snapshot)
+    else:
+        debouncer.schedule(controller, key, snapshot)
