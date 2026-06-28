@@ -7,6 +7,12 @@ and versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [3.6.32] - 2026-06-28
+
+### Fixed
+
+- **ISY Portal GV10 without Sound:** Program sends that omit optional Sound/Device params no longer crash with `TypeError` on `int(None)`; defaults from the node are used instead.
+
 ## [3.6.31] - 2026-06-26
 
 ### Added

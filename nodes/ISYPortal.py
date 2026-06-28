@@ -629,7 +629,11 @@ class ISYPortal(Node):
     def cmd_send_sys_short_with_params(self,command):
         LOGGER.debug(f'command={command}')
         query = command.get('query')
-        params = { 'device': query.get('Device.uom25'), 'sound': query.get('Sound.uom25')}
+        params = {}
+        if query.get('Device.uom25') is not None:
+            params['device'] = query.get('Device.uom25')
+        if query.get('Sound.uom25') is not None:
+            params['sound'] = query.get('Sound.uom25')
         msg = self.controller.get_message_from_query(query)
         params['title'] = msg['subject']
         params['body']  = msg['body']
@@ -661,10 +665,10 @@ class ISYPortal(Node):
             params['body'] = ' '
         device = 'default'
         # The device and group is in the same list, so both are accepted
-        if 'device' in params:
+        if 'device' in params and params['device'] is not None:
             device_or_group = params['device']
             del params['device']
-        elif 'group' in params:
+        elif 'group' in params and params['group'] is not None:
             device_or_group = params['group']
             del params['group']
         else:
@@ -678,7 +682,7 @@ class ISYPortal(Node):
                 else:
                     params['group_id'] = item['id']
         sound = None
-        if 'sound' in params:
+        if 'sound' in params and params['sound'] is not None:
             if is_int(params['sound']):
                 sound = self.get_ISYPortal_sound(params['sound'])
             else:
